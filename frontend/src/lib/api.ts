@@ -71,6 +71,7 @@ export const api = {
   createMatch: (data: any) => request<any>('/matches', { method: 'POST', body: JSON.stringify(data) }),
   confirmMatch: (id: string) => request<any>(`/matches/${id}/confirm`, { method: 'POST', body: JSON.stringify({}) }),
   disputeMatch: (id: string, reason: string, details: string) => request<any>(`/matches/${id}/dispute`, { method: 'POST', body: JSON.stringify({ reason, details }) }),
+  deleteMatch: (id: string) => request<void>(`/matches/${id}`, { method: 'DELETE' }),
 
   // Leaderboards
   getLeaderboards: () => request<any>('/leaderboards'),

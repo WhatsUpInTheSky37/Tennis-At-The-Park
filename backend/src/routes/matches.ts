@@ -46,12 +46,27 @@ export async function matchRoutes(server: FastifyInstance) {
     if (query.userId) {
       where.teamsJson = { path: '$.team1', array_contains: query.userId }
     }
-    return prisma.match.findMany({
+    const matches = await prisma.match.findMany({
       where,
       include: { location: true },
       orderBy: { playedAt: 'desc' },
       take: 50
     })
+
+    // Resolve player names from teamsJson
+    const allPlayerIds = new Set<string>()
+    for (const m of matches) {
+      const teams = m.teamsJson as { team1: string[], team2: string[] }
+      for (const id of [...teams.team1, ...teams.team2]) allPlayerIds.add(id)
+    }
+    const profiles = await prisma.profile.findMany({
+      where: { userId: { in: Array.from(allPlayerIds) } },
+      select: { userId: true, displayName: true }
+    })
+    const nameMap: Record<string, string> = {}
+    for (const p of profiles) nameMap[p.userId] = p.displayName
+
+    return matches.map(m => ({ ...m, playerNames: nameMap }))
   })
 
   server.post('/', { preHandler: [(server as any).authenticate] }, async (req, reply) => {
@@ -119,5 +134,26 @@ export async function matchRoutes(server: FastifyInstance) {
     const match = await prisma.match.findUnique({ where: { id }, include: { location: true, disputes: true } })
     if (!match) return reply.status(404).send({ error: 'Not found' })
     return match
+  })
+
+  // Delete/cancel a match (only by a player in the match, only if pending)
+  server.delete('/:id', { preHandler: [(server as any).authenticate] }, async (req, reply) => {
+    const { userId } = (req as any).user
+    const { id } = req.params as { id: string }
+    const match = await prisma.match.findUnique({ where: { id } })
+    if (!match) return reply.status(404).send({ error: 'Not found' })
+
+    const teams = match.teamsJson as { team1: string[], team2: string[] }
+    if (![...teams.team1, ...teams.team2].includes(userId)) {
+      return reply.status(403).send({ error: 'Not in match' })
+    }
+    if (match.status !== 'pending_confirmation') {
+      return reply.status(400).send({ error: 'Only pending matches can be deleted' })
+    }
+
+    // Delete related disputes first, then the match
+    await prisma.dispute.deleteMany({ where: { matchId: id } })
+    await prisma.match.delete({ where: { id } })
+    return reply.status(204).send()
   })
 }
