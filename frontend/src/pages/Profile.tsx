@@ -4,6 +4,7 @@ import { api } from '../lib/api'
 import { useAuth } from '../store/auth'
 import { skillLabel, getInitials } from '../lib/utils'
 import SkillDisplay from '../components/SkillDisplay'
+import ChallengeModal from '../components/ChallengeModal'
 
 const CLOUDINARY_CLOUD = 'dph3sgfc3'
 const CLOUDINARY_UPLOAD_PRESET = 'ultimate_tennis_avatars'
@@ -20,6 +21,7 @@ export default function Profile() {
   const [profile, setProfile] = useState<any>(null)
   const [rating, setRating] = useState<any>(null)
   const [editing, setEditing] = useState(false)
+  const [showChallenge, setShowChallenge] = useState(false)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
@@ -107,13 +109,17 @@ export default function Profile() {
       <div className="page-header flex items-center justify-between">
         <h1 className="page-title">PROFILE</h1>
         <div className="flex gap-2">
-          {isOwnProfile && (
+          {isOwnProfile ? (
             <>
               <button className="btn btn-secondary btn-sm" onClick={() => setEditing(!editing)}>
-                {editing ? 'Cancel' : '✏️ Edit'}
+                {editing ? 'Cancel' : 'Edit'}
               </button>
               <button className="btn btn-ghost btn-sm" onClick={() => { logout(); navigate('/') }}>Sign Out</button>
             </>
+          ) : user && (
+            <button className="btn btn-primary btn-sm" onClick={() => setShowChallenge(true)}>
+              &#9876;&#65039; Challenge
+            </button>
           )}
         </div>
       </div>
@@ -290,6 +296,14 @@ export default function Profile() {
             {saving ? 'Saving…' : 'Save Profile'}
           </button>
         </form>
+      )}
+
+      {showChallenge && targetId && profile && (
+        <ChallengeModal
+          targetUserId={targetId}
+          targetName={profile.displayName || 'Player'}
+          onClose={() => setShowChallenge(false)}
+        />
       )}
     </div>
   )

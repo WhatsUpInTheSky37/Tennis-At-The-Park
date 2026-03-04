@@ -77,3 +77,31 @@ export interface LeaderboardEntry {
   wins: number;
   losses: number;
 }
+
+export interface Challenge {
+  id: string;
+  challengerId: string;
+  challengedId: string;
+  locationId: string;
+  proposedTime: string;
+  proposedEndTime: string;
+  format: string;
+  stakes: string;
+  message: string;
+  status: 'pending' | 'accepted' | 'declined' | 'cancelled' | 'expired' | 'completed';
+  declineReason: string;
+  matchId?: string;
+  createdAt: string;
+  updatedAt: string;
+  challenger: {
+    id: string;
+    profile: { displayName: string; skillLevel: number; photoUrl?: string } | null;
+    rating?: { elo: number; wins: number; losses: number; matchesPlayed: number } | null;
+  };
+  challenged: {
+    id: string;
+    profile: { displayName: string; skillLevel: number; photoUrl?: string } | null;
+    rating?: { elo: number; wins: number; losses: number; matchesPlayed: number } | null;
+  };
+  location: Location;
+}

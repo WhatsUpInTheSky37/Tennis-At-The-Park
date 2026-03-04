@@ -16,6 +16,8 @@ import FindPlayers from './pages/FindPlayers'
 import Rules from './pages/Rules'
 import Admin from './pages/Admin'
 import AuthPage from './pages/Auth'
+import Challenges from './pages/Challenges'
+import Calendar from './pages/Calendar'
 
 // Components
 import TopNav from './components/TopNav'
@@ -60,6 +62,8 @@ function AppShell() {
           <Route path="/sessions/:id" element={<SessionDetail />} />
           <Route path="/matches" element={<Matches />} />
           <Route path="/matches/record" element={user ? <RecordMatch /> : <Navigate to="/auth" />} />
+          <Route path="/challenges" element={user ? <Challenges /> : <Navigate to="/auth" />} />
+          <Route path="/calendar" element={user ? <Calendar /> : <Navigate to="/auth" />} />
           <Route path="/leaderboards" element={<Leaderboards />} />
           <Route path="/players" element={<FindPlayers />} />
           <Route path="/profile" element={user ? <Profile /> : <Navigate to="/auth" />} />

@@ -5,19 +5,34 @@ import { api } from '../lib/api'
 import SessionCard from '../components/SessionCard'
 import DisclaimerBox from '../components/DisclaimerBox'
 import { format } from 'date-fns'
+import { formatDateTime, formatTime, getInitials } from '../lib/utils'
+import SkillDisplay from '../components/SkillDisplay'
 
 export default function Dashboard() {
   const { user, refresh } = useAuth()
   const navigate = useNavigate()
   const [sessions, setSessions] = useState<any[]>([])
+  const [pendingChallenges, setPendingChallenges] = useState<any[]>([])
   const [lookingToPlay, setLookingToPlay] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [challengeActionLoading, setChallengeActionLoading] = useState<string | null>(null)
 
   useEffect(() => {
     const today = format(new Date(), 'yyyy-MM-dd')
     api.getSessions({ date: today }).then(s => { setSessions(s); setLoading(false) })
+    api.getChallenges({ direction: 'received', status: 'pending' })
+      .then(setPendingChallenges)
+      .catch(() => {})
     if (user) setLookingToPlay(user.profile?.lookingToPlay || false)
   }, [])
+
+  const handleAcceptChallenge = async (id: string) => {
+    setChallengeActionLoading(id)
+    try {
+      await api.acceptChallenge(id)
+      setPendingChallenges(prev => prev.filter(c => c.id !== id))
+    } finally { setChallengeActionLoading(null) }
+  }
 
   const toggleLookingToPlay = async () => {
     const next = !lookingToPlay
@@ -58,20 +73,93 @@ export default function Dashboard() {
       <DisclaimerBox showRotation />
 
       {/* Quick Actions */}
-      <div className="grid-3 mb-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))' }}>
+      <div className="grid-3 mb-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))' }}>
         <button className="card clickable text-center" onClick={() => navigate('/sessions/new')}>
-          <div style={{ fontSize: 28, marginBottom: 6 }}>📅</div>
+          <div style={{ fontSize: 28, marginBottom: 6 }}>&#128197;</div>
           <div className="font-bold text-sm">Plan Session</div>
         </button>
         <button className="card clickable text-center" onClick={() => navigate('/matches/record')}>
-          <div style={{ fontSize: 28, marginBottom: 6 }}>🏆</div>
+          <div style={{ fontSize: 28, marginBottom: 6 }}>&#127942;</div>
           <div className="font-bold text-sm">Record Match</div>
         </button>
         <button className="card clickable text-center" onClick={() => navigate('/players')}>
-          <div style={{ fontSize: 28, marginBottom: 6 }}>👥</div>
+          <div style={{ fontSize: 28, marginBottom: 6 }}>&#128101;</div>
           <div className="font-bold text-sm">Find Players</div>
         </button>
+        <button className="card clickable text-center" onClick={() => navigate('/challenges')} style={{ position: 'relative' }}>
+          <div style={{ fontSize: 28, marginBottom: 6 }}>&#9876;&#65039;</div>
+          <div className="font-bold text-sm">Challenges</div>
+          {pendingChallenges.length > 0 && (
+            <span style={{
+              position: 'absolute', top: 6, right: 6,
+              background: 'var(--red)', color: '#fff', borderRadius: '50%',
+              width: 20, height: 20, fontSize: 11, display: 'flex',
+              alignItems: 'center', justifyContent: 'center', fontWeight: 700
+            }}>
+              {pendingChallenges.length}
+            </span>
+          )}
+        </button>
       </div>
+
+      {/* Pending Challenges */}
+      {pendingChallenges.length > 0 && (
+        <div className="section mb-4">
+          <h2 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            &#9876;&#65039; INCOMING CHALLENGES
+            <span style={{
+              background: 'var(--red)', color: '#fff', borderRadius: 12,
+              padding: '2px 8px', fontSize: 12, fontWeight: 700
+            }}>
+              {pendingChallenges.length}
+            </span>
+          </h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {pendingChallenges.slice(0, 3).map(c => (
+              <div key={c.id} className="card" style={{ borderLeft: '4px solid var(--orange)' }}>
+                <div className="flex gap-3 items-center mb-2">
+                  <div className="avatar" style={{ width: 40, height: 40, fontSize: 16, background: 'var(--accent-dim)' }}>
+                    {c.challenger?.profile?.photoUrl
+                      ? <img src={c.challenger.profile.photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                      : getInitials(c.challenger?.profile?.displayName || '?')}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div className="font-bold text-sm">{c.challenger?.profile?.displayName} challenged you</div>
+                    <div className="text-xs text-muted">
+                      {c.format} &#183; {formatDateTime(c.proposedTime)} &#183; {c.location?.name}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={() => handleAcceptChallenge(c.id)}
+                      disabled={challengeActionLoading === c.id}
+                    >
+                      Accept
+                    </button>
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => navigate('/challenges')}
+                    >
+                      View
+                    </button>
+                  </div>
+                </div>
+                {c.message && (
+                  <p className="text-xs text-muted" style={{ background: 'var(--bg3)', padding: '4px 8px', borderRadius: 4 }}>
+                    "{c.message}"
+                  </p>
+                )}
+              </div>
+            ))}
+            {pendingChallenges.length > 3 && (
+              <button className="btn btn-ghost btn-sm" onClick={() => navigate('/challenges')}>
+                View all {pendingChallenges.length} challenges &#8594;
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Stats snapshot — no Elo */}
       {user?.rating && (

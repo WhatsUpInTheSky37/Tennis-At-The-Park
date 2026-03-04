@@ -79,6 +79,22 @@ export const api = {
   // Reports
   createReport: (data: any) => request<any>('/reports', { method: 'POST', body: JSON.stringify(data) }),
 
+  // Challenges
+  getChallenges: (params?: Record<string, string>) => {
+    const q = params ? '?' + new URLSearchParams(params).toString() : ''
+    return request<any[]>(`/challenges${q}`)
+  },
+  getChallenge: (id: string) => request<any>(`/challenges/${id}`),
+  createChallenge: (data: any) => request<any>('/challenges', { method: 'POST', body: JSON.stringify(data) }),
+  acceptChallenge: (id: string) => request<any>(`/challenges/${id}/accept`, { method: 'POST', body: JSON.stringify({}) }),
+  declineChallenge: (id: string, reason?: string) => request<any>(`/challenges/${id}/decline`, { method: 'POST', body: JSON.stringify({ reason }) }),
+  cancelChallenge: (id: string) => request<any>(`/challenges/${id}/cancel`, { method: 'POST', body: JSON.stringify({}) }),
+  getPendingChallengeCount: () => request<{ count: number }>('/challenges/pending-count'),
+  getCalendarEvents: (params?: Record<string, string>) => {
+    const q = params ? '?' + new URLSearchParams(params).toString() : ''
+    return request<any>(`/challenges/calendar/events${q}`)
+  },
+
   // Admin
   adminGetReports: () => request<any[]>('/admin/reports'),
   adminResolveReport: (id: string, status: string) => request<any>(`/admin/reports/${id}/resolve`, { method: 'POST', body: JSON.stringify({ status }) }),

@@ -14,6 +14,7 @@ import { leaderboardRoutes } from './routes/leaderboards'
 import { reportRoutes } from './routes/reports'
 import { adminRoutes } from './routes/admin'
 import { playerRoutes } from './routes/players'
+import { challengeRoutes } from './routes/challenges'
 
 const server = Fastify({ logger: true })
 const JWT_SECRET = process.env.JWT_SECRET || 'changeme-secret-at-least-32-chars!!'
@@ -35,6 +36,7 @@ server.register(leaderboardRoutes, { prefix: '/leaderboards' })
 server.register(reportRoutes, { prefix: '/reports' })
 server.register(adminRoutes, { prefix: '/admin' })
 server.register(playerRoutes, { prefix: '/players' })
+server.register(challengeRoutes, { prefix: '/challenges' })
 
 server.get('/health', async () => ({ status: 'ok' }))
 
