@@ -74,21 +74,21 @@ export default function Dashboard() {
 
       {/* Quick Actions */}
       <div className="grid-3 mb-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))' }}>
-        <button className="card clickable text-center" onClick={() => navigate('/sessions/new')}>
+        <button className="card clickable text-center" style={{ background: 'var(--green-700)', color: 'white', borderColor: 'var(--green-700)' }} onClick={() => navigate('/sessions/new')}>
           <div style={{ fontSize: 28, marginBottom: 6 }}>&#128197;</div>
-          <div className="font-bold text-sm">Plan Session</div>
+          <div className="font-bold text-sm" style={{ color: 'white' }}>Plan Session</div>
         </button>
-        <button className="card clickable text-center" onClick={() => navigate('/matches/record')}>
+        <button className="card clickable text-center" style={{ background: 'var(--green-700)', color: 'white', borderColor: 'var(--green-700)' }} onClick={() => navigate('/matches/record')}>
           <div style={{ fontSize: 28, marginBottom: 6 }}>&#127942;</div>
-          <div className="font-bold text-sm">Record Match</div>
+          <div className="font-bold text-sm" style={{ color: 'white' }}>Record Match</div>
         </button>
-        <button className="card clickable text-center" onClick={() => navigate('/players')}>
+        <button className="card clickable text-center" style={{ background: 'var(--green-700)', color: 'white', borderColor: 'var(--green-700)' }} onClick={() => navigate('/players')}>
           <div style={{ fontSize: 28, marginBottom: 6 }}>&#128101;</div>
-          <div className="font-bold text-sm">Find Players</div>
+          <div className="font-bold text-sm" style={{ color: 'white' }}>Find Players</div>
         </button>
-        <button className="card clickable text-center" onClick={() => navigate('/challenges')} style={{ position: 'relative' }}>
+        <button className="card clickable text-center" style={{ background: 'var(--green-700)', color: 'white', borderColor: 'var(--green-700)', position: 'relative' }} onClick={() => navigate('/challenges')}>
           <div style={{ fontSize: 28, marginBottom: 6 }}>&#9876;&#65039;</div>
-          <div className="font-bold text-sm">Challenges</div>
+          <div className="font-bold text-sm" style={{ color: 'white' }}>Challenges</div>
           {pendingChallenges.length > 0 && (
             <span style={{
               position: 'absolute', top: 6, right: 6,

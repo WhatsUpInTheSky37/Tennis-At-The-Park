@@ -32,6 +32,10 @@ export const api = {
   login: (email: string, password: string) =>
     request<any>('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
   me: () => request<any>('/auth/me'),
+  changePassword: (currentPassword: string, newPassword: string) =>
+    request<any>('/auth/change-password', { method: 'POST', body: JSON.stringify({ currentPassword, newPassword }) }),
+  resetPassword: (email: string, newPassword: string) =>
+    request<any>('/auth/reset-password', { method: 'POST', body: JSON.stringify({ email, newPassword }) }),
 
   // Profiles
   getMyProfile: () => request<any>('/profiles/me'),
