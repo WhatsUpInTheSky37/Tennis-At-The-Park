@@ -19,6 +19,8 @@ model User {
   sessionParticipants SessionParticipant[]
   invitesSent         Invite[]           @relation("InviteSender")
   invitesReceived     Invite[]           @relation("InviteReceiver")
+  challengesSent      Challenge[]        @relation("ChallengesSent")
+  challengesReceived  Challenge[]        @relation("ChallengesReceived")
   messages            Message[]
   reportsFiled        Report[]           @relation("Reporter")
   reportsAgainst      Report[]           @relation("Reported")
@@ -53,6 +55,7 @@ model Location {
   courtCount Int      @map("court_count")
   sessions   Session[]
   matches    Match[]
+  challenges Challenge[]
 
   @@map("locations")
 }
@@ -144,10 +147,11 @@ model Match {
   status           String   @default("normal")
   createdAt        DateTime @default(now()) @map("created_at")
 
-  session   Session?  @relation(fields: [sessionId], references: [id])
-  location  Location  @relation(fields: [locationId], references: [id])
-  disputes  Dispute[]
-  reports   Report[]
+  session    Session?    @relation(fields: [sessionId], references: [id])
+  location   Location    @relation(fields: [locationId], references: [id])
+  disputes   Dispute[]
+  reports    Report[]
+  challenges Challenge[]
 
   @@index([playedAt])
   @@map("matches")
@@ -215,4 +219,31 @@ model Enforcement {
   user User @relation(fields: [userId], references: [id])
 
   @@map("enforcement")
+}
+
+model Challenge {
+  id              String   @id @default(cuid())
+  challengerId    String   @map("challenger_id")
+  challengedId    String   @map("challenged_id")
+  locationId      String   @map("location_id")
+  proposedTime    DateTime @map("proposed_time")
+  proposedEndTime DateTime @map("proposed_end_time")
+  format          String
+  stakes          String   @default("casual")
+  message         String   @default("")
+  status          String   @default("pending")
+  declineReason   String   @default("") @map("decline_reason")
+  matchId         String?  @map("match_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  challenger User     @relation("ChallengesSent", fields: [challengerId], references: [id])
+  challenged User     @relation("ChallengesReceived", fields: [challengedId], references: [id])
+  location   Location @relation(fields: [locationId], references: [id])
+  match      Match?   @relation(fields: [matchId], references: [id])
+
+  @@index([challengerId])
+  @@index([challengedId])
+  @@index([status])
+  @@map("challenges")
 }
