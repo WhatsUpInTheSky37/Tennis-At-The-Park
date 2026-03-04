@@ -1,0 +1,218 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  isAdmin      Boolean  @default(false) @map("is_admin")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  profile             Profile?
+  sessionsCreated     Session[]          @relation("SessionCreator")
+  sessionParticipants SessionParticipant[]
+  invitesSent         Invite[]           @relation("InviteSender")
+  invitesReceived     Invite[]           @relation("InviteReceiver")
+  messages            Message[]
+  reportsFiled        Report[]           @relation("Reporter")
+  reportsAgainst      Report[]           @relation("Reported")
+  disputesOpened      Dispute[]
+  rating              Rating?
+  enforcement         Enforcement?
+
+  @@map("users")
+}
+
+model Profile {
+  userId       String   @id @map("user_id")
+  displayName  String   @map("display_name")
+  skillLevel   Float    @default(3.0) @map("skill_level")
+  handedness   String   @default("right")
+  bio          String   @default("")
+  lookingToPlay Boolean @default(false) @map("looking_to_play")
+  availabilityJson Json? @map("availability_json")
+  photoUrl     String?  @map("photo_url")
+  preferredFormats String[] @map("preferred_formats")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("profiles")
+}
+
+model Location {
+  id         String   @id @default(cuid())
+  name       String
+  lighted    Boolean
+  courtCount Int      @map("court_count")
+  sessions   Session[]
+  matches    Match[]
+
+  @@map("locations")
+}
+
+model Session {
+  id          String   @id @default(cuid())
+  createdBy   String   @map("created_by")
+  locationId  String   @map("location_id")
+  courtNumber Int?     @map("court_number")
+  startTime   DateTime @map("start_time")
+  endTime     DateTime @map("end_time")
+  format      String
+  stakes      String   @default("casual")
+  levelMin    Float    @map("level_min")
+  levelMax    Float    @map("level_max")
+  notes       String   @default("")
+  status      String   @default("open")
+  flexibleCourt Boolean @default(false) @map("flexible_court")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  creator      User                 @relation("SessionCreator", fields: [createdBy], references: [id])
+  location     Location             @relation(fields: [locationId], references: [id])
+  participants SessionParticipant[]
+  invites      Invite[]
+  messages     Message[]
+  matches      Match[]
+
+  @@index([locationId, startTime])
+  @@index([status])
+  @@map("sessions")
+}
+
+model SessionParticipant {
+  sessionId String @map("session_id")
+  userId    String @map("user_id")
+  role      String @default("guest")
+  status    String @default("confirmed")
+
+  session Session @relation(fields: [sessionId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@id([sessionId, userId])
+  @@map("session_participants")
+}
+
+model Invite {
+  id        String   @id @default(cuid())
+  sessionId String   @map("session_id")
+  fromUser  String   @map("from_user")
+  toUser    String   @map("to_user")
+  status    String   @default("pending")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  session Session @relation(fields: [sessionId], references: [id])
+  sender  User    @relation("InviteSender", fields: [fromUser], references: [id])
+  receiver User   @relation("InviteReceiver", fields: [toUser], references: [id])
+
+  @@map("invites")
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  sessionId String   @map("session_id")
+  fromUser  String   @map("from_user")
+  body      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  session Session @relation(fields: [sessionId], references: [id])
+  user    User    @relation(fields: [fromUser], references: [id])
+  reports Report[]
+
+  @@index([sessionId])
+  @@map("messages")
+}
+
+model Match {
+  id               String   @id @default(cuid())
+  sessionId        String?  @map("session_id")
+  playedAt         DateTime @map("played_at")
+  locationId       String   @map("location_id")
+  courtNumber      Int?     @map("court_number")
+  format           String
+  teamsJson        Json     @map("teams_json")
+  scoreJson        Json     @map("score_json")
+  winnerUserIdsJson Json    @map("winner_user_ids_json")
+  retiredFlag      Boolean  @default(false) @map("retired_flag")
+  timeRanOutFlag   Boolean  @default(false) @map("time_ran_out_flag")
+  notes            String   @default("")
+  status           String   @default("normal")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  session   Session?  @relation(fields: [sessionId], references: [id])
+  location  Location  @relation(fields: [locationId], references: [id])
+  disputes  Dispute[]
+  reports   Report[]
+
+  @@index([playedAt])
+  @@map("matches")
+}
+
+model Dispute {
+  id        String   @id @default(cuid())
+  matchId   String   @map("match_id")
+  openedBy  String   @map("opened_by")
+  reason    String
+  details   String
+  status    String   @default("open")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  match    Match @relation(fields: [matchId], references: [id])
+  opener   User  @relation(fields: [openedBy], references: [id])
+  reports  Report[]
+
+  @@map("disputes")
+}
+
+model Report {
+  id             String   @id @default(cuid())
+  reporterUser   String   @map("reporter_user")
+  reportedUser   String?  @map("reported_user")
+  messageId      String?  @map("message_id")
+  matchId        String?  @map("match_id")
+  sessionId      String?  @map("session_id")
+  disputeId      String?  @map("dispute_id")
+  category       String
+  details        String
+  status         String   @default("pending")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  reporter User     @relation("Reporter", fields: [reporterUser], references: [id])
+  reported User?    @relation("Reported", fields: [reportedUser], references: [id])
+  message  Message? @relation(fields: [messageId], references: [id])
+  match    Match?   @relation(fields: [matchId], references: [id])
+  dispute  Dispute? @relation(fields: [disputeId], references: [id])
+
+  @@map("reports")
+}
+
+model Rating {
+  userId        String   @id @map("user_id")
+  elo           Float    @default(1200)
+  matchesPlayed Int      @default(0) @map("matches_played")
+  wins          Int      @default(0)
+  losses        Int      @default(0)
+  currentStreak Int      @default(0) @map("current_streak")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("ratings")
+}
+
+model Enforcement {
+  userId       String    @id @map("user_id")
+  warningCount Int       @default(0) @map("warning_count")
+  cooldownUntil DateTime? @map("cooldown_until")
+  suspended    Boolean   @default(false)
+  notes        String    @default("")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("enforcement")
+}

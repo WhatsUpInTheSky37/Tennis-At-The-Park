@@ -1,0 +1,121 @@
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../store/auth'
+import { api } from '../lib/api'
+import SessionCard from '../components/SessionCard'
+import DisclaimerBox from '../components/DisclaimerBox'
+import { format } from 'date-fns'
+
+export default function Dashboard() {
+  const { user, refresh } = useAuth()
+  const navigate = useNavigate()
+  const [sessions, setSessions] = useState<any[]>([])
+  const [lookingToPlay, setLookingToPlay] = useState(false)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const today = format(new Date(), 'yyyy-MM-dd')
+    api.getSessions({ date: today }).then(s => { setSessions(s); setLoading(false) })
+    if (user) setLookingToPlay(user.profile?.lookingToPlay || false)
+  }, [])
+
+  const toggleLookingToPlay = async () => {
+    const next = !lookingToPlay
+    setLookingToPlay(next)
+    await api.updateMyProfile({ lookingToPlay: next })
+    refresh()
+  }
+
+  const mySessions = sessions.filter(s => s.participants?.some((p: any) => p.userId === user?.id))
+  const communitySessions = sessions.filter(s => !s.participants?.some((p: any) => p.userId === user?.id))
+
+  return (
+    <div className="page">
+      <div className="page-header flex items-center justify-between">
+        <div>
+          <h1 className="page-title">DASHBOARD</h1>
+          <p className="page-subtitle">Today, {format(new Date(), 'EEEE MMMM d')}</p>
+        </div>
+        <button className="btn btn-primary" onClick={() => navigate('/sessions/new')}>+ Plan Session</button>
+      </div>
+
+      {/* Looking to Play Toggle */}
+      <div
+        className={`ltp-toggle mb-4 ${lookingToPlay ? 'active' : ''}`}
+        onClick={toggleLookingToPlay}
+        role="button"
+        tabIndex={0}
+        aria-label="Toggle looking to play"
+        style={{ maxWidth: 400 }}
+      >
+        <div className={`toggle-switch ${lookingToPlay ? 'on' : ''}`} />
+        <div>
+          <div className="font-bold">{lookingToPlay ? '🟢 Looking to Play' : '⚪ Available to Play'}</div>
+          <div className="text-xs text-muted">Let others know you want a game today</div>
+        </div>
+      </div>
+
+      <DisclaimerBox showRotation />
+
+      {/* Quick Actions */}
+      <div className="grid-3 mb-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))' }}>
+        <button className="card clickable text-center" onClick={() => navigate('/sessions/new')}>
+          <div style={{ fontSize: 28, marginBottom: 6 }}>📅</div>
+          <div className="font-bold text-sm">Plan Session</div>
+        </button>
+        <button className="card clickable text-center" onClick={() => navigate('/matches/record')}>
+          <div style={{ fontSize: 28, marginBottom: 6 }}>🏆</div>
+          <div className="font-bold text-sm">Record Match</div>
+        </button>
+        <button className="card clickable text-center" onClick={() => navigate('/players')}>
+          <div style={{ fontSize: 28, marginBottom: 6 }}>👥</div>
+          <div className="font-bold text-sm">Find Players</div>
+        </button>
+      </div>
+
+      {/* Stats snapshot — no Elo */}
+      {user?.rating && (
+        <div className="card mb-4" style={{ display: 'flex', gap: 24, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div className="text-sm text-muted" style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+            <div>W/L: <strong className="text-accent">{user.rating.wins}</strong> / <strong className="text-red">{user.rating.losses}</strong></div>
+            <div>Streak: <strong>{user.rating.currentStreak} 🔥</strong></div>
+            <div>Matches: <strong>{user.rating.matchesPlayed}</strong></div>
+          </div>
+          <button className="btn btn-ghost btn-sm" onClick={() => navigate('/leaderboards')}>View Rankings →</button>
+        </div>
+      )}
+
+      <div className="section">
+        <h2 className="section-title">MY SESSIONS TODAY</h2>
+        {loading ? (
+          <div className="loading-screen"><div className="spinner" /></div>
+        ) : mySessions.length === 0 ? (
+          <div className="empty-state">
+            <div className="icon">🎾</div>
+            <h3>No sessions planned today</h3>
+            <button className="btn btn-primary mt-4" onClick={() => navigate('/sessions/new')}>Plan a Session</button>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {mySessions.map(s => <SessionCard key={s.id} session={s} />)}
+          </div>
+        )}
+      </div>
+
+      <div className="section">
+        <h2 className="section-title">COMMUNITY SCHEDULE TODAY</h2>
+        {communitySessions.length === 0 ? (
+          <div className="empty-state">
+            <div className="icon">📅</div>
+            <h3>No other sessions today</h3>
+            <button className="btn btn-ghost mt-4" onClick={() => navigate('/sessions')}>View All Sessions</button>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {communitySessions.map(s => <SessionCard key={s.id} session={s} />)}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
