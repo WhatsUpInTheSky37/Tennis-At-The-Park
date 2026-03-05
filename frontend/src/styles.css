@@ -499,6 +499,158 @@ select option { background: var(--bg3); }
   gap: 4px;
 }
 
+/* Session card v2 */
+.session-card-v2 {
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.sc-layout {
+  display: flex;
+  gap: 0;
+}
+
+.sc-date-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 18px;
+  background: var(--accent);
+  color: var(--bg1);
+  min-width: 72px;
+  flex-shrink: 0;
+}
+
+.sc-date-weekday {
+  font-family: var(--font-display);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  opacity: 0.85;
+}
+
+.sc-date-day {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: 1px;
+}
+
+.sc-date-month {
+  font-family: var(--font-display);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  opacity: 0.85;
+}
+
+.sc-details {
+  flex: 1;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.sc-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sc-court-name {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--text1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sc-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.sc-time-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text2);
+}
+
+.sc-skill-row {
+  display: flex;
+  align-items: center;
+}
+
+.sc-players {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.sc-player {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.sc-player-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--accent-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--accent);
+  overflow: hidden;
+}
+
+.sc-player-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sc-player-more {
+  background: var(--bg3);
+  color: var(--text3);
+  font-size: 11px;
+}
+
+.sc-player-name {
+  font-size: 10px;
+  color: var(--text3);
+  max-width: 48px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.sc-msg-count {
+  font-size: 11px;
+  color: var(--text3);
+  align-self: center;
+  margin-left: auto;
+}
+
 /* Score display */
 .score-table {
   font-family: var(--font-mono);
@@ -584,6 +736,41 @@ select option { background: var(--bg3); }
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+/* Landing banner — logo as full-width card image */
+.landing-banner {
+  position: relative;
+  width: 100%;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: 24px;
+  aspect-ratio: 16 / 7;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+}
+
+.landing-banner-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.landing-banner-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    to top,
+    rgba(10, 12, 15, 0.85) 0%,
+    rgba(10, 12, 15, 0.4) 50%,
+    rgba(10, 12, 15, 0.2) 100%
+  );
+  padding: 20px;
 }
 
 /* Misc utilities */

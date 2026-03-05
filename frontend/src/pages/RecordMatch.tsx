@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useAuth } from '../store/auth'
+import { getInitials } from '../lib/utils'
 
 export default function RecordMatch() {
   const { user } = useAuth()
@@ -49,6 +50,16 @@ export default function RecordMatch() {
   const availableForOpp2 = otherPlayers.filter(p => p.userId !== form.partner && p.userId !== form.opponent1)
 
   const getPlayerName = (id: string) => players.find(p => p.userId === id)?.displayName || 'Unknown'
+  const getPlayerPhoto = (id: string) => players.find(p => p.userId === id)?.photoUrl || null
+
+  const PlayerAvatar = ({ name, photo, size = 36 }: { name: string; photo?: string | null; size?: number }) => (
+    <div className="avatar" style={{ width: size, height: size, fontSize: size * 0.38, background: 'var(--accent-dim)', flexShrink: 0 }}>
+      {photo
+        ? <img src={photo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+        : getInitials(name || '?')
+      }
+    </div>
+  )
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -150,32 +161,43 @@ export default function RecordMatch() {
 
             {format === 'singles' ? (
               <div className="flex items-center gap-3 mb-2">
-                <div className="participant-chip" style={{ padding: '8px 14px', background: 'var(--accent-dim)', borderColor: 'var(--accent)' }}>
-                  {user?.profile?.displayName || user?.email} <span style={{ fontSize: 10, marginLeft: 4, color: 'var(--accent)' }}>you</span>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                  <PlayerAvatar name={user?.profile?.displayName || user?.email || ''} photo={user?.profile?.photoUrl} size={44} />
+                  <span style={{ fontSize: 12, fontWeight: 600 }}>{(user?.profile?.displayName || user?.email || '').split(' ')[0]}</span>
+                  <span style={{ fontSize: 10, color: 'var(--accent)' }}>you</span>
                 </div>
-                <span style={{ color: 'var(--text3)' }}>vs</span>
-                <div className="form-group" style={{ margin: 0, flex: 1 }}>
-                  <select value={form.opponent1} onChange={e => setField('opponent1', e.target.value)} required>
-                    <option value="">Select opponent...</option>
-                    {otherPlayers.map(p => (
-                      <option key={p.userId} value={p.userId}>{p.displayName}</option>
-                    ))}
-                  </select>
+                <span style={{ color: 'var(--text3)', fontFamily: 'var(--font-display)', fontSize: 14, letterSpacing: 2 }}>VS</span>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, flex: 1 }}>
+                  {form.opponent1 && (
+                    <>
+                      <PlayerAvatar name={getPlayerName(form.opponent1)} photo={getPlayerPhoto(form.opponent1)} size={44} />
+                      <span style={{ fontSize: 12, fontWeight: 600 }}>{getPlayerName(form.opponent1).split(' ')[0]}</span>
+                    </>
+                  )}
+                  <div className="form-group" style={{ margin: 0, width: '100%' }}>
+                    <select value={form.opponent1} onChange={e => setField('opponent1', e.target.value)} required>
+                      <option value="">Select opponent...</option>
+                      {otherPlayers.map(p => (
+                        <option key={p.userId} value={p.userId}>{p.displayName}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
             ) : (
               <>
                 {/* Team 1 */}
                 <div style={{ marginBottom: 16, padding: 12, background: 'var(--accent-dim)', borderRadius: 'var(--radius-md)', border: '1px solid var(--accent)' }}>
-                  <div style={{ fontFamily: 'var(--font-display)', fontSize: 12, letterSpacing: 1, marginBottom: 8, color: 'var(--accent)' }}>YOUR TEAM</div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span style={{ fontSize: 12, color: 'var(--text3)', minWidth: 55 }}>Player 1:</span>
-                    <div className="participant-chip" style={{ padding: '6px 12px', background: 'var(--accent-dim)', borderColor: 'var(--accent)', fontSize: 14 }}>
-                      {user?.profile?.displayName || user?.email} <span style={{ fontSize: 10, marginLeft: 4, color: 'var(--accent)' }}>you</span>
+                  <div style={{ fontFamily: 'var(--font-display)', fontSize: 12, letterSpacing: 1, marginBottom: 12, color: 'var(--accent)' }}>YOUR TEAM</div>
+                  <div className="flex items-center gap-3 mb-3">
+                    <PlayerAvatar name={user?.profile?.displayName || user?.email || ''} photo={user?.profile?.photoUrl} size={40} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600, fontSize: 14 }}>{user?.profile?.displayName || user?.email}</div>
+                      <span style={{ fontSize: 10, color: 'var(--accent)' }}>you</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span style={{ fontSize: 12, color: 'var(--text3)', minWidth: 55 }}>Player 2:</span>
+                  <div className="flex items-center gap-3">
+                    {form.partner && <PlayerAvatar name={getPlayerName(form.partner)} photo={getPlayerPhoto(form.partner)} size={40} />}
                     <div className="form-group" style={{ margin: 0, flex: 1 }}>
                       <select value={form.partner} onChange={e => setField('partner', e.target.value)} required>
                         <option value="">Select partner...</option>
@@ -191,9 +213,9 @@ export default function RecordMatch() {
 
                 {/* Team 2 */}
                 <div style={{ padding: 12, background: 'var(--bg2)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
-                  <div style={{ fontFamily: 'var(--font-display)', fontSize: 12, letterSpacing: 1, marginBottom: 8, color: 'var(--text2)' }}>OPPOSING TEAM</div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span style={{ fontSize: 12, color: 'var(--text3)', minWidth: 55 }}>Player 1:</span>
+                  <div style={{ fontFamily: 'var(--font-display)', fontSize: 12, letterSpacing: 1, marginBottom: 12, color: 'var(--text2)' }}>OPPOSING TEAM</div>
+                  <div className="flex items-center gap-3 mb-3">
+                    {form.opponent1 && <PlayerAvatar name={getPlayerName(form.opponent1)} photo={getPlayerPhoto(form.opponent1)} size={40} />}
                     <div className="form-group" style={{ margin: 0, flex: 1 }}>
                       <select value={form.opponent1} onChange={e => setField('opponent1', e.target.value)} required>
                         <option value="">Select opponent 1...</option>
@@ -203,8 +225,8 @@ export default function RecordMatch() {
                       </select>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span style={{ fontSize: 12, color: 'var(--text3)', minWidth: 55 }}>Player 2:</span>
+                  <div className="flex items-center gap-3">
+                    {form.opponent2 && <PlayerAvatar name={getPlayerName(form.opponent2)} photo={getPlayerPhoto(form.opponent2)} size={40} />}
                     <div className="form-group" style={{ margin: 0, flex: 1 }}>
                       <select value={form.opponent2} onChange={e => setField('opponent2', e.target.value)} required>
                         <option value="">Select opponent 2...</option>

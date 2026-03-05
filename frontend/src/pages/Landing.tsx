@@ -12,18 +12,25 @@ export default function Landing() {
 
   return (
     <div className="hero">
-      <div style={{ position: 'relative', zIndex: 1, maxWidth: 700 }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 24 }}>
+      <div style={{ position: 'relative', zIndex: 1, width: '100%', maxWidth: 700 }}>
+        {/* Hero banner card — logo fills the full width */}
+        <div className="landing-banner">
           <img
             src="/tennis-at-the-park.png"
             alt="Tennis at the Park"
-            style={{ width: 160, height: 160, borderRadius: '50%', objectFit: 'cover', marginBottom: 20, boxShadow: '0 0 60px rgba(127,254,74,0.3)' }}
+            className="landing-banner-img"
           />
-          <div className="hero-logo" style={{ fontSize: 'clamp(36px, 10vw, 80px)' }}>TENNIS AT THE PARK</div>
-          <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, letterSpacing: 3, color: 'var(--text3)', marginTop: 4 }}>SALISBURY, MD</div>
+          <div className="landing-banner-overlay">
+            <div className="hero-logo" style={{ fontSize: 'clamp(32px, 9vw, 64px)', letterSpacing: 4 }}>
+              TENNIS AT THE PARK
+            </div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(13px, 3vw, 18px)', letterSpacing: 3, color: 'rgba(255,255,255,0.7)', marginTop: 4 }}>
+              SALISBURY, MD
+            </div>
+          </div>
         </div>
 
-        <p className="hero-tagline">
+        <p className="hero-tagline" style={{ maxWidth: '100%' }}>
           Find players, plan meetups, track your game — at your local public courts.
         </p>
 
