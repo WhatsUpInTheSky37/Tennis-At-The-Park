@@ -1,14 +1,7 @@
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../store/auth'
 
 export default function Landing() {
   const navigate = useNavigate()
-  const { user } = useAuth()
-
-  const go = (path: string) => {
-    if (!user) navigate('/auth', { state: { redirect: path } })
-    else navigate(path)
-  }
 
   return (
     <div className="hero">
@@ -35,21 +28,12 @@ export default function Landing() {
         </p>
 
         <div className="hero-actions">
-          <button className="btn btn-primary btn-lg" onClick={() => go('/sessions')}>
-            📅 View Community Schedule
+          <button className="btn btn-primary btn-lg" onClick={() => navigate('/auth')}>
+            Create Free Profile
           </button>
-          <button className="btn btn-secondary btn-lg" onClick={() => go('/players')}>
-            👥 Find Players
+          <button className="btn btn-secondary btn-lg" onClick={() => navigate('/auth')}>
+            Sign In
           </button>
-          <button className="btn btn-secondary btn-lg" onClick={() => go('/matches/record')}>
-            🏆 Record a Match
-          </button>
-        </div>
-
-        <div className="flex gap-3 justify-center flex-wrap mb-6">
-          <div className="hero-badge">📱 No install needed — use in your browser</div>
-          <div className="hero-badge">🔓 Free to join</div>
-          <div className="hero-badge">🎾 Community-driven</div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginTop: 24 }}>
@@ -69,16 +53,36 @@ export default function Landing() {
           <strong>⚠️ Public Courts:</strong> This app coordinates meetups only. Courts are first-come/rotation-based. No reservations.
         </div>
 
-        {!user && (
-          <div style={{ marginTop: 32, display: 'flex', gap: 12, justifyContent: 'center' }}>
-            <button className="btn btn-primary" onClick={() => navigate('/auth')}>
-              Create Profile & Get Started
-            </button>
-            <button className="btn btn-ghost" onClick={() => navigate('/rules')}>
-              View Community Rules
-            </button>
+        <div style={{ marginTop: 32 }}>
+          <div className="card" style={{ textAlign: 'left', padding: 24 }}>
+            <h3 style={{ marginBottom: 16, textAlign: 'center', fontFamily: 'var(--font-display)', letterSpacing: 2 }}>
+              Court Etiquette
+            </h3>
+            <ul style={{ listStyle: 'disc', paddingLeft: 24, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <li>Arrive on time for matches</li>
+              <li>Use warm-ups to rally, not compete</li>
+              <li>Make fair and honest line calls</li>
+              <li>Respect nearby courts and players</li>
+              <li>Return balls that roll onto your court</li>
+              <li>Follow court time limits if others are waiting</li>
+              <li>Show good sportsmanship</li>
+              <li>Clean up after your match</li>
+              <li>Record match scores honestly</li>
+            </ul>
+            <p style={{ marginTop: 16, textAlign: 'center', fontStyle: 'italic', color: 'var(--color-primary)' }}>
+              Let's build a great tennis community in Salisbury.
+            </p>
           </div>
-        )}
+        </div>
+
+        <div style={{ marginTop: 24, display: 'flex', gap: 16, justifyContent: 'center' }}>
+          <button className="btn btn-ghost" onClick={() => navigate('/courts')}>
+            List of Courts
+          </button>
+          <button className="btn btn-ghost" onClick={() => navigate('/rules')}>
+            Court Etiquette Rules
+          </button>
+        </div>
       </div>
     </div>
   )
