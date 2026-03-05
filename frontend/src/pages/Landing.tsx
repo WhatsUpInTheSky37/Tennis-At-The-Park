@@ -38,13 +38,14 @@ export default function Landing() {
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginTop: 24 }}>
           {[
-            { icon: '📍', title: 'City Park Courts', sub: '4 courts · 💡 Lighted' },
-            { icon: '📍', title: 'Winterplace Park', sub: '2 courts · 🌙 Daylight only' },
+            { icon: '📍', title: 'City Park Courts', sub: '4 courts · 💡 Lighted', address: '127 N Park Dr, Salisbury, MD 21804' },
+            { icon: '📍', title: 'Winterplace Park', sub: '2 courts · 🌙 Daylight only', address: '737 Blue Ribbon Rd, Salisbury, MD 21804' },
           ].map(loc => (
             <div key={loc.title} className="card">
               <div style={{ fontSize: 24, marginBottom: 8 }}>{loc.icon}</div>
               <div className="font-bold">{loc.title}</div>
               <div className="text-sm text-muted">{loc.sub}</div>
+              <div className="text-sm text-muted" style={{ marginTop: 4, fontSize: '0.75rem' }}>{loc.address}</div>
             </div>
           ))}
         </div>
