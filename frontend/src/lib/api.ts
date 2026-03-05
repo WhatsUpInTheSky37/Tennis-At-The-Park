@@ -32,6 +32,10 @@ export const api = {
   login: (email: string, password: string) =>
     request<any>('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
   me: () => request<any>('/auth/me'),
+  changePassword: (currentPassword: string, newPassword: string) =>
+    request<any>('/auth/change-password', { method: 'POST', body: JSON.stringify({ currentPassword, newPassword }) }),
+  resetPassword: (email: string, newPassword: string) =>
+    request<any>('/auth/reset-password', { method: 'POST', body: JSON.stringify({ email, newPassword }) }),
 
   // Profiles
   getMyProfile: () => request<any>('/profiles/me'),
@@ -71,6 +75,7 @@ export const api = {
   createMatch: (data: any) => request<any>('/matches', { method: 'POST', body: JSON.stringify(data) }),
   confirmMatch: (id: string) => request<any>(`/matches/${id}/confirm`, { method: 'POST', body: JSON.stringify({}) }),
   disputeMatch: (id: string, reason: string, details: string) => request<any>(`/matches/${id}/dispute`, { method: 'POST', body: JSON.stringify({ reason, details }) }),
+  deleteMatch: (id: string) => request<void>(`/matches/${id}`, { method: 'DELETE' }),
 
   // Leaderboards
   getLeaderboards: () => request<any>('/leaderboards'),

@@ -25,6 +25,11 @@ export default function Profile() {
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
+  const [showChangePassword, setShowChangePassword] = useState(false)
+  const [pwForm, setPwForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' })
+  const [pwError, setPwError] = useState('')
+  const [pwSuccess, setPwSuccess] = useState('')
+  const [pwSaving, setPwSaving] = useState(false)
   const [form, setForm] = useState<any>({
     displayName: '',
     skillLevel: 3,
@@ -98,6 +103,25 @@ export default function Profile() {
     } catch (err: any) {
       setError(err.message)
     } finally { setSaving(false) }
+  }
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setPwError(''); setPwSuccess('')
+    if (pwForm.newPassword !== pwForm.confirmPassword) {
+      setPwError('New passwords do not match'); return
+    }
+    if (pwForm.newPassword.length < 8) {
+      setPwError('New password must be at least 8 characters'); return
+    }
+    setPwSaving(true)
+    try {
+      await api.changePassword(pwForm.currentPassword, pwForm.newPassword)
+      setPwSuccess('Password changed successfully!')
+      setPwForm({ currentPassword: '', newPassword: '', confirmPassword: '' })
+    } catch (err: any) {
+      setPwError(err.message)
+    } finally { setPwSaving(false) }
   }
 
   if (!profile && !isOwnProfile) return <div className="page"><div className="loading-screen"><div className="spinner" /></div></div>
@@ -198,6 +222,39 @@ export default function Profile() {
               )}
               {user.enforcement.warningCount > 0 && (
                 <p className="text-sm text-muted mt-2">Warnings: {user.enforcement.warningCount}</p>
+              )}
+            </div>
+          )}
+
+          {/* Change Password */}
+          {isOwnProfile && (
+            <div className="card mb-4">
+              <div className="flex items-center justify-between" style={{ marginBottom: showChangePassword ? 16 : 0 }}>
+                <h3 style={{ fontFamily: 'var(--font-display)', letterSpacing: 1, fontSize: 18 }}>CHANGE PASSWORD</h3>
+                <button className="btn btn-ghost btn-sm" onClick={() => { setShowChangePassword(!showChangePassword); setPwError(''); setPwSuccess('') }}>
+                  {showChangePassword ? 'Cancel' : 'Change'}
+                </button>
+              </div>
+              {showChangePassword && (
+                <form onSubmit={handleChangePassword}>
+                  <div className="form-group">
+                    <label htmlFor="currentPassword">Current Password *</label>
+                    <input id="currentPassword" type="password" value={pwForm.currentPassword} onChange={e => setPwForm(f => ({ ...f, currentPassword: e.target.value }))} required autoComplete="current-password" />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="newPassword">New Password *</label>
+                    <input id="newPassword" type="password" value={pwForm.newPassword} onChange={e => setPwForm(f => ({ ...f, newPassword: e.target.value }))} required minLength={8} placeholder="Min 8 characters" autoComplete="new-password" />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="confirmPassword">Confirm New Password *</label>
+                    <input id="confirmPassword" type="password" value={pwForm.confirmPassword} onChange={e => setPwForm(f => ({ ...f, confirmPassword: e.target.value }))} required minLength={8} autoComplete="new-password" />
+                  </div>
+                  {pwError && <div className="alert alert-danger mb-4">{pwError}</div>}
+                  {pwSuccess && <div className="alert alert-success mb-4">{pwSuccess}</div>}
+                  <button type="submit" className="btn btn-primary btn-sm" disabled={pwSaving}>
+                    {pwSaving ? 'Changing...' : 'Update Password'}
+                  </button>
+                </form>
               )}
             </div>
           )}

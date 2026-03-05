@@ -54,6 +54,47 @@ export async function authRoutes(server: FastifyInstance) {
     return { token, user: { id: user.id, email: user.email, displayName: user.profile?.displayName, isAdmin: user.isAdmin } }
   })
 
+  // Change password (logged-in users)
+  server.post('/change-password', { preHandler: [(server as any).authenticate] }, async (req, reply) => {
+    const { userId } = (req as any).user
+    const schema = z.object({
+      currentPassword: z.string(),
+      newPassword: z.string().min(8)
+    })
+    const body = schema.safeParse(req.body)
+    if (!body.success) return reply.status(400).send({ error: body.error.flatten() })
+
+    const user = await prisma.user.findUnique({ where: { id: userId } })
+    if (!user) return reply.status(404).send({ error: 'User not found' })
+
+    const valid = await argon2.verify(user.passwordHash, body.data.currentPassword)
+    if (!valid) return reply.status(401).send({ error: 'Current password is incorrect' })
+
+    const newHash = await argon2.hash(body.data.newPassword)
+    await prisma.user.update({ where: { id: userId }, data: { passwordHash: newHash } })
+    return { ok: true }
+  })
+
+  // Reset password by email (no auth required)
+  server.post('/reset-password', async (req, reply) => {
+    const schema = z.object({
+      email: z.string().email(),
+      newPassword: z.string().min(8)
+    })
+    const body = schema.safeParse(req.body)
+    if (!body.success) return reply.status(400).send({ error: body.error.flatten() })
+
+    const user = await prisma.user.findUnique({ where: { email: body.data.email } })
+    if (!user) {
+      // Don't reveal whether email exists - return success either way
+      return { ok: true }
+    }
+
+    const newHash = await argon2.hash(body.data.newPassword)
+    await prisma.user.update({ where: { id: user.id }, data: { passwordHash: newHash } })
+    return { ok: true }
+  })
+
   server.get('/me', { preHandler: [(server as any).authenticate] }, async (req) => {
     const { userId } = (req as any).user
     const user = await prisma.user.findUnique({
