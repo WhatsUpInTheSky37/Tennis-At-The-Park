@@ -2,7 +2,43 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useAuth } from '../store/auth'
-import { formatDateTime } from '../lib/utils'
+import { formatDateTime, getInitials } from '../lib/utils'
+
+function PlayerAvatar({ name, photo, size = 44 }: { name: string; photo?: string | null; size?: number }) {
+  return (
+    <div className="match-avatar" style={{ width: size, height: size, fontSize: size * 0.3 }}>
+      {photo
+        ? <img src={photo} alt="" />
+        : getInitials(name)
+      }
+    </div>
+  )
+}
+
+function TeamDisplay({ match, playerIds, isWinner }: { match: any; playerIds: string[]; isWinner: boolean }) {
+  return (
+    <div className={`match-team ${isWinner ? 'match-team-winner' : ''}`}>
+      <div className="match-team-avatars">
+        {playerIds.map(id => (
+          <PlayerAvatar
+            key={id}
+            name={match.playerNames?.[id] || 'Unknown'}
+            photo={match.playerPhotos?.[id]}
+          />
+        ))}
+      </div>
+      <div className="match-team-names">
+        {playerIds.map((id, i) => (
+          <span key={id} className="match-player-name">
+            {i > 0 && <span className="match-team-separator">&</span>}
+            {match.playerNames?.[id] || 'Unknown'}
+          </span>
+        ))}
+      </div>
+      {isWinner && <span className="match-winner-tag">W</span>}
+    </div>
+  )
+}
 
 export default function Matches() {
   const { user } = useAuth()
@@ -48,14 +84,6 @@ export default function Matches() {
     return null
   }
 
-  const getPlayerName = (match: any, playerId: string) => {
-    return match.playerNames?.[playerId] || 'Unknown'
-  }
-
-  const formatTeam = (match: any, playerIds: string[]) => {
-    return playerIds.map(id => getPlayerName(match, id)).join(' / ')
-  }
-
   return (
     <div className="page">
       <div className="page-header flex items-center justify-between">
@@ -75,76 +103,82 @@ export default function Matches() {
           <button className="btn btn-primary mt-4" onClick={() => navigate('/matches/record')}>Record a Match</button>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {matches.map(m => {
             const teams = m.teamsJson as { team1: string[], team2: string[] }
             const winners = m.winnerUserIdsJson as string[]
             const iAmInvolved = user && [...teams.team1, ...teams.team2].includes(user.id)
             const iWon = user && winners.includes(user.id)
-            const score = (m.scoreJson as number[][])?.map(s => s.join('-')).join(', ')
+            const scores = m.scoreJson as number[][]
+            const team1Won = winners.some(w => teams.team1.includes(w))
 
             return (
-              <div key={m.id} className="card">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex gap-2">
+              <div key={m.id} className="match-card">
+                {/* Top bar: meta info */}
+                <div className="match-card-header">
+                  <div className="flex items-center gap-2">
                     <span className={`badge ${m.format === 'singles' ? 'badge-blue' : 'badge-orange'}`}>{m.format}</span>
                     {statusBadge(m.status)}
                     {m.retiredFlag && <span className="badge badge-gray">Retirement</span>}
                     {m.timeRanOutFlag && <span className="badge badge-gray">Time limit</span>}
                   </div>
-                  {iAmInvolved && <span style={{ fontFamily: 'var(--font-display)', fontSize: 20 }} className={iWon ? 'text-accent' : 'text-red'}>
-                    {iWon ? 'WIN' : 'LOSS'}
-                  </span>}
+                  {iAmInvolved && (
+                    <div className={`match-result-tag ${iWon ? 'match-result-win' : 'match-result-loss'}`}>
+                      {iWon ? 'WIN' : 'LOSS'}
+                    </div>
+                  )}
                 </div>
 
-                <div className="text-sm text-muted mb-2">{formatDateTime(m.playedAt)} · {m.location?.name}</div>
+                {/* Matchup: Team1 vs Team2 */}
+                <div className="match-matchup">
+                  <TeamDisplay match={m} playerIds={teams.team1} isWinner={team1Won} />
 
-                {/* Player Names */}
-                <div style={{ marginBottom: 8, padding: '8px 12px', background: 'var(--bg2)', borderRadius: 'var(--radius-sm)', fontSize: 14 }}>
-                  <div className="flex items-center gap-2" style={{ marginBottom: 4 }}>
-                    <span style={{ fontWeight: 600 }}>{formatTeam(m, teams.team1)}</span>
-                    {winners.some(w => teams.team1.includes(w)) && (
-                      <span className="badge badge-green" style={{ fontSize: 10, padding: '1px 6px' }}>W</span>
+                  <div className="match-vs-section">
+                    <div className="match-vs">VS</div>
+                    {scores && (
+                      <div className="match-score-sets">
+                        {scores.map((set, i) => (
+                          <div key={i} className="match-set">
+                            <span className={team1Won ? 'match-set-winner' : 'match-set-loser'}>{set[0]}</span>
+                            <span className="match-set-dash">–</span>
+                            <span className={!team1Won ? 'match-set-winner' : 'match-set-loser'}>{set[1]}</span>
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
-                  <div style={{ color: 'var(--text3)', fontSize: 12, margin: '2px 0' }}>vs</div>
-                  <div className="flex items-center gap-2">
-                    <span style={{ fontWeight: 600 }}>{formatTeam(m, teams.team2)}</span>
-                    {winners.some(w => teams.team2.includes(w)) && (
-                      <span className="badge badge-green" style={{ fontSize: 10, padding: '1px 6px' }}>W</span>
-                    )}
-                  </div>
+
+                  <TeamDisplay match={m} playerIds={teams.team2} isWinner={!team1Won} />
                 </div>
 
-                {score && (
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 18, color: 'var(--text)', marginBottom: 8 }}>
-                    {score}
-                  </div>
-                )}
+                {/* Footer: date, location, notes */}
+                <div className="match-card-footer">
+                  <span className="text-xs text-muted">{formatDateTime(m.playedAt)}</span>
+                  {m.location?.name && <span className="text-xs text-muted">· {m.location.name}</span>}
+                </div>
 
-                {m.notes && <p className="text-sm text-muted">{m.notes}</p>}
+                {m.notes && <p className="text-xs text-muted" style={{ padding: '0 16px 12px', marginTop: -4 }}>{m.notes}</p>}
 
-                {/* Actions for pending confirmation */}
+                {/* Actions */}
                 {user && m.status === 'pending_confirmation' && [...teams.team1, ...teams.team2].includes(user.id) && !teams.team1.includes(user.id) && (
-                  <div className="flex gap-2 mt-3">
+                  <div className="match-card-actions">
                     <button className="btn btn-primary btn-sm" onClick={() => confirm(m.id)}>Confirm Result</button>
                     <button className="btn btn-danger btn-sm" onClick={() => setShowDispute(m.id)}>Dispute</button>
                   </div>
                 )}
                 {user && m.status === 'normal' && [...teams.team1, ...teams.team2].includes(user.id) && (
-                  <button className="btn btn-ghost btn-sm mt-2" onClick={() => setShowDispute(m.id)}>Dispute this match</button>
+                  <div className="match-card-actions">
+                    <button className="btn btn-ghost btn-sm" onClick={() => setShowDispute(m.id)}>Dispute this match</button>
+                  </div>
                 )}
 
-                {/* Delete/Cancel button for pending matches the user is in */}
                 {user && m.status === 'pending_confirmation' && [...teams.team1, ...teams.team2].includes(user.id) && (
-                  <div style={{ marginTop: 8 }}>
+                  <div className="match-card-actions">
                     {deleting === m.id ? (
-                      <div style={{ padding: 12, background: 'var(--bg2)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
-                        <p className="text-sm" style={{ marginBottom: 8 }}>Are you sure you want to delete this match?</p>
-                        <div className="flex gap-2">
-                          <button className="btn btn-danger btn-sm" onClick={() => deleteMatch(m.id)}>Yes, Delete</button>
-                          <button className="btn btn-ghost btn-sm" onClick={() => setDeleting(null)}>Cancel</button>
-                        </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span className="text-xs text-muted">Delete this match?</span>
+                        <button className="btn btn-danger btn-sm" onClick={() => deleteMatch(m.id)}>Yes, Delete</button>
+                        <button className="btn btn-ghost btn-sm" onClick={() => setDeleting(null)}>Cancel</button>
                       </div>
                     ) : (
                       <button className="btn btn-ghost btn-sm" style={{ color: 'var(--red)' }} onClick={() => setDeleting(m.id)}>

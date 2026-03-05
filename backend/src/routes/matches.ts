@@ -61,12 +61,16 @@ export async function matchRoutes(server: FastifyInstance) {
     }
     const profiles = await prisma.profile.findMany({
       where: { userId: { in: Array.from(allPlayerIds) } },
-      select: { userId: true, displayName: true }
+      select: { userId: true, displayName: true, photoUrl: true }
     })
     const nameMap: Record<string, string> = {}
-    for (const p of profiles) nameMap[p.userId] = p.displayName
+    const photoMap: Record<string, string | null> = {}
+    for (const p of profiles) {
+      nameMap[p.userId] = p.displayName
+      photoMap[p.userId] = p.photoUrl
+    }
 
-    return matches.map(m => ({ ...m, playerNames: nameMap }))
+    return matches.map(m => ({ ...m, playerNames: nameMap, playerPhotos: photoMap }))
   })
 
   server.post('/', { preHandler: [(server as any).authenticate] }, async (req, reply) => {
