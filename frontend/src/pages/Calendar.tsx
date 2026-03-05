@@ -120,12 +120,35 @@ export default function Calendar() {
     }
   }
 
+  if (!user) {
+    return (
+      <div className="page">
+        <div className="page-header">
+          <h1 className="page-title">CALENDAR</h1>
+          <p className="page-subtitle">Your matches, challenges & sessions</p>
+        </div>
+        <div className="empty-state">
+          <div className="icon" style={{ fontSize: 48 }}>&#128197;</div>
+          <h3>Sign in to view your calendar</h3>
+          <p>Your challenges, sessions, and matches will appear here once you log in.</p>
+          <div className="flex gap-2 justify-center mt-4">
+            <button className="btn btn-primary" onClick={() => navigate('/login')}>Sign In</button>
+            <button className="btn btn-secondary" onClick={() => navigate('/sessions')}>Browse Sessions</button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="page">
       <div className="page-header flex items-center justify-between">
         <div>
           <h1 className="page-title">CALENDAR</h1>
-          <p className="page-subtitle">Your matches, challenges & sessions</p>
+          <p className="page-subtitle">
+            Your matches, challenges & sessions
+            {events.length > 0 && ` \u00B7 ${events.length} event${events.length !== 1 ? 's' : ''} this month`}
+          </p>
         </div>
         <div className="flex gap-2">
           <button
@@ -221,19 +244,18 @@ export default function Calendar() {
                       borderBottom: '1px solid var(--border)',
                       borderRight: '1px solid var(--border)',
                       cursor: 'pointer',
-                      background: isSelected ? 'var(--accent-dim)' : today ? 'rgba(75,158,255,0.06)' : 'transparent',
+                      background: isSelected ? 'var(--maroon-dim)' : today ? 'rgba(75,158,255,0.06)' : 'transparent',
                       opacity: inMonth ? 1 : 0.35,
                       transition: 'background 0.15s'
                     }}
                   >
                     <div style={{
                       fontSize: 13, fontWeight: today ? 800 : 500,
-                      color: today ? 'var(--accent)' : 'var(--text1)',
+                      color: today ? '#fff' : 'var(--text1)',
                       marginBottom: 2,
                       width: 24, height: 24, borderRadius: '50%',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      background: today ? 'var(--accent)' : 'transparent',
-                      ...(today ? { color: '#fff' } : {})
+                      background: today ? 'var(--maroon)' : 'transparent',
                     }}>
                       {format(day, 'd')}
                     </div>

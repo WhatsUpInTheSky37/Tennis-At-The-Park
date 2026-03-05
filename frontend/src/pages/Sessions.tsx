@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import SessionCard from '../components/SessionCard'
 import DisclaimerBox from '../components/DisclaimerBox'
+
+type SortBy = 'date-asc' | 'date-desc' | 'players'
 
 export default function Sessions() {
   const navigate = useNavigate()
@@ -10,6 +12,7 @@ export default function Sessions() {
   const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState({ format: '', locationId: '', date: '' })
   const [locations, setLocations] = useState<any[]>([])
+  const [sortBy, setSortBy] = useState<SortBy>('date-asc')
 
   useEffect(() => {
     api.getLocations().then(setLocations)
@@ -24,12 +27,32 @@ export default function Sessions() {
     api.getSessions(params).then(s => { setSessions(s); setLoading(false) })
   }, [filters])
 
+  const sortedSessions = useMemo(() => {
+    const sorted = [...sessions]
+    switch (sortBy) {
+      case 'date-asc':
+        return sorted.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+      case 'date-desc':
+        return sorted.sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
+      case 'players':
+        return sorted.sort((a, b) => (b.participants?.length || 0) - (a.participants?.length || 0))
+      default:
+        return sorted
+    }
+  }, [sessions, sortBy])
+
+  const activeCount = sessions.filter(s => s.status !== 'cancelled').length
+
   return (
     <div className="page">
       <div className="page-header flex items-center justify-between">
         <div>
           <h1 className="page-title">COMMUNITY SCHEDULE</h1>
-          <p className="page-subtitle">Planned meetup sessions at public courts</p>
+          <p className="page-subtitle">
+            {activeCount > 0
+              ? `${activeCount} upcoming session${activeCount !== 1 ? 's' : ''} at public courts`
+              : 'Planned meetup sessions at public courts'}
+          </p>
         </div>
         <button className="btn btn-primary" onClick={() => navigate('/sessions/new')}>+ Plan Session</button>
       </div>
@@ -58,6 +81,14 @@ export default function Sessions() {
             <option value="mixed">Mixed</option>
           </select>
         </div>
+        <div className="form-group" style={{ margin: 0, flex: 1, minWidth: 140 }}>
+          <label htmlFor="sort-by">Sort by</label>
+          <select id="sort-by" value={sortBy} onChange={e => setSortBy(e.target.value as SortBy)}>
+            <option value="date-asc">Soonest first</option>
+            <option value="date-desc">Latest first</option>
+            <option value="players">Most players</option>
+          </select>
+        </div>
         {(filters.format || filters.locationId || filters.date) && (
           <button className="btn btn-ghost btn-sm" onClick={() => setFilters({ format: '', locationId: '', date: '' })} style={{ alignSelf: 'flex-end', marginBottom: 4 }}>
             Clear filters
@@ -76,7 +107,7 @@ export default function Sessions() {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {sessions.map(s => <SessionCard key={s.id} session={s} />)}
+          {sortedSessions.map(s => <SessionCard key={s.id} session={s} />)}
         </div>
       )}
     </div>
