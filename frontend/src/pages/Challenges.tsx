@@ -224,12 +224,20 @@ export default function Challenges() {
                     </button>
                   )}
                   {c.status === 'accepted' && (
-                    <button
-                      className="btn btn-primary btn-sm"
-                      onClick={() => navigate('/matches/record')}
-                    >
-                      Record Match Result
-                    </button>
+                    <>
+                      <button
+                        className="btn btn-primary btn-sm"
+                        onClick={() => navigate('/matches/record')}
+                      >
+                        Record Match Result
+                      </button>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => navigate('/calendar')}
+                      >
+                        View on Calendar
+                      </button>
+                    </>
                   )}
                 </div>
               </div>

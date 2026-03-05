@@ -10,6 +10,9 @@
   --accent: #7ffe4a;
   --accent2: #5bdb2a;
   --accent-dim: rgba(127,254,74,0.12);
+  --maroon: #7a1f2e;
+  --maroon-light: #9b2d3f;
+  --maroon-dim: rgba(122,31,46,0.18);
   --red: #ff4b4b;
   --orange: #ff9a1f;
   --blue: #4b9eff;
@@ -516,10 +519,21 @@ select option { background: var(--bg3); }
   align-items: center;
   justify-content: center;
   padding: 16px 18px;
-  background: var(--accent);
-  color: var(--bg1);
+  background: var(--maroon);
+  color: #fff;
   min-width: 72px;
   flex-shrink: 0;
+}
+
+.sc-date-relative {
+  font-family: var(--font-display);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  background: rgba(255,255,255,0.2);
+  padding: 1px 6px;
+  border-radius: 3px;
+  margin-bottom: 2px;
 }
 
 .sc-date-weekday {

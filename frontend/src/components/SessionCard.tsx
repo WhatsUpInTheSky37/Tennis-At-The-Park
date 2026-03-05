@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { format } from 'date-fns'
+import { format, isToday, isTomorrow, differenceInMinutes } from 'date-fns'
 import { formatTime, isAfterDark, getInitials } from '../lib/utils'
 import LocationBadge from './LocationBadge'
 import SkillDisplay from './SkillDisplay'
@@ -11,6 +11,19 @@ export default function SessionCard({ session, onClick }: Props) {
   const afterDark = isAfterDark(session.startTime)
   const isUnlit = !session.location?.lighted
   const startDate = new Date(session.startTime)
+  const now = new Date()
+  const minutesUntilStart = differenceInMinutes(startDate, now)
+  const happeningSoon = minutesUntilStart > 0 && minutesUntilStart <= 120 && session.status !== 'cancelled'
+  const inProgress = minutesUntilStart <= 0 && new Date(session.endTime) > now && session.status !== 'cancelled'
+  const participantCount = session.participants?.length || 0
+  const maxPlayers = session.format === 'singles' ? 2 : session.format === 'doubles' || session.format === 'mixed' ? 4 : null
+
+  const getRelativeDay = () => {
+    if (isToday(startDate)) return 'Today'
+    if (isTomorrow(startDate)) return 'Tomorrow'
+    return null
+  }
+  const relativeDay = getRelativeDay()
 
   return (
     <div
@@ -19,10 +32,14 @@ export default function SessionCard({ session, onClick }: Props) {
       role="button"
       tabIndex={0}
       onKeyDown={e => e.key === 'Enter' && navigate(`/sessions/${session.id}`)}
+      style={happeningSoon ? { borderColor: 'var(--orange)' } : inProgress ? { borderColor: 'var(--blue)' } : undefined}
     >
       <div className="sc-layout">
         {/* Left: Big date block */}
         <div className="sc-date-block">
+          {relativeDay && (
+            <span className="sc-date-relative">{relativeDay}</span>
+          )}
           <span className="sc-date-weekday">{format(startDate, 'EEE')}</span>
           <span className="sc-date-day">{format(startDate, 'd')}</span>
           <span className="sc-date-month">{format(startDate, 'MMM')}</span>
@@ -36,6 +53,16 @@ export default function SessionCard({ session, onClick }: Props) {
               {session.location?.name || 'TBD'}
             </div>
             <div className="sc-badges">
+              {happeningSoon && (
+                <span className="badge badge-orange" style={{ fontSize: 10, animation: 'pulse 2s infinite' }}>
+                  Starting soon
+                </span>
+              )}
+              {inProgress && (
+                <span className="badge badge-blue" style={{ fontSize: 10 }}>
+                  In progress
+                </span>
+              )}
               <LocationBadge lighted={session.location?.lighted} compact />
               {afterDark && isUnlit && (
                 <span className="text-xs text-orange">⚠️</span>
@@ -57,6 +84,11 @@ export default function SessionCard({ session, onClick }: Props) {
           <div className="sc-skill-row">
             <SkillDisplay level={(session.levelMin + session.levelMax) / 2} />
             <span className="text-xs text-muted">&nbsp;({session.levelMin}–{session.levelMax})</span>
+            {maxPlayers && (
+              <span className="text-xs text-muted" style={{ marginLeft: 'auto' }}>
+                {participantCount}/{maxPlayers} players
+              </span>
+            )}
           </div>
 
           {session.notes && (

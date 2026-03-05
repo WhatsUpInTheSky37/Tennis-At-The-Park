@@ -169,18 +169,18 @@ function SessionCard({ session }: { session: any }) {
   return (
     <Card hoverable onClick={() => navigate(`/sessions/${session.id}`)} style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
       <div style={{
-        background: 'var(--baseline-dim)',
-        border: '1px solid var(--baseline)',
+        background: '#7a1f2e',
+        border: '1px solid #9b2d3f',
         borderRadius: 'var(--radius)',
         padding: '8px',
         textAlign: 'center',
         minWidth: '60px',
         flexShrink: 0,
       }}>
-        <div style={{ fontFamily: 'var(--font-display)', fontSize: '18px', color: 'var(--baseline)', lineHeight: 1 }}>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: '18px', color: '#fff', lineHeight: 1 }}>
           {format(new Date(session.startTime), 'h:mm')}
         </div>
-        <div style={{ fontSize: '11px', color: 'var(--baseline)', letterSpacing: '0.06em' }}>
+        <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.85)', letterSpacing: '0.06em' }}>
           {format(new Date(session.startTime), 'a')}
         </div>
       </div>

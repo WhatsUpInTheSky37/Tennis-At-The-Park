@@ -31,6 +31,15 @@ export default function SessionDetail() {
   const isParticipant = session?.participants?.some((p: any) => p.userId === user?.id)
   const isHost = session?.createdBy === user?.id
 
+  // Auto-refresh messages every 30 seconds when participant
+  useEffect(() => {
+    if (!isParticipant || !id) return
+    const interval = setInterval(() => {
+      api.getSession(id).then(s => setSession(s)).catch(() => {})
+    }, 30000)
+    return () => clearInterval(interval)
+  }, [isParticipant, id])
+
   const join = async () => { await api.joinSession(id!); load() }
 
   const sendMsg = async (e: React.FormEvent) => {
