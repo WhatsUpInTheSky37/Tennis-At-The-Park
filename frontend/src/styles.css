@@ -738,6 +738,41 @@ select option { background: var(--bg3); }
   gap: 8px;
 }
 
+/* Landing banner — logo as full-width card image */
+.landing-banner {
+  position: relative;
+  width: 100%;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: 24px;
+  aspect-ratio: 16 / 7;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+}
+
+.landing-banner-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.landing-banner-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    to top,
+    rgba(10, 12, 15, 0.85) 0%,
+    rgba(10, 12, 15, 0.4) 50%,
+    rgba(10, 12, 15, 0.2) 100%
+  );
+  padding: 20px;
+}
+
 /* Misc utilities */
 .flex { display: flex; }
 .flex-col { flex-direction: column; }
