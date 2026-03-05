@@ -10,8 +10,9 @@ async function request<T>(
   body?: unknown,
   auth = true,
 ): Promise<T> {
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
+  const headers: Record<string, string> = {}
+  if (body !== undefined) {
+    headers['Content-Type'] = 'application/json'
   }
   if (auth) {
     const token = getToken()
@@ -21,7 +22,7 @@ async function request<T>(
   const res = await fetch(`${BASE}${path}`, {
     method,
     headers,
-    body: body ? JSON.stringify(body) : undefined,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
   })
 
   if (!res.ok) {
