@@ -738,39 +738,48 @@ select option { background: var(--bg3); }
   gap: 8px;
 }
 
-/* Landing banner — logo as full-width card image */
-.landing-banner {
-  position: relative;
-  width: 100%;
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  margin-bottom: 24px;
-  aspect-ratio: 16 / 7;
-  background: var(--bg2);
-  border: 1px solid var(--border);
-}
-
-.landing-banner-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.landing-banner-overlay {
-  position: absolute;
-  inset: 0;
+/* Landing page — big ball logo */
+.landing-ball-wrap {
   display: flex;
-  flex-direction: column;
+  justify-content: center;
+  margin-bottom: 28px;
+}
+
+.landing-ball {
+  width: clamp(220px, 55vw, 380px);
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 0 60px rgba(127,254,74,0.25));
+}
+
+/* Feature word strip */
+.landing-features {
+  display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(
-    to top,
-    rgba(10, 12, 15, 0.85) 0%,
-    rgba(10, 12, 15, 0.4) 50%,
-    rgba(10, 12, 15, 0.2) 100%
-  );
-  padding: 20px;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  margin-bottom: 4px;
+}
+
+.landing-feature {
+  font-family: var(--font-display);
+  font-size: clamp(16px, 4vw, 24px);
+  letter-spacing: 3px;
+  color: var(--text1);
+}
+
+.landing-feature-accent {
+  color: var(--accent);
+  text-shadow: 0 0 30px rgba(127,254,74,0.3);
+}
+
+.landing-feature-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
 }
 
 /* Misc utilities */
