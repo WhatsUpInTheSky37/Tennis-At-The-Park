@@ -79,3 +79,39 @@ function TrophyIcon() {
 function UserIcon() {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
 }
+
+export function PageContainer({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+  return <div className="container" style={style}>{children}</div>;
+}
+
+export function PageHeader({ title, subtitle, back }: { title: string; subtitle?: string; back?: boolean }) {
+  return (
+    <div style={{
+      background: 'linear-gradient(135deg, var(--court-mid, #2d5a27) 0%, var(--court-light, #3a7a32) 100%)',
+      padding: '24px 16px',
+    }}>
+      <PageContainer>
+        {back && <div style={{ marginBottom: 8, fontSize: 13, opacity: 0.7 }}>← Back</div>}
+        <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(28px, 6vw, 44px)', letterSpacing: '0.04em', lineHeight: 1 }}>
+          {title}
+        </h1>
+        {subtitle && <p style={{ color: 'var(--text-dim, rgba(255,255,255,0.7))', fontSize: 15, marginTop: 8 }}>{subtitle}</p>}
+      </PageContainer>
+    </div>
+  );
+}
+
+export function PublicCourtDisclaimer() {
+  return (
+    <div style={{
+      background: 'var(--surface-2, #1a1a2e)',
+      border: '1px solid var(--court-line, #4a4a6a)',
+      borderRadius: 'var(--radius, 8px)',
+      padding: '12px 16px',
+      fontSize: 14,
+      color: 'var(--text-dim, #aaa)',
+    }}>
+      <strong>Public Courts Disclaimer:</strong> These are public courts — we do not reserve or control court access. Arrive early and follow posted rotation rules.
+    </div>
+  );
+}
