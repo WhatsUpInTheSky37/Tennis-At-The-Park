@@ -1,25 +1,24 @@
 import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
-import { requireAuth } from '../middleware/auth'
+import { prisma } from '../lib/prisma'
 
 export default async function inviteRoutes(fastify: FastifyInstance) {
-  fastify.get('/', { preHandler: [requireAuth] }, async (request) => {
+  fastify.get('/', { preHandler: [(fastify as any).authenticate] }, async (request) => {
     const { id: userId } = request.user as any
 
-    return fastify.prisma.invite.findMany({
+    return prisma.invite.findMany({
       where: { toUser: userId },
       include: {
         session: { include: { location: true, creator: { select: { id: true, profile: { select: { displayName: true } } } } } },
-        from: { select: { id: true, profile: { select: { displayName: true } } } },
+        sender: { select: { id: true, profile: { select: { displayName: true } } } },
       },
       orderBy: { createdAt: 'desc' },
     })
   })
 
-  fastify.post('/:id/respond', { preHandler: [requireAuth] }, async (request, reply) => {
+  fastify.post('/:id/respond', { preHandler: [(fastify as any).authenticate] }, async (request, reply) => {
     const { id } = request.params as any
     const { id: userId } = request.user as any
-    const { prisma } = fastify
 
     const body = z.object({ accept: z.boolean() }).parse(request.body)
 
