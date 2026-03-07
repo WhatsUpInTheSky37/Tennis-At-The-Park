@@ -2,7 +2,7 @@
 
 echo ""
 echo "================================================"
-echo "   🎾 Tennis at the Park — Setup Script"
+echo "   Tennis at the Park — Setup Script"
 echo "================================================"
 echo ""
 
@@ -12,53 +12,58 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m'
 
-ok()  { echo -e "${GREEN}✓ $1${NC}"; }
-warn(){ echo -e "${YELLOW}⚠ $1${NC}"; }
-fail(){ echo -e "${RED}✗ $1${NC}"; exit 1; }
+ok()  { echo -e "${GREEN}> $1${NC}"; }
+warn(){ echo -e "${YELLOW}! $1${NC}"; }
+fail(){ echo -e "${RED}x $1${NC}"; exit 1; }
 
-# Get Mac username
-MACUSER=$(whoami)
-echo "Mac username: $MACUSER"
+# Get username
+SYSUSER=$(whoami)
+echo "System user: $SYSUSER"
 echo ""
-
-# Check Homebrew
-echo "Checking Homebrew..."
-if ! command -v brew &>/dev/null; then
-  warn "Homebrew not found. Installing..."
-  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-else
-  ok "Homebrew installed"
-fi
 
 # Check Node
 echo "Checking Node.js..."
 if ! command -v node &>/dev/null; then
-  warn "Node.js not found. Installing..."
-  brew install node
+  warn "Node.js not found. Please install Node.js 20+ from https://nodejs.org"
+  exit 1
 else
   ok "Node.js installed ($(node -v))"
 fi
 
-# Check PostgreSQL
-echo "Checking PostgreSQL..."
-if ! command -v psql &>/dev/null; then
-  warn "PostgreSQL not found. Installing..."
-  brew install postgresql@16
-  export PATH="/opt/homebrew/opt/postgresql@16/bin:$PATH"
-  echo 'export PATH="/opt/homebrew/opt/postgresql@16/bin:$PATH"' >> ~/.zshrc
+# Check MySQL
+echo "Checking MySQL..."
+if ! command -v mysql &>/dev/null; then
+  warn "MySQL not found."
+  if command -v brew &>/dev/null; then
+    echo "Installing MySQL via Homebrew..."
+    brew install mysql
+    brew services start mysql
+    sleep 2
+  else
+    echo "Please install MySQL:"
+    echo "  macOS:   brew install mysql"
+    echo "  Ubuntu:  sudo apt install mysql-server"
+    echo "  Windows: https://dev.mysql.com/downloads/"
+    exit 1
+  fi
 else
-  ok "PostgreSQL installed"
+  ok "MySQL installed"
 fi
 
-# Start PostgreSQL
-echo "Starting PostgreSQL..."
-brew services start postgresql@16 2>/dev/null || brew services start postgresql 2>/dev/null
-sleep 2
-ok "PostgreSQL running"
+# Start MySQL if not running
+if command -v brew &>/dev/null; then
+  brew services start mysql 2>/dev/null
+elif command -v systemctl &>/dev/null; then
+  sudo systemctl start mysql 2>/dev/null
+fi
+sleep 1
+ok "MySQL running"
 
 # Create database
 echo "Creating database..."
-createdb ultimatetennis 2>/dev/null && ok "Database created" || warn "Database already exists (that's fine)"
+mysql -u root -e "CREATE DATABASE IF NOT EXISTS ultimatetennis;" 2>/dev/null \
+  && ok "Database 'ultimatetennis' ready" \
+  || warn "Could not create database (you may need to set a root password — see .env.example)"
 
 # Get script directory
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -70,7 +75,7 @@ cd "$DIR/backend"
 
 # Create .env
 cat > .env << EOF
-DATABASE_URL=postgresql://${MACUSER}@localhost:5432/ultimatetennis
+DATABASE_URL=mysql://root:@localhost:3306/ultimatetennis
 JWT_SECRET=superSecretKey_changeThis_32charsMin!!
 PORT=3001
 FRONTEND_URL=http://localhost:5173
@@ -105,7 +110,7 @@ fi
 
 echo ""
 echo "================================================"
-echo -e "${GREEN}  ✅ Setup complete!${NC}"
+echo -e "${GREEN}  Setup complete!${NC}"
 echo "================================================"
 echo ""
 echo "To start the app, run:"

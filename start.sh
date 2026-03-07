@@ -8,8 +8,12 @@ echo ""
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-# Make sure PostgreSQL is running
-brew services start postgresql@16 2>/dev/null || brew services start postgresql 2>/dev/null
+# Make sure MySQL is running
+if command -v brew &>/dev/null; then
+  brew services start mysql 2>/dev/null
+elif command -v systemctl &>/dev/null; then
+  sudo systemctl start mysql 2>/dev/null
+fi
 
 # Start backend in background
 echo "Starting backend..."

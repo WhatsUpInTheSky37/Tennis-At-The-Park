@@ -3,14 +3,14 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String   @map("password_hash")
+  id           String   @id @default(cuid()) @db.VarChar(30)
+  email        String   @unique @db.VarChar(255)
+  passwordHash String   @map("password_hash") @db.VarChar(255)
   isAdmin      Boolean  @default(false) @map("is_admin")
   createdAt    DateTime @default(now()) @map("created_at")
 
@@ -32,15 +32,15 @@ model User {
 }
 
 model Profile {
-  userId       String   @id @map("user_id")
-  displayName  String   @map("display_name")
+  userId       String   @id @map("user_id") @db.VarChar(30)
+  displayName  String   @map("display_name") @db.VarChar(100)
   skillLevel   Float    @default(3.0) @map("skill_level")
-  handedness   String   @default("right")
-  bio          String   @default("")
+  handedness   String   @default("right") @db.VarChar(20)
+  bio          String   @default("") @db.Text
   lookingToPlay Boolean @default(false) @map("looking_to_play")
   availabilityJson Json? @map("availability_json")
-  photoUrl     String?  @map("photo_url")
-  preferredFormats String[] @map("preferred_formats")
+  photoUrl     String?  @map("photo_url") @db.VarChar(500)
+  preferredFormats Json  @default("[]") @map("preferred_formats")
   createdAt    DateTime @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id])
@@ -49,8 +49,8 @@ model Profile {
 }
 
 model Location {
-  id         String   @id @default(cuid())
-  name       String
+  id         String   @id @default(cuid()) @db.VarChar(30)
+  name       String   @db.VarChar(100)
   lighted    Boolean
   courtCount Int      @map("court_count")
   sessions   Session[]
@@ -61,18 +61,18 @@ model Location {
 }
 
 model Session {
-  id          String   @id @default(cuid())
-  createdBy   String   @map("created_by")
-  locationId  String   @map("location_id")
+  id          String   @id @default(cuid()) @db.VarChar(30)
+  createdBy   String   @map("created_by") @db.VarChar(30)
+  locationId  String   @map("location_id") @db.VarChar(30)
   courtNumber Int?     @map("court_number")
   startTime   DateTime @map("start_time")
   endTime     DateTime @map("end_time")
-  format      String
-  stakes      String   @default("casual")
+  format      String   @db.VarChar(50)
+  stakes      String   @default("casual") @db.VarChar(50)
   levelMin    Float    @map("level_min")
   levelMax    Float    @map("level_max")
-  notes       String   @default("")
-  status      String   @default("open")
+  notes       String   @default("") @db.Text
+  status      String   @default("open") @db.VarChar(20)
   flexibleCourt Boolean @default(false) @map("flexible_court")
   createdAt   DateTime @default(now()) @map("created_at")
 
@@ -89,10 +89,10 @@ model Session {
 }
 
 model SessionParticipant {
-  sessionId String @map("session_id")
-  userId    String @map("user_id")
-  role      String @default("guest")
-  status    String @default("confirmed")
+  sessionId String @map("session_id") @db.VarChar(30)
+  userId    String @map("user_id") @db.VarChar(30)
+  role      String @default("guest") @db.VarChar(20)
+  status    String @default("confirmed") @db.VarChar(20)
 
   session Session @relation(fields: [sessionId], references: [id])
   user    User    @relation(fields: [userId], references: [id])
@@ -102,11 +102,11 @@ model SessionParticipant {
 }
 
 model Invite {
-  id        String   @id @default(cuid())
-  sessionId String   @map("session_id")
-  fromUser  String   @map("from_user")
-  toUser    String   @map("to_user")
-  status    String   @default("pending")
+  id        String   @id @default(cuid()) @db.VarChar(30)
+  sessionId String   @map("session_id") @db.VarChar(30)
+  fromUser  String   @map("from_user") @db.VarChar(30)
+  toUser    String   @map("to_user") @db.VarChar(30)
+  status    String   @default("pending") @db.VarChar(20)
   createdAt DateTime @default(now()) @map("created_at")
 
   session Session @relation(fields: [sessionId], references: [id])
@@ -117,10 +117,10 @@ model Invite {
 }
 
 model Message {
-  id        String   @id @default(cuid())
-  sessionId String   @map("session_id")
-  fromUser  String   @map("from_user")
-  body      String
+  id        String   @id @default(cuid()) @db.VarChar(30)
+  sessionId String   @map("session_id") @db.VarChar(30)
+  fromUser  String   @map("from_user") @db.VarChar(30)
+  body      String   @db.Text
   createdAt DateTime @default(now()) @map("created_at")
 
   session Session @relation(fields: [sessionId], references: [id])
@@ -132,19 +132,19 @@ model Message {
 }
 
 model Match {
-  id               String   @id @default(cuid())
-  sessionId        String?  @map("session_id")
+  id               String   @id @default(cuid()) @db.VarChar(30)
+  sessionId        String?  @map("session_id") @db.VarChar(30)
   playedAt         DateTime @map("played_at")
-  locationId       String   @map("location_id")
+  locationId       String   @map("location_id") @db.VarChar(30)
   courtNumber      Int?     @map("court_number")
-  format           String
+  format           String   @db.VarChar(50)
   teamsJson        Json     @map("teams_json")
   scoreJson        Json     @map("score_json")
   winnerUserIdsJson Json    @map("winner_user_ids_json")
   retiredFlag      Boolean  @default(false) @map("retired_flag")
   timeRanOutFlag   Boolean  @default(false) @map("time_ran_out_flag")
-  notes            String   @default("")
-  status           String   @default("normal")
+  notes            String   @default("") @db.Text
+  status           String   @default("normal") @db.VarChar(20)
   createdAt        DateTime @default(now()) @map("created_at")
 
   session    Session?    @relation(fields: [sessionId], references: [id])
@@ -158,12 +158,12 @@ model Match {
 }
 
 model Dispute {
-  id        String   @id @default(cuid())
-  matchId   String   @map("match_id")
-  openedBy  String   @map("opened_by")
-  reason    String
-  details   String
-  status    String   @default("open")
+  id        String   @id @default(cuid()) @db.VarChar(30)
+  matchId   String   @map("match_id") @db.VarChar(30)
+  openedBy  String   @map("opened_by") @db.VarChar(30)
+  reason    String   @db.VarChar(255)
+  details   String   @db.Text
+  status    String   @default("open") @db.VarChar(20)
   createdAt DateTime @default(now()) @map("created_at")
 
   match    Match @relation(fields: [matchId], references: [id])
@@ -174,16 +174,16 @@ model Dispute {
 }
 
 model Report {
-  id             String   @id @default(cuid())
-  reporterUser   String   @map("reporter_user")
-  reportedUser   String?  @map("reported_user")
-  messageId      String?  @map("message_id")
-  matchId        String?  @map("match_id")
-  sessionId      String?  @map("session_id")
-  disputeId      String?  @map("dispute_id")
-  category       String
-  details        String
-  status         String   @default("pending")
+  id             String   @id @default(cuid()) @db.VarChar(30)
+  reporterUser   String   @map("reporter_user") @db.VarChar(30)
+  reportedUser   String?  @map("reported_user") @db.VarChar(30)
+  messageId      String?  @map("message_id") @db.VarChar(30)
+  matchId        String?  @map("match_id") @db.VarChar(30)
+  sessionId      String?  @map("session_id") @db.VarChar(30)
+  disputeId      String?  @map("dispute_id") @db.VarChar(30)
+  category       String   @db.VarChar(50)
+  details        String   @db.Text
+  status         String   @default("pending") @db.VarChar(20)
   createdAt      DateTime @default(now()) @map("created_at")
 
   reporter User     @relation("Reporter", fields: [reporterUser], references: [id])
@@ -196,7 +196,7 @@ model Report {
 }
 
 model Rating {
-  userId        String   @id @map("user_id")
+  userId        String   @id @map("user_id") @db.VarChar(30)
   elo           Float    @default(1200)
   matchesPlayed Int      @default(0) @map("matches_played")
   wins          Int      @default(0)
@@ -210,11 +210,11 @@ model Rating {
 }
 
 model Enforcement {
-  userId       String    @id @map("user_id")
+  userId       String    @id @map("user_id") @db.VarChar(30)
   warningCount Int       @default(0) @map("warning_count")
   cooldownUntil DateTime? @map("cooldown_until")
   suspended    Boolean   @default(false)
-  notes        String    @default("")
+  notes        String    @default("") @db.Text
 
   user User @relation(fields: [userId], references: [id])
 
@@ -222,18 +222,18 @@ model Enforcement {
 }
 
 model Challenge {
-  id              String   @id @default(cuid())
-  challengerId    String   @map("challenger_id")
-  challengedId    String   @map("challenged_id")
-  locationId      String   @map("location_id")
+  id              String   @id @default(cuid()) @db.VarChar(30)
+  challengerId    String   @map("challenger_id") @db.VarChar(30)
+  challengedId    String   @map("challenged_id") @db.VarChar(30)
+  locationId      String   @map("location_id") @db.VarChar(30)
   proposedTime    DateTime @map("proposed_time")
   proposedEndTime DateTime @map("proposed_end_time")
-  format          String
-  stakes          String   @default("casual")
-  message         String   @default("")
-  status          String   @default("pending")
-  declineReason   String   @default("") @map("decline_reason")
-  matchId         String?  @map("match_id")
+  format          String   @db.VarChar(50)
+  stakes          String   @default("casual") @db.VarChar(50)
+  message         String   @default("") @db.Text
+  status          String   @default("pending") @db.VarChar(20)
+  declineReason   String   @default("") @db.Text @map("decline_reason")
+  matchId         String?  @map("match_id") @db.VarChar(30)
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
