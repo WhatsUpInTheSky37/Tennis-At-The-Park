@@ -41,7 +41,7 @@ export default function FindMatch() {
     if (filters.minSkill) params.set('minSkill', filters.minSkill);
     if (filters.maxSkill) params.set('maxSkill', filters.maxSkill);
     const data = await api.get<any[]>(`/players?${params}`);
-    setPlayers(data.filter(p => p.userId !== user?.id));
+    setPlayers(data.filter((p: any) => p.userId !== user?.id));
   };
 
   const applyFilters = () => { loadSessions(); loadPlayers(); };

@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { api, setToken, getToken } from '../lib/api'
+import { api, setToken as setApiToken, getToken } from '../lib/api'
 
 interface User {
   id: string
@@ -19,18 +19,34 @@ interface AuthStore {
   register: (email: string, password: string, displayName: string) => Promise<void>
   logout: () => void
   refresh: () => Promise<void>
+  setToken: (token: string) => void
+  fetchMe: () => Promise<void>
 }
 
-export const useAuth = create<AuthStore>((set) => ({
+export const useAuthStore = create<AuthStore>((set) => ({
   user: null,
   loading: false,
   initialized: false,
+
+  setToken: (token: string) => {
+    setApiToken(token)
+  },
+
+  fetchMe: async () => {
+    try {
+      const me = await api.me()
+      set({ user: { ...me, displayName: me.profile?.displayName }, initialized: true })
+    } catch {
+      setApiToken(null)
+      set({ user: null, initialized: true })
+    }
+  },
 
   login: async (email, password) => {
     set({ loading: true })
     try {
       const res = await api.login(email, password)
-      setToken(res.token)
+      setApiToken(res.token)
       const me = await api.me()
       set({ user: { ...me, displayName: me.profile?.displayName }, loading: false })
     } catch (e) {
@@ -43,7 +59,7 @@ export const useAuth = create<AuthStore>((set) => ({
     set({ loading: true })
     try {
       const res = await api.register(email, password, displayName)
-      setToken(res.token)
+      setApiToken(res.token)
       const me = await api.me()
       set({ user: { ...me, displayName: me.profile?.displayName }, loading: false })
     } catch (e) {
@@ -53,7 +69,7 @@ export const useAuth = create<AuthStore>((set) => ({
   },
 
   logout: () => {
-    setToken(null)
+    setApiToken(null)
     set({ user: null })
   },
 
@@ -63,8 +79,11 @@ export const useAuth = create<AuthStore>((set) => ({
       const me = await api.me()
       set({ user: { ...me, displayName: me.profile?.displayName }, initialized: true })
     } catch {
-      setToken(null)
+      setApiToken(null)
       set({ user: null, initialized: true })
     }
   }
 }))
+
+// Alias for backward compatibility
+export const useAuth = useAuthStore
