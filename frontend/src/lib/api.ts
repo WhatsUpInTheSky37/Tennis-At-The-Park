@@ -109,4 +109,10 @@ export const api = {
   adminSuspendUser: (id: string, suspended: boolean) => request<any>(`/admin/users/${id}/suspend`, { method: 'POST', body: JSON.stringify({ suspended }) }),
   adminGetDisputes: () => request<any[]>('/admin/disputes'),
   adminResolveDispute: (id: string, status: string) => request<any>(`/admin/disputes/${id}/resolve`, { method: 'POST', body: JSON.stringify({ status }) }),
+
+  // Generic HTTP methods for direct path access
+  get: <T = any>(path: string) => request<T>(path),
+  post: <T = any>(path: string, data?: any) => request<T>(path, { method: 'POST', body: data !== undefined ? JSON.stringify(data) : undefined }),
+  put: <T = any>(path: string, data?: any) => request<T>(path, { method: 'PUT', body: data !== undefined ? JSON.stringify(data) : undefined }),
+  delete: <T = any>(path: string) => request<T>(path, { method: 'DELETE' }),
 }
