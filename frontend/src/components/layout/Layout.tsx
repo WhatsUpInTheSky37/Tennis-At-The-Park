@@ -1,3 +1,4 @@
+import React from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/auth';
 
@@ -78,4 +79,26 @@ function TrophyIcon() {
 }
 function UserIcon() {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
+}
+
+export function PageContainer({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
+  return <div className="container" style={style}>{children}</div>;
+}
+
+export function PageHeader({ title, subtitle, back }: { title: string; subtitle?: string; back?: boolean }) {
+  return (
+    <div className="section-header" style={{ padding: '24px 16px 16px' }}>
+      {back && <a href="#" onClick={(e) => { e.preventDefault(); window.history.back(); }} style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: 8, display: 'block' }}>&larr; Back</a>}
+      <h1 className="display" style={{ fontSize: '2rem' }}>{title}</h1>
+      {subtitle && <p className="text-muted" style={{ marginTop: 4 }}>{subtitle}</p>}
+    </div>
+  );
+}
+
+export function PublicCourtDisclaimer() {
+  return (
+    <div className="alert alert-info">
+      <strong>Public Courts</strong> &mdash; These are public facilities. Court availability is first-come, first-served. This app helps coordinate meetups but does not reserve courts.
+    </div>
+  );
 }
