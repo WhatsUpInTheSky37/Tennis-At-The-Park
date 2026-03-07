@@ -9,7 +9,7 @@ export default function Landing() {
         {/* Hero banner card — logo fills the full width */}
         <div className="landing-banner">
           <img
-            src="/tennis-at-the-park.png"
+            src={`${import.meta.env.BASE_URL}tennis-at-the-park.png`}
             alt="Tennis at the Park"
             className="landing-banner-img"
           />

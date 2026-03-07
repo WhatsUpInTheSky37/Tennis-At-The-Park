@@ -80,7 +80,7 @@ function AppShell() {
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/tennis">
       <AppShell />
     </BrowserRouter>
   )

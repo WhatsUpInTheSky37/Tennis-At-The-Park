@@ -18,7 +18,7 @@ export default function TopNav() {
   return (
     <nav className="top-nav">
       <Link to="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-        <img src="/tennis-at-the-park.png" alt="Tennis at the Park" style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover' }} />
+        <img src={`${import.meta.env.BASE_URL}tennis-at-the-park.png`} alt="Tennis at the Park" style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover' }} />
         <span className="nav-logo" style={{ fontSize: 20 }}>TENNIS AT THE PARK</span>
       </Link>
       <div className="nav-links">

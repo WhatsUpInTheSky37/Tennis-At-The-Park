@@ -1,7 +1,7 @@
 # Deploying Tennis at the Park on Bluehost
 
-This guide covers deploying the app to Bluehost with MySQL and a custom domain
-like willfarrar.net.
+This guide covers deploying the app at **https://www.willfarrar.net/tennis**
+using Bluehost with MySQL.
 
 ---
 
@@ -47,7 +47,7 @@ Create a `.env` file in the `backend/` directory on the server:
 DATABASE_URL="mysql://willfarr_tennisuser:YOUR_PASSWORD@localhost:3306/willfarr_ultimatetennis"
 JWT_SECRET="generate-a-random-64-char-string-here"
 PORT=3001
-FRONTEND_URL="https://willfarrar.net"
+FRONTEND_URL="https://www.willfarrar.net"
 ```
 
 To generate a secure JWT secret:
@@ -102,18 +102,21 @@ pm2 startup
 
 ## Step 4: Deploy Frontend
 
+The frontend is configured to serve from the `/tennis` subpath.
+
 ```bash
 cd /var/www/Tennis-At-The-Park/frontend
 
 # Create production env
-echo 'VITE_API_URL=https://willfarrar.net/api' > .env
+echo 'VITE_API_URL=/tennis/api' > .env
 
 # Install and build
 npm install
 npm run build
 
-# Copy built files to web root
-cp -r dist/* /var/www/willfarrar.net/public_html/
+# Create the /tennis directory and copy built files
+mkdir -p /var/www/willfarrar.net/public_html/tennis
+cp -r dist/* /var/www/willfarrar.net/public_html/tennis/
 ```
 
 ---
@@ -127,17 +130,22 @@ server {
     listen 80;
     server_name willfarrar.net www.willfarrar.net;
 
-    # Frontend (static files)
     root /var/www/willfarrar.net/public_html;
     index index.html;
 
-    # SPA routing - serve index.html for all frontend routes
+    # Main site root (if you have other content at willfarrar.net/)
     location / {
-        try_files $uri $uri/ /index.html;
+        try_files $uri $uri/ =404;
     }
 
-    # API reverse proxy
-    location /api/ {
+    # Tennis app — frontend (static files with SPA routing)
+    location /tennis {
+        alias /var/www/willfarrar.net/public_html/tennis;
+        try_files $uri $uri/ /tennis/index.html;
+    }
+
+    # Tennis app — API reverse proxy
+    location /tennis/api/ {
         proxy_pass http://127.0.0.1:3001/;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
@@ -177,16 +185,25 @@ In Bluehost DNS settings (or your domain registrar):
 
 ```bash
 # Check API health
-curl https://willfarrar.net/api/health
+curl https://www.willfarrar.net/tennis/api/health
 # Should return: {"status":"ok"}
 
 # Check frontend
-open https://willfarrar.net
+open https://www.willfarrar.net/tennis
 # Should show the Tennis at the Park landing page
 
 # Check PM2 status
 pm2 status
 ```
+
+The app will be live at: **https://www.willfarrar.net/tennis**
+
+All routes will work under that path:
+- `https://www.willfarrar.net/tennis/` — Landing page
+- `https://www.willfarrar.net/tennis/dashboard` — Dashboard
+- `https://www.willfarrar.net/tennis/sessions` — Sessions
+- `https://www.willfarrar.net/tennis/leaderboards` — Leaderboards
+- etc.
 
 ---
 
@@ -207,7 +224,7 @@ pm2 restart tennis-api
 cd ../frontend
 npm install
 npm run build
-cp -r dist/* /var/www/willfarrar.net/public_html/
+cp -r dist/* /var/www/willfarrar.net/public_html/tennis/
 ```
 
 ---
@@ -224,8 +241,14 @@ directly. You have two options:
   - [Render](https://render.com) — free tier available
   - [Fly.io](https://fly.io) — free tier available
 
-Build the frontend with: `VITE_API_URL=https://your-api.railway.app npm run build`
-Then upload the `dist/` folder to Bluehost via cPanel File Manager.
+For the split setup, update `VITE_API_URL` before building:
+```bash
+echo 'VITE_API_URL=https://your-api.railway.app' > .env
+npm run build
+```
+
+Then upload the `dist/` folder contents to `public_html/tennis/` on Bluehost
+via cPanel File Manager.
 
 ### Option B: Upgrade Bluehost Plan
 Upgrade to Bluehost VPS ($29.99/mo) which gives you full root SSH access
