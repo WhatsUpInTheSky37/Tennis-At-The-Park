@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useAuthStore } from '../store/auth';
 import { Session, Location } from '../types';
-import { Spinner, EmptyState, CourtInfo, FormatBadge, Disclaimer, Avatar } from '../components/ui/helpers';
+import { Spinner, EmptyState, CourtInfo, FormatBadge, Disclaimer } from '../components/ui/helpers';
 import { format } from 'date-fns';
 
 export default function FindMatch() {
@@ -13,7 +13,7 @@ export default function FindMatch() {
   const [locations, setLocations] = useState<Location[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<'sessions' | 'players'>('sessions');
-  
+
   const [filters, setFilters] = useState({
     locationId: '', format: '', minSkill: '', maxSkill: '', lookingNow: false,
   });
@@ -55,6 +55,8 @@ export default function FindMatch() {
     return true;
   });
 
+  const getInitials = (name: string) => name ? name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : '?';
+
   return (
     <div className="page">
       <div className="container">
@@ -77,9 +79,9 @@ export default function FindMatch() {
               <label className="form-label">Format</label>
               <select className="form-select" value={filters.format} onChange={e => setFilters(f => ({ ...f, format: e.target.value }))}>
                 <option value="">Any format</option>
-                <option value="singles">Singles</option>
-                <option value="doubles">Doubles</option>
-                <option value="mixed">Mixed</option>
+                <option value="Singles">Singles</option>
+                <option value="Doubles">Doubles</option>
+                <option value="Mixed Doubles">Mixed Doubles</option>
                 <option value="practice">Practice</option>
               </select>
             </div>
@@ -115,10 +117,10 @@ export default function FindMatch() {
         {/* Tabs */}
         <div className="tabs mt-4">
           <button className={`tab-btn ${tab === 'sessions' ? 'active' : ''}`} onClick={() => setTab('sessions')}>
-            📅 Sessions ({filtered.length})
+            Sessions ({filtered.length})
           </button>
           <button className={`tab-btn ${tab === 'players' ? 'active' : ''}`} onClick={() => setTab('players')}>
-            👥 Players ({players.length})
+            Players ({players.length})
           </button>
         </div>
 
@@ -156,34 +158,80 @@ export default function FindMatch() {
           )
         )}
 
-        {/* Players list */}
+        {/* Players list - enhanced with circular avatar and detailed info */}
         {tab === 'players' && (
           players.length === 0 ? (
             <EmptyState emoji="👥" title="No players found" subtitle="Try adjusting your filters." />
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {players.map(p => (
-                <Link key={p.userId} to={`/profile/${p.userId}`} style={{ textDecoration: 'none' }}>
-                  <div className="card session-card">
-                    <div className="card-body flex items-center gap-3">
-                      <Avatar name={p.displayName} url={p.photoUrl} size="lg" />
-                      <div style={{ flex: 1 }}>
-                        <div className="flex items-center gap-2">
-                          <strong>{p.displayName}</strong>
-                          {p.lookingToPlay && <div className="looking-badge"><div className="dot" />Available</div>}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {players.map(p => {
+                const elo = p.user?.rating?.elo ?? p.elo;
+                return (
+                  <Link key={p.userId} to={`/profile/${p.userId}`} style={{ textDecoration: 'none' }}>
+                    <div className="card session-card">
+                      <div className="card-body">
+                        <div className="flex gap-3" style={{ alignItems: 'flex-start' }}>
+                          {/* Circular avatar top-left */}
+                          <div style={{
+                            width: 60, height: 60, borderRadius: '50%', overflow: 'hidden', flexShrink: 0,
+                            border: '2px solid var(--green-500)', background: 'var(--green-100)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: 18, fontFamily: 'var(--font-display)', color: 'var(--green-700)',
+                          }}>
+                            {p.photoUrl
+                              ? <img src={p.photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              : getInitials(p.displayName || '?')
+                            }
+                          </div>
+
+                          {/* Player details */}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            {/* Name + availability badge */}
+                            <div className="flex items-center gap-2 mb-1">
+                              <strong style={{ fontSize: '1.05rem' }}>{p.displayName}</strong>
+                              {p.lookingToPlay && <div className="looking-badge"><div className="dot" />Available</div>}
+                            </div>
+
+                            {/* Key stats line */}
+                            <div className="text-sm text-muted">
+                              NTRP {p.skillLevel} · {p.handedness === 'left' ? 'Left' : p.handedness === 'ambidextrous' ? 'Ambi' : 'Right'}-handed
+                              {p.yearsPlaying != null && ` · ${p.yearsPlaying}yr${p.yearsPlaying !== 1 ? 's' : ''} playing`}
+                            </div>
+
+                            {/* Preferred formats */}
+                            {(p.preferredFormats || []).length > 0 && (
+                              <div className="flex gap-2 flex-wrap mt-2">
+                                {(p.preferredFormats || []).map((f: string) => (
+                                  <span key={f} className="badge badge-blue">{f}</span>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Availability times */}
+                            {p.availability && p.availability.length > 0 && (
+                              <div className="text-xs text-muted mt-2">
+                                Usually available: {p.availability.join(', ')}
+                              </div>
+                            )}
+
+                            {/* Favorite pro */}
+                            {p.favoritePro && (
+                              <div className="text-xs text-muted mt-1">
+                                Favorite pro: {p.favoritePro}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* ELO badge right side */}
+                          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                            {elo && <span className="elo-badge">{Math.round(elo)} ELO</span>}
+                          </div>
                         </div>
-                        <div className="text-sm text-muted">
-                          NTRP {p.skillLevel} · {p.handedness}-handed · {(p.preferredFormats || []).join(', ') || 'Any format'}
-                        </div>
-                        {p.bio && <p className="text-sm text-muted mt-1">{p.bio}</p>}
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <span className="elo-badge">{Math.round(p.elo)} ELO</span>
                       </div>
                     </div>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                );
+              })}
             </div>
           )
         )}

@@ -10,7 +10,12 @@ const updateSchema = z.object({
   lookingToPlay: z.boolean().optional(),
   availabilityJson: z.any().optional(),
   photoUrl: z.string().optional().nullable().transform(v => (!v || v === '') ? null : v),
-  preferredFormats: z.array(z.string()).optional()
+  preferredFormats: z.array(z.string()).optional(),
+  yearsPlaying: z.number().int().min(0).max(80).optional().nullable(),
+  favoritePro: z.string().max(100).optional().nullable().transform(v => (!v || v === '') ? null : v),
+  phone: z.string().max(20).optional().nullable().transform(v => (!v || v === '') ? null : v),
+  okToText: z.boolean().optional(),
+  availability: z.array(z.string()).optional()
 })
 
 export async function profileRoutes(server: FastifyInstance) {

@@ -41,6 +41,11 @@ model Profile {
   availabilityJson Json? @map("availability_json")
   photoUrl     String?  @map("photo_url")
   preferredFormats String[] @map("preferred_formats")
+  yearsPlaying Int?     @map("years_playing")
+  favoritePro  String?  @map("favorite_pro")
+  phone        String?  @map("phone")
+  okToText     Boolean  @default(false) @map("ok_to_text")
+  availability String[] @default([]) @map("availability_times")
   createdAt    DateTime @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id])

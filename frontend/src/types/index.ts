@@ -14,6 +14,11 @@ export interface Profile {
   bio?: string;
   lookingToPlay: boolean;
   photoUrl?: string;
+  yearsPlaying?: number | null;
+  favoritePro?: string | null;
+  phone?: string | null;
+  okToText?: boolean;
+  availability?: string[];
 }
 
 export interface Session {
