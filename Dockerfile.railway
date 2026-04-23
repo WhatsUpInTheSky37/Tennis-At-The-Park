@@ -13,7 +13,7 @@ RUN npm run build
 # ── Build backend ──
 FROM node:20-slim AS backend-build
 WORKDIR /build
-RUN echo "backend-build-v2-20260423"
+RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 COPY backend/package*.json ./
 COPY backend/prisma ./prisma/
 RUN npm ci
@@ -23,7 +23,7 @@ RUN npm run build
 
 # ── Production ──
 FROM node:20-slim AS production
-RUN echo "production-v2-20260423"
+RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
 COPY --from=backend-build /build/node_modules ./node_modules
