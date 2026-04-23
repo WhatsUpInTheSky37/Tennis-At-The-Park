@@ -1,10 +1,13 @@
 import * as dotenv from 'dotenv'
 dotenv.config()
 
+import path from 'path'
+import fs from 'fs'
 import Fastify from 'fastify'
 import cors from '@fastify/cors'
 import jwt from '@fastify/jwt'
 import rateLimit from '@fastify/rate-limit'
+import fastifyStatic from '@fastify/static'
 import { authRoutes } from './routes/auth'
 import { profileRoutes } from './routes/profiles'
 import { locationRoutes } from './routes/locations'
@@ -28,19 +31,41 @@ server.decorate('authenticate', async function(request: any, reply: any) {
   try { await request.jwtVerify() } catch { reply.status(401).send({ error: 'Unauthorized' }) }
 })
 
-server.register(authRoutes, { prefix: '/auth' })
-server.register(profileRoutes, { prefix: '/profiles' })
-server.register(locationRoutes, { prefix: '/locations' })
-server.register(sessionRoutes, { prefix: '/sessions' })
-server.register(matchRoutes, { prefix: '/matches' })
-server.register(leaderboardRoutes, { prefix: '/leaderboards' })
-server.register(reportRoutes, { prefix: '/reports' })
-server.register(adminRoutes, { prefix: '/admin' })
-server.register(playerRoutes, { prefix: '/players' })
-server.register(challengeRoutes, { prefix: '/challenges' })
-server.register(inviteRoutes, { prefix: '/invites' })
+// API routes - served under both /path and /api/path for compatibility
+const apiRoutes = [
+  { plugin: authRoutes, prefix: '/auth' },
+  { plugin: profileRoutes, prefix: '/profiles' },
+  { plugin: locationRoutes, prefix: '/locations' },
+  { plugin: sessionRoutes, prefix: '/sessions' },
+  { plugin: matchRoutes, prefix: '/matches' },
+  { plugin: leaderboardRoutes, prefix: '/leaderboards' },
+  { plugin: reportRoutes, prefix: '/reports' },
+  { plugin: adminRoutes, prefix: '/admin' },
+  { plugin: playerRoutes, prefix: '/players' },
+  { plugin: challengeRoutes, prefix: '/challenges' },
+  { plugin: inviteRoutes, prefix: '/invites' },
+]
+
+for (const route of apiRoutes) {
+  server.register(route.plugin, { prefix: route.prefix })
+  server.register(route.plugin, { prefix: `/api${route.prefix}` })
+}
 
 server.get('/health', async () => ({ status: 'ok' }))
+server.get('/api/health', async () => ({ status: 'ok' }))
+
+// Serve frontend static files in production (combined deploy)
+const frontendDir = path.join(__dirname, '..', 'public')
+if (fs.existsSync(frontendDir)) {
+  server.register(fastifyStatic, {
+    root: frontendDir,
+    prefix: '/',
+    wildcard: false
+  })
+  server.setNotFoundHandler((_req, reply) => {
+    reply.sendFile('index.html', frontendDir)
+  })
+}
 
 const start = async () => {
   try {

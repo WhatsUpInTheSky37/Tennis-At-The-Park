@@ -1,63 +1,44 @@
-## Tennis At The Park - Combined single-container deployment
-## Builds backend + frontend, serves everything via nginx
-## Deploy from repo root on Railway, Render, or any Docker host
+## Tennis At The Park - Single-process deployment
+## One Node.js server serves both the API and frontend
 ##
-## Required env vars on Railway:
-##   DATABASE_URL  - provided automatically by Railway PostgreSQL plugin
+## Railway env vars needed:
+##   DATABASE_URL  - auto-provided by Railway PostgreSQL plugin
 ##   JWT_SECRET    - set to a random 32+ char string
-##
-## Railway will set PORT automatically.
 
-# ── Stage 1: Build backend ──
-FROM node:20-alpine AS backend-builder
-
-WORKDIR /app/backend
-
-COPY backend/package*.json ./
-COPY backend/prisma ./prisma/
-
-RUN npm ci
-RUN npx prisma generate
-
-COPY backend/ .
-RUN npm run build
-
-# ── Stage 2: Build frontend ──
+# ── Stage 1: Build frontend ──
 FROM node:20-alpine AS frontend-builder
-
-WORKDIR /app/frontend
-
+WORKDIR /app
 COPY frontend/package*.json ./
 RUN npm ci
-
 COPY frontend/ .
-
 ENV VITE_API_URL=/api
 RUN npm run build
 
-# ── Stage 3: Production runtime ──
+# ── Stage 2: Build backend ──
+FROM node:20-alpine AS backend-builder
+WORKDIR /app
+COPY backend/package*.json ./
+COPY backend/prisma ./prisma/
+RUN npm ci
+RUN npx prisma generate
+COPY backend/ .
+RUN npm run build
+
+# ── Stage 3: Production ──
 FROM node:20-alpine
-
-RUN apk add --no-cache nginx supervisor gettext
-
 WORKDIR /app
 
-# Copy backend build + node_modules
-COPY --from=backend-builder /app/backend/node_modules ./backend/node_modules
-COPY --from=backend-builder /app/backend/dist ./backend/dist
-COPY --from=backend-builder /app/backend/prisma ./backend/prisma
-COPY --from=backend-builder /app/backend/package*.json ./backend/
+# Copy backend
+COPY --from=backend-builder /app/node_modules ./node_modules
+COPY --from=backend-builder /app/dist ./dist
+COPY --from=backend-builder /app/prisma ./prisma
+COPY --from=backend-builder /app/package*.json ./
 
-# Copy frontend static files
-COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
-
-# Copy deployment config
-COPY deploy/nginx.conf.template /etc/nginx/nginx.conf.template
-COPY deploy/supervisord.conf /etc/supervisord.conf
-COPY deploy/start.sh /app/start.sh
-RUN chmod +x /app/start.sh
+# Copy frontend build into backend's public folder
+COPY --from=frontend-builder /app/dist ./public
 
 ENV PORT=8080
 EXPOSE 8080
 
-CMD ["/app/start.sh"]
+# Run migrations then start the server
+CMD sh -c "node_modules/.bin/prisma migrate deploy && node dist/index.js"
