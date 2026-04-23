@@ -1,0 +1,8 @@
+**/node_modules
+**/dist
+**/.env
+**/*.log
+.git
+README.md
+docker-compose.yml
+nginx.conf
