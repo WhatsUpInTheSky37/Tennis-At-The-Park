@@ -1,15 +1,9 @@
 ## Tennis At The Park - Single-process deployment
 ## One Node.js server serves both the API and frontend
-##
-## Railway env vars needed:
-##   DATABASE_URL  - auto-provided by Railway PostgreSQL plugin
-##   JWT_SECRET    - set to a random 32+ char string
-
-# Cache bust - change this value to force Railway to rebuild
-ARG CACHE_BUST=v3
 
 # ── Stage 1: Build frontend ──
 FROM node:20-alpine AS frontend-builder
+LABEL rebuild="2026-04-23-v4"
 WORKDIR /app
 COPY frontend/package*.json ./
 RUN npm ci
@@ -19,6 +13,7 @@ RUN npm run build
 
 # ── Stage 2: Build backend ──
 FROM node:20-alpine AS backend-builder
+LABEL rebuild="2026-04-23-v4"
 WORKDIR /app
 COPY backend/package*.json ./
 COPY backend/prisma ./prisma/
@@ -29,9 +24,10 @@ RUN npm run build
 
 # ── Stage 3: Production ──
 FROM node:20-alpine
+LABEL rebuild="2026-04-23-v4"
 WORKDIR /app
 
-# Install OpenSSL - required by Prisma
+# Install OpenSSL - required by Prisma on Alpine
 RUN apk add --no-cache openssl
 
 # Copy backend
@@ -46,5 +42,4 @@ COPY --from=frontend-builder /app/dist ./public
 ENV PORT=8080
 EXPOSE 8080
 
-# Run migrations then start the server
 CMD sh -c "node_modules/.bin/prisma migrate deploy && node dist/index.js"
