@@ -32,4 +32,4 @@ COPY --from=frontend-build /build/dist ./public
 ENV PORT=8080
 EXPOSE 8080
 
-CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy && node dist/index.js"]
+CMD ["sh", "-c", "./node_modules/.bin/prisma migrate deploy && node dist/seed.js && node dist/index.js"]
