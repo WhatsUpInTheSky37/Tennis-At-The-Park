@@ -5,6 +5,9 @@
 ##   DATABASE_URL  - auto-provided by Railway PostgreSQL plugin
 ##   JWT_SECRET    - set to a random 32+ char string
 
+# Cache bust - change this value to force Railway to rebuild
+ARG CACHE_BUST=v3
+
 # ── Stage 1: Build frontend ──
 FROM node:20-alpine AS frontend-builder
 WORKDIR /app
@@ -27,6 +30,9 @@ RUN npm run build
 # ── Stage 3: Production ──
 FROM node:20-alpine
 WORKDIR /app
+
+# Install OpenSSL - required by Prisma
+RUN apk add --no-cache openssl
 
 # Copy backend
 COPY --from=backend-builder /app/node_modules ./node_modules
