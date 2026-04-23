@@ -6,6 +6,10 @@ COPY package*.json ./
 RUN npm ci
 
 COPY . .
+
+ARG VITE_API_URL=/api
+ENV VITE_API_URL=$VITE_API_URL
+
 RUN npm run build
 
 FROM node:20-alpine
@@ -16,6 +20,8 @@ RUN npm install -g serve
 
 COPY --from=builder /app/dist ./dist
 
-EXPOSE 3000
+ENV PORT=3000
 
-CMD ["serve", "dist", "-s", "-l", "3000"]
+EXPOSE $PORT
+
+CMD sh -c "serve dist -s -l $PORT"
