@@ -70,7 +70,7 @@ export default function Conversation() {
   }
 
   return (
-    <div className="page" style={{ display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 120px)' }}>
+    <div className="page" style={{ display: 'flex', flexDirection: 'column', maxHeight: 'calc(100vh - 120px)', paddingBottom: 90 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
         <Link to="/messages" className="btn btn-ghost btn-sm" style={{ padding: '4px 8px' }}>&#8592;</Link>
         <div style={{
