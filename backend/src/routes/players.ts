@@ -7,8 +7,6 @@ export async function playerRoutes(server: FastifyInstance) {
     const where: any = {}
     if (q.lookingToPlay === 'true') {
       where.lookingToPlay = true
-    } else {
-      where.lookingToPlay = true
     }
     if (q.skill) {
       where.skillLevel = { gte: Number(q.skill) - 0.5, lte: Number(q.skill) + 0.5 }
