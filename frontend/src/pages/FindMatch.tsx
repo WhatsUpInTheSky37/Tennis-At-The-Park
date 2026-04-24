@@ -67,7 +67,7 @@ export default function FindMatch() {
 
         {/* Filters */}
         <div className="card card-body mb-4">
-          <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10 }}>
+          <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10 }}>
             <div className="form-group">
               <label className="form-label">Location</label>
               <select className="form-select" value={filters.locationId} onChange={e => setFilters(f => ({ ...f, locationId: e.target.value }))}>
@@ -185,7 +185,7 @@ export default function FindMatch() {
                           </div>
 
                           {/* Player details */}
-                          <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
                             {/* Name + availability badge */}
                             <div className="flex items-center gap-2 mb-1">
                               <strong style={{ fontSize: '1.05rem' }}>{p.displayName}</strong>

@@ -99,28 +99,28 @@ export default function ChallengeModal({ targetUserId, targetName, onClose }: Pr
             )}
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="grid-2">
             <div className="form-group" style={{ margin: 0 }}>
               <label htmlFor="ch-start">Start Time *</label>
-              <input id="ch-start" type="datetime-local" value={form.proposedTime} onChange={e => setField('proposedTime', e.target.value)} required />
+              <input id="ch-start" type="datetime-local" value={form.proposedTime} onChange={e => setField('proposedTime', e.target.value)} required style={{ width: '100%' }} />
             </div>
             <div className="form-group" style={{ margin: 0 }}>
               <label htmlFor="ch-end">End Time *</label>
-              <input id="ch-end" type="datetime-local" value={form.proposedEndTime} onChange={e => setField('proposedEndTime', e.target.value)} required />
+              <input id="ch-end" type="datetime-local" value={form.proposedEndTime} onChange={e => setField('proposedEndTime', e.target.value)} required style={{ width: '100%' }} />
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="grid-2">
             <div className="form-group" style={{ margin: 0 }}>
               <label htmlFor="ch-format">Format *</label>
-              <select id="ch-format" value={form.format} onChange={e => setField('format', e.target.value)}>
+              <select id="ch-format" value={form.format} onChange={e => setField('format', e.target.value)} style={{ width: '100%' }}>
                 <option value="singles">Singles</option>
                 <option value="doubles">Doubles</option>
               </select>
             </div>
             <div className="form-group" style={{ margin: 0 }}>
               <label htmlFor="ch-stakes">Stakes</label>
-              <select id="ch-stakes" value={form.stakes} onChange={e => setField('stakes', e.target.value)}>
+              <select id="ch-stakes" value={form.stakes} onChange={e => setField('stakes', e.target.value)} style={{ width: '100%' }}>
                 <option value="casual">Casual</option>
                 <option value="competitive">Competitive</option>
                 <option value="practice">Practice</option>
