@@ -50,11 +50,11 @@ export default function Landing() {
             { img: '/winterplace-park.jpg', title: 'Winterplace Park', address: '737 Blue Ribbon Rd, Salisbury, MD', sub: '2 courts · Daylight only' },
           ].map(loc => (
             <div key={loc.title} className="card" style={{ padding: 0, overflow: 'hidden' }}>
-              <img src={loc.img} alt={loc.title} style={{ width: '100%', height: 200, objectFit: 'cover', display: 'block' }} />
-              <div style={{ padding: '14px 16px' }}>
-                <div className="font-bold" style={{ fontSize: '1.05rem' }}>{loc.title}</div>
-                <div className="text-sm text-muted" style={{ marginTop: 2 }}>{loc.address}</div>
-                <div className="text-sm" style={{ marginTop: 4 }}>{loc.sub}</div>
+              <img src={loc.img} alt={loc.title} style={{ width: '100%', height: 240, objectFit: 'cover', display: 'block' }} />
+              <div style={{ padding: '16px 18px 20px' }}>
+                <div className="font-bold" style={{ fontSize: '1.1rem', marginBottom: 4 }}>{loc.title}</div>
+                <div className="text-sm text-muted">{loc.address}</div>
+                <div className="text-sm" style={{ marginTop: 6 }}>{loc.sub}</div>
               </div>
             </div>
           ))}
