@@ -26,6 +26,7 @@ import Conversation from './pages/Conversation'
 // Components
 import TopNav from './components/TopNav'
 import BottomNav from './components/BottomNav'
+import MobileHeader from './components/MobileHeader'
 import OfflineBanner from './components/OfflineBanner'
 
 function AppShell() {
@@ -63,6 +64,7 @@ function AppShell() {
   return (
     <div className="app-shell">
       <OfflineBanner />
+      <MobileHeader />
       <TopNav />
       <main className="main-content">
         <Routes>
