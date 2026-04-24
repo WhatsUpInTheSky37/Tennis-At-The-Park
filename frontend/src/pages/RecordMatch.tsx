@@ -97,7 +97,7 @@ export default function RecordMatch() {
         timeRanOutFlag: form.timeRanOutFlag,
         notes: form.notes
       })
-      navigate('/matches')
+      navigate('/activity?tab=results')
     } catch (err: any) {
       setError(err.message)
       setLoading(false)

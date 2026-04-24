@@ -6,10 +6,9 @@ import { api } from './lib/api'
 // Pages
 import Landing from './pages/Landing'
 import Dashboard from './pages/Dashboard'
-import Sessions from './pages/Sessions'
+import Activity from './pages/Activity'
 import SessionDetail from './pages/SessionDetail'
 import CreateSession from './pages/CreateSession'
-import Matches from './pages/Matches'
 import RecordMatch from './pages/RecordMatch'
 import Leaderboards from './pages/Leaderboards'
 import Profile from './pages/Profile'
@@ -68,10 +67,11 @@ function AppShell() {
       <main className="main-content">
         <Routes>
           <Route path="/dashboard" element={user ? <Dashboard /> : <Navigate to="/auth" />} />
-          <Route path="/sessions" element={<Sessions />} />
+          <Route path="/activity" element={<Activity />} />
+          <Route path="/sessions" element={<Navigate to="/activity" />} />
+          <Route path="/matches" element={<Navigate to="/activity?tab=results" />} />
           <Route path="/sessions/new" element={user ? <CreateSession /> : <Navigate to="/auth" />} />
           <Route path="/sessions/:id" element={<SessionDetail />} />
-          <Route path="/matches" element={<Matches />} />
           <Route path="/matches/record" element={user ? <RecordMatch /> : <Navigate to="/auth" />} />
           <Route path="/challenges" element={user ? <Challenges /> : <Navigate to="/auth" />} />
           <Route path="/calendar" element={user ? <Calendar /> : <Navigate to="/auth" />} />
