@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useAuth } from '../store/auth'
 import { getInitials } from '../lib/utils'
@@ -8,6 +8,7 @@ import { formatDistanceToNow, format } from 'date-fns'
 export default function ForumPost() {
   const { id } = useParams<{ id: string }>()
   const { user } = useAuth()
+  const navigate = useNavigate()
   const [post, setPost] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [replyBody, setReplyBody] = useState('')
@@ -58,11 +59,26 @@ export default function ForumPost() {
             <h1 style={{ fontSize: '1.3rem', fontFamily: 'var(--font-display)', letterSpacing: 1, marginBottom: 4 }}>
               {post.subject}
             </h1>
-            <div className="text-xs text-muted mb-3">
-              <Link to={`/profile/${post.author?.id}`} style={{ color: 'var(--accent)' }}>
-                {post.author?.profile?.displayName}
-              </Link>
-              {' · '}{format(new Date(post.createdAt), 'MMM d, yyyy h:mm a')}
+            <div className="text-xs text-muted mb-3" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span>
+                <Link to={`/profile/${post.author?.id}`} style={{ color: 'var(--accent)' }}>
+                  {post.author?.profile?.displayName}
+                </Link>
+                {' · '}{format(new Date(post.createdAt), 'MMM d, yyyy h:mm a')}
+              </span>
+              {user && user.id === post.author?.id && (
+                <button
+                  className="btn btn-danger btn-sm"
+                  style={{ padding: '2px 8px', fontSize: 11 }}
+                  onClick={async () => {
+                    if (!confirm('Delete this post and all its replies?')) return
+                    await api.deleteForumPost(post.id)
+                    navigate('/forum')
+                  }}
+                >
+                  Delete Post
+                </button>
+              )}
             </div>
             <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{post.body}</div>
           </div>
