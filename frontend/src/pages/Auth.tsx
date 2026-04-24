@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../store/auth'
 import { api } from '../lib/api'
 
 export default function AuthPage() {
-  const [mode, setMode] = useState<'login' | 'register' | 'reset'>('login')
+  const [searchParams] = useSearchParams()
+  const [mode, setMode] = useState<'login' | 'register' | 'reset'>(searchParams.get('mode') === 'register' ? 'register' : 'login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [displayName, setDisplayName] = useState('')
