@@ -36,7 +36,7 @@ export default function FindPlayers() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {players.map(p => (
-            <div key={p.userId} className="card">
+            <div key={p.userId} className="card" style={{ cursor: 'pointer' }} onClick={() => navigate(`/profile/${p.userId}`)}>
               <div className="flex gap-3" style={{ alignItems: 'flex-start' }}>
                 <div className="avatar" style={{
                   width: 56, height: 56, minWidth: 56, fontSize: 18,
@@ -48,7 +48,7 @@ export default function FindPlayers() {
                 </div>
                 <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
                   <div className="flex items-center gap-2 mb-1" style={{ flexWrap: 'wrap' }}>
-                    <strong style={{ cursor: 'pointer' }} onClick={() => navigate(`/profile/${p.userId}`)}>{p.displayName}</strong>
+                    <strong>{p.displayName}</strong>
                     {p.lookingToPlay && <span className="badge badge-green" style={{ fontSize: 10 }}>Looking to play</span>}
                   </div>
                   <SkillDisplay level={p.skillLevel || 3} showLabel />
