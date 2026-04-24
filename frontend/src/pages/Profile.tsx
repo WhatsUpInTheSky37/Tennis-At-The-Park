@@ -172,9 +172,14 @@ export default function Profile() {
               <button className="btn btn-ghost btn-sm" onClick={() => { logout(); navigate('/') }}>Sign Out</button>
             </>
           ) : user && (
-            <button className="btn btn-primary btn-sm" onClick={() => setShowChallenge(true)}>
-              &#9876;&#65039; Challenge
-            </button>
+            <div className="flex gap-2">
+              <button className="btn btn-secondary btn-sm" onClick={() => navigate(`/messages/${targetId}`)}>
+                &#9993; Message
+              </button>
+              <button className="btn btn-primary btn-sm" onClick={() => setShowChallenge(true)}>
+                &#9876;&#65039; Challenge
+              </button>
+            </div>
           )}
         </div>
       </div>

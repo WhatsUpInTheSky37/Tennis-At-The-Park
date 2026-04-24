@@ -21,6 +21,8 @@ import Challenges from './pages/Challenges'
 import Calendar from './pages/Calendar'
 import Forum from './pages/Forum'
 import ForumPost from './pages/ForumPost'
+import Inbox from './pages/Inbox'
+import Conversation from './pages/Conversation'
 
 // Components
 import TopNav from './components/TopNav'
@@ -79,6 +81,8 @@ function AppShell() {
           <Route path="/profile/:userId" element={<Profile />} />
           <Route path="/forum" element={<Forum />} />
           <Route path="/forum/:id" element={<ForumPost />} />
+          <Route path="/messages" element={user ? <Inbox /> : <Navigate to="/auth" />} />
+          <Route path="/messages/:userId" element={user ? <Conversation /> : <Navigate to="/auth" />} />
           <Route path="/rules" element={<Rules />} />
           <Route path="/admin" element={user?.isAdmin ? <Admin /> : <Navigate to="/dashboard" />} />
           <Route path="*" element={<Navigate to="/dashboard" />} />

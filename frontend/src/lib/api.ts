@@ -116,6 +116,16 @@ export const api = {
   deleteForumPost: (id: string) =>
     request<any>(`/forum/${id}`, { method: 'DELETE' }),
 
+  // Direct Messages
+  getInbox: (page?: number) => request<{ messages: any[]; total: number; unreadCount: number }>(`/dm/inbox?page=${page || 1}`),
+  getSentMessages: (page?: number) => request<{ messages: any[]; total: number }>(`/dm/sent?page=${page || 1}`),
+  getConversation: (otherUserId: string) => request<any[]>(`/dm/conversation/${otherUserId}`),
+  sendDm: (toId: string, subject: string, body: string) =>
+    request<any>('/dm', { method: 'POST', body: JSON.stringify({ toId, subject, body }) }),
+  markDmRead: (id: string) => request<any>(`/dm/${id}/read`, { method: 'POST', body: JSON.stringify({}) }),
+  deleteDm: (id: string) => request<any>(`/dm/${id}`, { method: 'DELETE' }),
+  getUnreadDmCount: () => request<{ count: number }>('/dm/unread-count'),
+
   // Admin
   adminGetReports: () => request<any[]>('/admin/reports'),
   adminResolveReport: (id: string, status: string) => request<any>(`/admin/reports/${id}/resolve`, { method: 'POST', body: JSON.stringify({ status }) }),

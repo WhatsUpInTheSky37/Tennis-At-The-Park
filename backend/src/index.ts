@@ -20,6 +20,7 @@ import { playerRoutes } from './routes/players'
 import { challengeRoutes } from './routes/challenges'
 import inviteRoutes from './routes/invites'
 import { forumRoutes } from './routes/forum'
+import { dmRoutes } from './routes/dm'
 
 const server = Fastify({ logger: true })
 const JWT_SECRET = process.env.JWT_SECRET || 'changeme-secret-at-least-32-chars!!'
@@ -46,6 +47,7 @@ const apiRoutes = [
   { plugin: challengeRoutes, prefix: '/challenges' },
   { plugin: inviteRoutes, prefix: '/invites' },
   { plugin: forumRoutes, prefix: '/forum' },
+  { plugin: dmRoutes, prefix: '/dm' },
 ]
 
 for (const route of apiRoutes) {

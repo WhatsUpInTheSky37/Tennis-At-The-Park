@@ -1,17 +1,29 @@
+import { useState, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../store/auth'
 import { getInitials } from '../lib/utils'
+import { api } from '../lib/api'
 
 export default function TopNav() {
   const { user, logout } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
+  const [unreadDms, setUnreadDms] = useState(0)
+
+  useEffect(() => {
+    if (!user) return
+    const load = () => api.getUnreadDmCount().then(r => setUnreadDms(r.count)).catch(() => {})
+    load()
+    const interval = setInterval(load, 30000)
+    return () => clearInterval(interval)
+  }, [user])
 
   const links = [
     { to: '/dashboard', label: 'Dashboard' },
     { to: '/sessions', label: 'Schedule' },
     { to: '/players', label: 'Find Players' },
     { to: '/matches', label: 'Matches' },
+    { to: '/messages', label: 'Messages', badge: unreadDms },
     { to: '/forum', label: 'Forum' },
   ]
 
@@ -23,8 +35,18 @@ export default function TopNav() {
       </Link>
       <div className="nav-links">
         {links.map(l => (
-          <Link key={l.to} to={l.to} className={`nav-link ${location.pathname.startsWith(l.to) ? 'active' : ''}`}>
+          <Link key={l.to} to={l.to} className={`nav-link ${location.pathname.startsWith(l.to) ? 'active' : ''}`} style={{ position: 'relative' }}>
             {l.label}
+            {l.badge && l.badge > 0 ? (
+              <span style={{
+                position: 'absolute', top: -4, right: -10,
+                background: 'var(--red)', color: '#fff', borderRadius: '50%',
+                width: 18, height: 18, fontSize: 10, display: 'flex',
+                alignItems: 'center', justifyContent: 'center', fontWeight: 700,
+              }}>
+                {l.badge > 9 ? '9+' : l.badge}
+              </span>
+            ) : null}
           </Link>
         ))}
       </div>

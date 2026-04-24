@@ -30,6 +30,8 @@ model User {
   enforcement         Enforcement?
   forumPosts          ForumPost[]
   forumReplies        ForumReply[]
+  dmsSent             DirectMessage[]    @relation("DmSender")
+  dmsReceived         DirectMessage[]    @relation("DmReceiver")
 
   @@map("users")
 }
@@ -282,4 +284,22 @@ model ForumReply {
 
   @@index([postId])
   @@map("forum_replies")
+}
+
+model DirectMessage {
+  id        String   @id @default(cuid())
+  fromId    String   @map("from_id")
+  toId      String   @map("to_id")
+  subject   String   @default("")
+  body      String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  sender   User @relation("DmSender", fields: [fromId], references: [id])
+  receiver User @relation("DmReceiver", fields: [toId], references: [id])
+
+  @@index([toId, read])
+  @@index([fromId])
+  @@index([createdAt])
+  @@map("direct_messages")
 }
