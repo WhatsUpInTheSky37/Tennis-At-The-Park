@@ -25,8 +25,14 @@ export async function sessionRoutes(server: FastifyInstance) {
     if (query.format) where.format = query.format
     if (query.date) {
       const d = new Date(query.date)
-      const next = new Date(d); next.setDate(next.getDate() + 1)
-      where.startTime = { gte: d, lt: next }
+      if (query.dateTo) {
+        const end = new Date(query.dateTo)
+        end.setDate(end.getDate() + 1)
+        where.startTime = { gte: d, lt: end }
+      } else {
+        const next = new Date(d); next.setDate(next.getDate() + 1)
+        where.startTime = { gte: d, lt: next }
+      }
     }
     return prisma.session.findMany({
       where,

@@ -4,9 +4,11 @@ import { useAuth } from '../store/auth'
 import { api } from '../lib/api'
 import SessionCard from '../components/SessionCard'
 import DisclaimerBox from '../components/DisclaimerBox'
-import { format } from 'date-fns'
+import { format, addDays } from 'date-fns'
 import { formatDateTime, formatTime, getInitials } from '../lib/utils'
 import SkillDisplay from '../components/SkillDisplay'
+
+const PAGE_SIZE = 5
 
 export default function Dashboard() {
   const { user, refresh } = useAuth()
@@ -16,10 +18,13 @@ export default function Dashboard() {
   const [lookingToPlay, setLookingToPlay] = useState(false)
   const [loading, setLoading] = useState(true)
   const [challengeActionLoading, setChallengeActionLoading] = useState<string | null>(null)
+  const [myPage, setMyPage] = useState(0)
+  const [communityPage, setCommunityPage] = useState(0)
 
   useEffect(() => {
     const today = format(new Date(), 'yyyy-MM-dd')
-    api.getSessions({ date: today }).then(s => { setSessions(s); setLoading(false) })
+    const endOfWeek = format(addDays(new Date(), 6), 'yyyy-MM-dd')
+    api.getSessions({ date: today, dateTo: endOfWeek }).then(s => { setSessions(s); setLoading(false) })
     api.getChallenges({ direction: 'received', status: 'pending' })
       .then(setPendingChallenges)
       .catch(() => {})
@@ -43,6 +48,12 @@ export default function Dashboard() {
 
   const mySessions = sessions.filter(s => s.participants?.some((p: any) => p.userId === user?.id))
   const communitySessions = sessions.filter(s => !s.participants?.some((p: any) => p.userId === user?.id))
+
+  const myPagedSessions = mySessions.slice(myPage * PAGE_SIZE, (myPage + 1) * PAGE_SIZE)
+  const myTotalPages = Math.ceil(mySessions.length / PAGE_SIZE)
+
+  const communityPagedSessions = communitySessions.slice(communityPage * PAGE_SIZE, (communityPage + 1) * PAGE_SIZE)
+  const communityTotalPages = Math.ceil(communitySessions.length / PAGE_SIZE)
 
   return (
     <div className="page">
@@ -174,33 +185,67 @@ export default function Dashboard() {
       )}
 
       <div className="section">
-        <h2 className="section-title">MY SESSIONS TODAY</h2>
+        <h2 className="section-title">MY SCHEDULE THIS WEEK</h2>
         {loading ? (
           <div className="loading-screen"><div className="spinner" /></div>
         ) : mySessions.length === 0 ? (
           <div className="empty-state">
             <div className="icon">🎾</div>
-            <h3>No sessions planned today</h3>
+            <h3>No sessions planned this week</h3>
             <button className="btn btn-primary mt-4" onClick={() => navigate('/sessions/new')}>Plan a Session</button>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {mySessions.map(s => <SessionCard key={s.id} session={s} />)}
+            {myPagedSessions.map(s => <SessionCard key={s.id} session={s} />)}
+            {myTotalPages > 1 && (
+              <div className="flex items-center justify-center gap-3 mt-2">
+                {myPage > 0 && (
+                  <button className="btn btn-ghost btn-sm" onClick={() => setMyPage(p => p - 1)}>
+                    ← Previous
+                  </button>
+                )}
+                <span className="text-sm text-muted">
+                  {myPage + 1} of {myTotalPages}
+                </span>
+                {myPage < myTotalPages - 1 && (
+                  <button className="btn btn-ghost btn-sm" onClick={() => setMyPage(p => p + 1)}>
+                    Next →
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
 
       <div className="section">
-        <h2 className="section-title">COMMUNITY SCHEDULE TODAY</h2>
+        <h2 className="section-title">COMMUNITY SCHEDULE THIS WEEK</h2>
         {communitySessions.length === 0 ? (
           <div className="empty-state">
             <div className="icon">📅</div>
-            <h3>No other sessions today</h3>
+            <h3>No other sessions this week</h3>
             <button className="btn btn-ghost mt-4" onClick={() => navigate('/sessions')}>View All Sessions</button>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {communitySessions.map(s => <SessionCard key={s.id} session={s} />)}
+            {communityPagedSessions.map(s => <SessionCard key={s.id} session={s} />)}
+            {communityTotalPages > 1 && (
+              <div className="flex items-center justify-center gap-3 mt-2">
+                {communityPage > 0 && (
+                  <button className="btn btn-ghost btn-sm" onClick={() => setCommunityPage(p => p - 1)}>
+                    ← Previous
+                  </button>
+                )}
+                <span className="text-sm text-muted">
+                  {communityPage + 1} of {communityTotalPages}
+                </span>
+                {communityPage < communityTotalPages - 1 && (
+                  <button className="btn btn-ghost btn-sm" onClick={() => setCommunityPage(p => p + 1)}>
+                    Next →
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
