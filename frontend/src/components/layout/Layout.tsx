@@ -18,7 +18,7 @@ export default function Layout() {
       <nav className="top-nav">
         <NavLink to="/dashboard" className="logo" style={{ textDecoration: 'none' }}>
           <span className="ball">🎾</span>
-          <span>ULTIMATE TENNIS</span>
+          <span>TENNIS AT THE PARK</span>
         </NavLink>
         <div className="nav-links desktop-only">
           {navItems.map(({ to, label }) => (

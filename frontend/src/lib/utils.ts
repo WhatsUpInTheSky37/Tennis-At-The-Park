@@ -68,7 +68,7 @@ export function generateICS(session: any, location: any): string {
   return [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Ultimate Tennis//EN',
+    'PRODID:-//Tennis at the Park//EN',
     'BEGIN:VEVENT',
     `DTSTART:${fmt(start)}`,
     `DTEND:${fmt(end)}`,
