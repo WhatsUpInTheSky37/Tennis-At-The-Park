@@ -72,6 +72,17 @@ export async function forumRoutes(server: FastifyInstance) {
     })
   })
 
+  server.delete('/:id', { preHandler: [(server as any).authenticate] }, async (req, reply) => {
+    const { id } = req.params as any
+    const { userId } = (req as any).user
+    const post = await prisma.forumPost.findUnique({ where: { id } })
+    if (!post) return reply.status(404).send({ error: 'Post not found' })
+    if (post.userId !== userId) return reply.status(403).send({ error: 'You can only delete your own posts' })
+    await prisma.forumReply.deleteMany({ where: { postId: id } })
+    await prisma.forumPost.delete({ where: { id } })
+    return { ok: true }
+  })
+
   server.post('/:id/replies', { preHandler: [(server as any).authenticate] }, async (req, reply) => {
     const { id } = req.params as any
     const parsed = replySchema.safeParse(req.body)

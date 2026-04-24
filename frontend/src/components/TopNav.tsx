@@ -12,7 +12,6 @@ export default function TopNav() {
     { to: '/sessions', label: 'Schedule' },
     { to: '/players', label: 'Find Players' },
     { to: '/matches', label: 'Matches' },
-    { to: '/leaderboards', label: 'Rankings' },
     { to: '/forum', label: 'Forum' },
   ]
 

@@ -113,6 +113,8 @@ export const api = {
     request<any>('/forum', { method: 'POST', body: JSON.stringify(data) }),
   createForumReply: (postId: string, body: string) =>
     request<any>(`/forum/${postId}/replies`, { method: 'POST', body: JSON.stringify({ body }) }),
+  deleteForumPost: (id: string) =>
+    request<any>(`/forum/${id}`, { method: 'DELETE' }),
 
   // Admin
   adminGetReports: () => request<any[]>('/admin/reports'),

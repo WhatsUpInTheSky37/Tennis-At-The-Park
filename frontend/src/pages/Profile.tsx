@@ -313,6 +313,9 @@ export default function Profile() {
                     <div className="text-xs text-muted">MATCHES</div>
                   </div>
                 </div>
+                <button className="btn btn-ghost btn-sm mt-3" style={{ width: '100%' }} onClick={() => navigate('/leaderboards')}>
+                  View Community Rankings →
+                </button>
               </div>
             </div>
           )}

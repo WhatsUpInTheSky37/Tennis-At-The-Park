@@ -8,7 +8,6 @@ const items = [
   { to: '/calendar', label: 'Calendar', icon: '\uD83D\uDCC5' },
   { to: '/challenges', label: 'Challenges', icon: '\u2694\uFE0F', showBadge: true },
   { to: '/players', label: 'Players', icon: '\uD83D\uDC65' },
-  { to: '/leaderboards', label: 'Rankings', icon: '\uD83D\uDCCA' },
   { to: '/forum', label: 'Forum', icon: '\uD83D\uDCAC' },
 ]
 
