@@ -51,13 +51,16 @@ export default function TopNav() {
       <div className="nav-actions">
         {user ? (
           <>
-            <Link to="/sessions/new" className="btn btn-primary btn-sm">+ Plan Session</Link>
-            <Link to="/profile" className="avatar" style={{ width: 36, height: 36, fontSize: 13 }}>
+            <Link to="/sessions/new" className="btn btn-primary btn-sm hide-mobile">+ Plan Session</Link>
+            <Link to="/profile" className="avatar" title="Edit Profile" style={{ width: 36, height: 36, fontSize: 13 }}>
               {user.profile?.photoUrl
                 ? <img src={user.profile.photoUrl} alt="" />
                 : getInitials(user.displayName || user.email)
               }
             </Link>
+            <button className="btn btn-ghost btn-sm sign-out-btn" onClick={() => { logout(); navigate('/') }} title="Sign Out">
+              Sign Out
+            </button>
           </>
         ) : (
           <button className="btn btn-primary btn-sm" onClick={() => navigate('/auth')}>Sign In</button>
