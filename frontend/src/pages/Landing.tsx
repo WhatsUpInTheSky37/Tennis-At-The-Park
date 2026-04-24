@@ -1,7 +1,15 @@
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, Link } from 'react-router-dom'
+import { api } from '../lib/api'
+import { formatDistanceToNow } from 'date-fns'
 
 export default function Landing() {
   const navigate = useNavigate()
+  const [recentPosts, setRecentPosts] = useState<any[]>([])
+
+  useEffect(() => {
+    api.getRecentForumPosts().then(setRecentPosts).catch(() => {})
+  }, [])
 
   return (
     <div className="hero">
@@ -74,6 +82,25 @@ export default function Landing() {
             </p>
           </div>
         </div>
+
+        {recentPosts.length > 0 && (
+          <div style={{ marginTop: 24 }}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 style={{ fontFamily: 'var(--font-display)', letterSpacing: 2, fontSize: 20 }}>FORUM</h3>
+              <button className="btn btn-ghost btn-sm" onClick={() => navigate('/forum')}>View All →</button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {recentPosts.map(p => (
+                <div key={p.id} className="card" style={{ cursor: 'pointer', padding: 14 }} onClick={() => navigate(`/forum/${p.id}`)}>
+                  <div style={{ fontWeight: 700, marginBottom: 2 }}>{p.subject}</div>
+                  <div className="text-xs text-muted">
+                    {p.author?.profile?.displayName} · {formatDistanceToNow(new Date(p.createdAt), { addSuffix: true })} · {p._count?.replies || 0} replies
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div style={{ marginTop: 24, display: 'flex', gap: 16, justifyContent: 'center' }}>
           <button className="btn btn-ghost" onClick={() => navigate('/courts')}>

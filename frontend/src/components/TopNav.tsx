@@ -13,6 +13,7 @@ export default function TopNav() {
     { to: '/players', label: 'Find Players' },
     { to: '/matches', label: 'Matches' },
     { to: '/leaderboards', label: 'Rankings' },
+    { to: '/forum', label: 'Forum' },
   ]
 
   return (

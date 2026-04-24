@@ -102,6 +102,18 @@ export const api = {
     return request<any>(`/challenges/calendar/events${q}`)
   },
 
+  // Forum
+  getForumPosts: (params?: Record<string, string>) => {
+    const q = params ? '?' + new URLSearchParams(params).toString() : ''
+    return request<{ posts: any[]; total: number }>(`/forum${q}`)
+  },
+  getRecentForumPosts: () => request<any[]>('/forum/recent'),
+  getForumPost: (id: string) => request<any>(`/forum/${id}`),
+  createForumPost: (data: { subject: string; body: string }) =>
+    request<any>('/forum', { method: 'POST', body: JSON.stringify(data) }),
+  createForumReply: (postId: string, body: string) =>
+    request<any>(`/forum/${postId}/replies`, { method: 'POST', body: JSON.stringify({ body }) }),
+
   // Admin
   adminGetReports: () => request<any[]>('/admin/reports'),
   adminResolveReport: (id: string, status: string) => request<any>(`/admin/reports/${id}/resolve`, { method: 'POST', body: JSON.stringify({ status }) }),
