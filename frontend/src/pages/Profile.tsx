@@ -161,6 +161,9 @@ export default function Profile() {
 
   return (
     <div className="page" style={{ maxWidth: 640 }}>
+      {!isOwnProfile && (
+        <button className="btn btn-ghost btn-sm mb-4" onClick={() => navigate(-1)}>← Back</button>
+      )}
       <div className="page-header flex items-center justify-between">
         <h1 className="page-title">PROFILE</h1>
         <div className="flex gap-2">

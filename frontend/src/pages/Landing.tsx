@@ -106,9 +106,6 @@ export default function Landing() {
         )}
 
         <div style={{ marginTop: 24, display: 'flex', gap: 16, justifyContent: 'center' }}>
-          <button className="btn btn-ghost" onClick={() => navigate('/courts')}>
-            List of Courts
-          </button>
           <button className="btn btn-ghost" onClick={() => navigate('/rules')}>
             Court Etiquette Rules
           </button>

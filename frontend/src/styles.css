@@ -116,8 +116,16 @@ button { cursor: pointer; font-family: inherit; }
   padding-bottom: env(safe-area-inset-bottom);
 }
 
+.app-footer {
+  text-align: center;
+  padding: 24px 16px 80px;
+  font-size: 0.8rem;
+  color: var(--text3);
+}
+
 @media (min-width: 768px) {
   .bottom-nav { display: none; }
+  .app-footer { padding-bottom: 24px; }
 }
 
 .bottom-nav-item {

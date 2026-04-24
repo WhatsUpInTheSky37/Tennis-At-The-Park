@@ -5,9 +5,9 @@ import { useAuth } from '../store/auth'
 
 const items = [
   { to: '/dashboard', label: 'Home', icon: '⌂' },
-  { to: '/calendar', label: 'Calendar', icon: '📅' },
-  { to: '/challenges', label: 'Challenges', icon: '⚔️', badgeKey: 'challenges' as const },
+  { to: '/activity', label: 'Activity', icon: '🎾' },
   { to: '/messages', label: 'Messages', icon: '✉', badgeKey: 'messages' as const },
+  { to: '/forum', label: 'Forum', icon: '💬' },
   { to: '/players', label: 'Players', icon: '👥' },
 ]
 
@@ -15,13 +15,11 @@ export default function BottomNav() {
   const navigate = useNavigate()
   const location = useLocation()
   const { user } = useAuth()
-  const [pendingCount, setPendingCount] = useState(0)
   const [unreadDms, setUnreadDms] = useState(0)
 
   useEffect(() => {
     if (!user) return
     const load = () => {
-      api.getPendingChallengeCount().then(r => setPendingCount(r.count)).catch(() => {})
       api.getUnreadDmCount().then(r => setUnreadDms(r.count)).catch(() => {})
     }
     load()
@@ -29,8 +27,7 @@ export default function BottomNav() {
     return () => clearInterval(interval)
   }, [user])
 
-  const getBadge = (key?: 'challenges' | 'messages') => {
-    if (key === 'challenges') return pendingCount
+  const getBadge = (key?: 'messages') => {
     if (key === 'messages') return unreadDms
     return 0
   }
