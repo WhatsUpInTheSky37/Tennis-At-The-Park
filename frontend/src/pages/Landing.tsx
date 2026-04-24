@@ -36,7 +36,7 @@ export default function Landing() {
         </p>
 
         <div className="hero-actions">
-          <button className="btn btn-primary btn-lg" onClick={() => navigate('/auth')}>
+          <button className="btn btn-primary btn-lg" onClick={() => navigate('/auth?mode=register')}>
             Create Free Profile
           </button>
           <button className="btn btn-secondary btn-lg" onClick={() => navigate('/auth')}>
