@@ -17,6 +17,7 @@ export default function FindPlayers() {
   const { user } = useAuth()
   const [players, setPlayers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [sortBy, setSortBy] = useState<'name' | 'skill' | 'rank'>('name')
   const [challengeTarget, setChallengeTarget] = useState<{ id: string; name: string } | null>(null)
 
   useEffect(() => {
@@ -31,6 +32,15 @@ export default function FindPlayers() {
         <p className="page-subtitle">All registered players</p>
       </div>
 
+      <div className="card mb-4" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <label className="form-label" style={{ margin: 0, whiteSpace: 'nowrap' }}>Sort by</label>
+        <select value={sortBy} onChange={e => setSortBy(e.target.value as any)} style={{ width: 'auto' }}>
+          <option value="name">Name (A-Z)</option>
+          <option value="skill">Skill Level</option>
+          <option value="rank">Ranking (ELO)</option>
+        </select>
+      </div>
+
       {loading ? (
         <div className="loading-screen"><div className="spinner" /></div>
       ) : players.length === 0 ? (
@@ -41,7 +51,11 @@ export default function FindPlayers() {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {players.map(p => (
+          {[...players].sort((a, b) => {
+            if (sortBy === 'skill') return (b.skillLevel || 0) - (a.skillLevel || 0)
+            if (sortBy === 'rank') return (b.user?.rating?.elo || 0) - (a.user?.rating?.elo || 0)
+            return (a.displayName || '').localeCompare(b.displayName || '')
+          }).map(p => (
             <div key={p.userId} className="card" style={{ cursor: 'pointer' }} onClick={() => navigate(`/profile/${p.userId}`)}>
               <div className="flex gap-3" style={{ alignItems: 'flex-start' }}>
                 <div className="avatar" style={{
