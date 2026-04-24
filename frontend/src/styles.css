@@ -117,7 +117,17 @@ button { cursor: pointer; font-family: inherit; }
 .nav-link:hover { color: var(--text); background: var(--bg3); }
 .nav-link.active { color: var(--accent); background: var(--accent-dim); }
 
-.nav-actions { display: flex; gap: 8px; align-items: center; }
+.nav-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+
+.sign-out-btn {
+  font-size: 12px;
+  color: var(--text3);
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  white-space: nowrap;
+}
+.sign-out-btn:hover { color: var(--red); border-color: var(--red); }
 
 /* Bottom Nav (mobile) */
 .bottom-nav {
@@ -351,6 +361,8 @@ select option { background: var(--bg3); }
   .hero-actions .btn { width: 100%; }
   .tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .badge { white-space: nowrap; }
+  .hide-mobile { display: none !important; }
+  .sign-out-btn { font-size: 11px; padding: 4px 8px; }
 }
 
 /* Section */
