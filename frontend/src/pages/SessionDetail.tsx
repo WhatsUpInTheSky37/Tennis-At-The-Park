@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useAuth } from '../store/auth'
-import { formatDateTime, formatTime, generateSessionSummary, generateICS, copyText } from '../lib/utils'
+import { formatDateTime, formatTime, generateICS, copyText } from '../lib/utils'
 import LocationBadge from '../components/LocationBadge'
 import DisclaimerBox from '../components/DisclaimerBox'
 
@@ -53,8 +53,6 @@ export default function SessionDetail() {
   }
 
   const copyLink = async () => { await copyText(window.location.href); setCopied(true); setTimeout(() => setCopied(false), 2000) }
-  const copySummary = async () => { await copyText(generateSessionSummary(session, session.location)); setCopied(true); setTimeout(() => setCopied(false), 2000) }
-
   const downloadICS = () => {
     const content = generateICS(session, session.location)
     const blob = new Blob([content], { type: 'text/calendar' })
@@ -119,9 +117,20 @@ export default function SessionDetail() {
           <h3 className="text-sm font-bold text-muted uppercase" style={{ letterSpacing: 1, marginBottom: 8 }}>Participants</h3>
           <div className="participant-list">
             {session.participants?.map((p: any) => (
-              <span key={p.userId} className="participant-chip">
-                <span className="avatar" style={{ width: 22, height: 22, fontSize: 10, background: 'var(--accent-dim)' }}>
-                  {p.user?.profile?.displayName?.[0] || '?'}
+              <span
+                key={p.userId}
+                className="participant-chip"
+                style={{ cursor: 'pointer' }}
+                onClick={() => navigate(`/profile/${p.userId}`)}
+              >
+                <span className="avatar" style={{
+                  width: 26, height: 26, fontSize: 10, background: 'var(--accent-dim)',
+                  borderRadius: '50%', overflow: 'hidden', display: 'flex',
+                  alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                }}>
+                  {p.user?.profile?.photoUrl
+                    ? <img src={p.user.profile.photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    : (p.user?.profile?.displayName?.[0] || '?')}
                 </span>
                 {p.user?.profile?.displayName}
                 {p.role === 'host' && <span style={{ fontSize: 10, padding: '1px 5px', borderRadius: 4, background: 'var(--accent-dim)', color: 'var(--accent)', marginLeft: 4 }}>host</span>}
@@ -135,7 +144,6 @@ export default function SessionDetail() {
             <button className="btn btn-primary" onClick={join}>Join Session</button>
           )}
           <button className="btn btn-secondary btn-sm" onClick={copyLink}>{copied ? '✓ Copied!' : '🔗 Copy Link'}</button>
-          <button className="btn btn-secondary btn-sm" onClick={copySummary}>📋 Copy Summary</button>
           <button className="btn btn-secondary btn-sm" onClick={downloadICS}>📅 Add to Calendar</button>
           {isHost && session.status !== 'cancelled' && (
             <button className="btn btn-danger btn-sm" onClick={cancelSession}>Cancel Session</button>
