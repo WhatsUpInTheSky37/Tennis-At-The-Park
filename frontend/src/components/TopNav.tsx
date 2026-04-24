@@ -20,9 +20,8 @@ export default function TopNav() {
 
   const links = [
     { to: '/dashboard', label: 'Dashboard' },
-    { to: '/sessions', label: 'Schedule' },
+    { to: '/activity', label: 'Activity' },
     { to: '/players', label: 'Find Players' },
-    { to: '/matches', label: 'Matches' },
     { to: '/messages', label: 'Messages', badge: unreadDms },
     { to: '/forum', label: 'Forum' },
   ]

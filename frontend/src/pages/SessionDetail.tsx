@@ -79,7 +79,7 @@ export default function SessionDetail() {
 
   return (
     <div className="page" style={{ maxWidth: 720 }}>
-      <button className="btn btn-ghost btn-sm mb-4" onClick={() => navigate('/sessions')}>← Back to Schedule</button>
+      <button className="btn btn-ghost btn-sm mb-4" onClick={() => navigate('/activity')}>← Back to Activity</button>
 
       <div className="card mb-4">
         <div className="flex items-center justify-between mb-3">

@@ -227,7 +227,7 @@ export default function Dashboard() {
           <div className="empty-state">
             <div className="icon">📅</div>
             <h3>No other sessions this week</h3>
-            <button className="btn btn-ghost mt-4" onClick={() => navigate('/sessions')}>View All Sessions</button>
+            <button className="btn btn-ghost mt-4" onClick={() => navigate('/activity')}>View All Activity</button>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

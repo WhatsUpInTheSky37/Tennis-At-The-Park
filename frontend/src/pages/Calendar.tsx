@@ -133,7 +133,7 @@ export default function Calendar() {
           <p>Your challenges, sessions, and matches will appear here once you log in.</p>
           <div className="flex gap-2 justify-center mt-4">
             <button className="btn btn-primary" onClick={() => navigate('/login')}>Sign In</button>
-            <button className="btn btn-secondary" onClick={() => navigate('/sessions')}>Browse Sessions</button>
+            <button className="btn btn-secondary" onClick={() => navigate('/activity')}>Browse Sessions</button>
           </div>
         </div>
       </div>
