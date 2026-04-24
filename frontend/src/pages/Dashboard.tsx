@@ -4,9 +4,10 @@ import { useAuth } from '../store/auth'
 import { api } from '../lib/api'
 import SessionCard from '../components/SessionCard'
 import DisclaimerBox from '../components/DisclaimerBox'
-import { format, addDays } from 'date-fns'
+import { format, addDays, formatDistanceToNow } from 'date-fns'
 import { formatDateTime, formatTime, getInitials } from '../lib/utils'
 import SkillDisplay from '../components/SkillDisplay'
+import { Link } from 'react-router-dom'
 
 const PAGE_SIZE = 5
 
@@ -20,6 +21,7 @@ export default function Dashboard() {
   const [challengeActionLoading, setChallengeActionLoading] = useState<string | null>(null)
   const [myPage, setMyPage] = useState(0)
   const [communityPage, setCommunityPage] = useState(0)
+  const [recentPosts, setRecentPosts] = useState<any[]>([])
 
   useEffect(() => {
     const today = format(new Date(), 'yyyy-MM-dd')
@@ -28,6 +30,7 @@ export default function Dashboard() {
     api.getChallenges({ direction: 'received', status: 'pending' })
       .then(setPendingChallenges)
       .catch(() => {})
+    api.getRecentForumPosts().then(setRecentPosts).catch(() => {})
     if (user) setLookingToPlay(user.profile?.lookingToPlay || false)
   }, [])
 
@@ -249,6 +252,27 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+
+      {recentPosts.length > 0 && (
+        <div className="section">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="section-title" style={{ margin: 0 }}>FORUM</h2>
+            <Link to="/forum" className="btn btn-ghost btn-sm">View All →</Link>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {recentPosts.map(p => (
+              <Link key={p.id} to={`/forum/${p.id}`} style={{ textDecoration: 'none' }}>
+                <div className="card" style={{ cursor: 'pointer', padding: 14 }}>
+                  <div style={{ fontWeight: 700, marginBottom: 2 }}>{p.subject}</div>
+                  <div className="text-xs text-muted">
+                    {p.author?.profile?.displayName} · {formatDistanceToNow(new Date(p.createdAt), { addSuffix: true })} · {p._count?.replies || 0} replies
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

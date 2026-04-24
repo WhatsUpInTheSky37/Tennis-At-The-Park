@@ -27,6 +27,8 @@ model User {
   disputesOpened      Dispute[]
   rating              Rating?
   enforcement         Enforcement?
+  forumPosts          ForumPost[]
+  forumReplies        ForumReply[]
 
   @@map("users")
 }
@@ -251,4 +253,32 @@ model Challenge {
   @@index([challengedId])
   @@index([status])
   @@map("challenges")
+}
+
+model ForumPost {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  subject   String
+  body      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  author  User         @relation(fields: [userId], references: [id])
+  replies ForumReply[]
+
+  @@index([createdAt])
+  @@map("forum_posts")
+}
+
+model ForumReply {
+  id        String   @id @default(cuid())
+  postId    String   @map("post_id")
+  userId    String   @map("user_id")
+  body      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  post   ForumPost @relation(fields: [postId], references: [id])
+  author User      @relation(fields: [userId], references: [id])
+
+  @@index([postId])
+  @@map("forum_replies")
 }

@@ -18,6 +18,8 @@ import Admin from './pages/Admin'
 import AuthPage from './pages/Auth'
 import Challenges from './pages/Challenges'
 import Calendar from './pages/Calendar'
+import Forum from './pages/Forum'
+import ForumPost from './pages/ForumPost'
 
 // Components
 import TopNav from './components/TopNav'
@@ -68,6 +70,8 @@ function AppShell() {
           <Route path="/players" element={<FindPlayers />} />
           <Route path="/profile" element={user ? <Profile /> : <Navigate to="/auth" />} />
           <Route path="/profile/:userId" element={<Profile />} />
+          <Route path="/forum" element={<Forum />} />
+          <Route path="/forum/:id" element={<ForumPost />} />
           <Route path="/rules" element={<Rules />} />
           <Route path="/admin" element={user?.isAdmin ? <Admin /> : <Navigate to="/dashboard" />} />
           <Route path="*" element={<Navigate to="/dashboard" />} />
