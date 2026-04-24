@@ -97,6 +97,7 @@ export async function authRoutes(server: FastifyInstance) {
 
   server.get('/me', { preHandler: [(server as any).authenticate] }, async (req) => {
     const { userId } = (req as any).user
+    await prisma.user.update({ where: { id: userId }, data: { lastActive: new Date() } })
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: { profile: true, rating: true, enforcement: true }
