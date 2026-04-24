@@ -99,7 +99,7 @@ export default function Forum() {
       {!user && (
         <div className="card mb-4" style={{ textAlign: 'center', padding: '16px' }}>
           <p className="text-muted">
-            <Link to="/login" style={{ color: 'var(--accent)' }}>Sign in</Link> to create posts and reply.
+            <Link to="/auth" style={{ color: 'var(--accent)' }}>Sign in</Link> to create posts and reply.
           </p>
         </div>
       )}

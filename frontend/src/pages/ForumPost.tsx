@@ -143,7 +143,7 @@ export default function ForumPost() {
       ) : (
         <div className="card" style={{ textAlign: 'center', padding: 16 }}>
           <p className="text-muted">
-            <Link to="/login" style={{ color: 'var(--accent)' }}>Sign in</Link> to reply.
+            <Link to="/auth" style={{ color: 'var(--accent)' }}>Sign in</Link> to reply.
           </p>
         </div>
       )}
