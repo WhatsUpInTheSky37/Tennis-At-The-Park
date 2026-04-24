@@ -30,7 +30,7 @@ export default function Login() {
   return (
     <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--gray-50)', padding: 16 }}>
       <Link to="/" className="logo display" style={{ fontSize: '2rem', color: 'var(--green-700)', marginBottom: 32, textDecoration: 'none' }}>
-        🎾 ULTIMATE TENNIS
+        🎾 TENNIS AT THE PARK
       </Link>
       <div className="card" style={{ width: '100%', maxWidth: 420 }}>
         <div className="card-body" style={{ padding: 28 }}>

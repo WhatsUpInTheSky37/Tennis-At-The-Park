@@ -33,7 +33,7 @@ export default function Register() {
   return (
     <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--gray-50)', padding: 16 }}>
       <Link to="/" className="logo display" style={{ fontSize: '2rem', color: 'var(--green-700)', marginBottom: 24, textDecoration: 'none' }}>
-        🎾 ULTIMATE TENNIS
+        🎾 TENNIS AT THE PARK
       </Link>
       <div className="card" style={{ width: '100%', maxWidth: 460 }}>
         <div className="card-body" style={{ padding: 28 }}>
@@ -73,7 +73,7 @@ export default function Register() {
               </div>
             </div>
             <button className="btn btn-primary btn-block btn-lg" disabled={loading} type="submit">
-              {loading ? 'Creating profile…' : '🎾 Join Ultimate Tennis'}
+              {loading ? 'Creating profile…' : '🎾 Join Tennis at the Park'}
             </button>
           </form>
           <p className="text-center text-sm text-muted" style={{ marginTop: 16 }}>

@@ -53,7 +53,7 @@ export default function AuthPage() {
       <div style={{ width: '100%', maxWidth: 400 }}>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           <div className="nav-logo" style={{ justifyContent: 'center', marginBottom: 8 }}>
-            🎾 ULTIMATE TENNIS
+            🎾 TENNIS AT THE PARK
           </div>
           <p className="text-muted">
             {mode === 'login' ? 'Welcome back' : mode === 'register' ? 'Join the community' : 'Reset your password'}
