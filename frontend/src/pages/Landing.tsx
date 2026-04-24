@@ -44,15 +44,18 @@ export default function Landing() {
           </button>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12, marginTop: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, marginTop: 24 }}>
           {[
-            { icon: '📍', title: 'City Park Courts', sub: '4 courts · 💡 Lighted' },
-            { icon: '📍', title: 'Winterplace Park', sub: '2 courts · 🌙 Daylight only' },
+            { img: '/city-park.jpg', title: 'City Park', address: '127 N Park Dr, Salisbury, MD', sub: '4 courts · Lighted' },
+            { img: '/winterplace-park.jpg', title: 'Winterplace Park', address: '737 Blue Ribbon Rd, Salisbury, MD', sub: '2 courts · Daylight only' },
           ].map(loc => (
-            <div key={loc.title} className="card">
-              <div style={{ fontSize: 24, marginBottom: 8 }}>{loc.icon}</div>
-              <div className="font-bold">{loc.title}</div>
-              <div className="text-sm text-muted">{loc.sub}</div>
+            <div key={loc.title} className="card" style={{ padding: 0, overflow: 'hidden' }}>
+              <img src={loc.img} alt={loc.title} style={{ width: '100%', height: 200, objectFit: 'cover', display: 'block' }} />
+              <div style={{ padding: '14px 16px' }}>
+                <div className="font-bold" style={{ fontSize: '1.05rem' }}>{loc.title}</div>
+                <div className="text-sm text-muted" style={{ marginTop: 2 }}>{loc.address}</div>
+                <div className="text-sm" style={{ marginTop: 4 }}>{loc.sub}</div>
+              </div>
             </div>
           ))}
         </div>
