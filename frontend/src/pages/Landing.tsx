@@ -32,7 +32,7 @@ export default function Landing() {
         </div>
 
         <p className="hero-tagline" style={{ maxWidth: '100%' }}>
-          Find players, plan meetups, track your game — at your local public courts.
+          Connecting Salisbury's tennis community — one match at a time.
         </p>
 
         <div className="hero-actions">
