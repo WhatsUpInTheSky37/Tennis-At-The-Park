@@ -313,6 +313,11 @@ select option { background: var(--bg3); }
 
 @media (max-width: 640px) {
   .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  .page { padding: 16px 12px; }
+  .card { padding: 14px; overflow: hidden; word-break: break-word; }
+  .modal { padding: 16px; max-width: 100%; }
+  .modal-title { font-size: 20px; }
+  .form-group select, .form-group input, .form-group textarea { max-width: 100%; }
 }
 
 /* Section */
