@@ -67,25 +67,25 @@ function AppShell() {
       <main className="main-content">
         <Routes>
           <Route path="/dashboard" element={user ? <Dashboard /> : <Navigate to="/auth" />} />
-          <Route path="/activity" element={<Activity />} />
+          <Route path="/activity" element={user ? <Activity /> : <Navigate to="/auth" />} />
           <Route path="/sessions" element={<Navigate to="/activity" />} />
           <Route path="/matches" element={<Navigate to="/activity?tab=results" />} />
           <Route path="/sessions/new" element={user ? <CreateSession /> : <Navigate to="/auth" />} />
-          <Route path="/sessions/:id" element={<SessionDetail />} />
+          <Route path="/sessions/:id" element={user ? <SessionDetail /> : <Navigate to="/auth" />} />
           <Route path="/matches/record" element={user ? <RecordMatch /> : <Navigate to="/auth" />} />
           <Route path="/challenges" element={user ? <Challenges /> : <Navigate to="/auth" />} />
           <Route path="/calendar" element={user ? <Calendar /> : <Navigate to="/auth" />} />
-          <Route path="/leaderboards" element={<Leaderboards />} />
-          <Route path="/players" element={<FindPlayers />} />
+          <Route path="/leaderboards" element={user ? <Leaderboards /> : <Navigate to="/auth" />} />
+          <Route path="/players" element={user ? <FindPlayers /> : <Navigate to="/auth" />} />
           <Route path="/profile" element={user ? <Profile /> : <Navigate to="/auth" />} />
-          <Route path="/profile/:userId" element={<Profile />} />
-          <Route path="/forum" element={<Forum />} />
-          <Route path="/forum/:id" element={<ForumPost />} />
+          <Route path="/profile/:userId" element={user ? <Profile /> : <Navigate to="/auth" />} />
+          <Route path="/forum" element={user ? <Forum /> : <Navigate to="/auth" />} />
+          <Route path="/forum/:id" element={user ? <ForumPost /> : <Navigate to="/auth" />} />
           <Route path="/messages" element={user ? <Inbox /> : <Navigate to="/auth" />} />
           <Route path="/messages/:userId" element={user ? <Conversation /> : <Navigate to="/auth" />} />
-          <Route path="/rules" element={<Rules />} />
+          <Route path="/rules" element={user ? <Rules /> : <Navigate to="/auth" />} />
           <Route path="/admin" element={user?.isAdmin ? <Admin /> : <Navigate to="/dashboard" />} />
-          <Route path="*" element={<Navigate to="/dashboard" />} />
+          <Route path="*" element={<Navigate to={user ? "/dashboard" : "/auth"} />} />
         </Routes>
       </main>
       <footer className="app-footer">
