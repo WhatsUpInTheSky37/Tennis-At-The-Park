@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from './store/auth'
+import { api } from './lib/api'
 
 // Pages
 import Landing from './pages/Landing'
@@ -33,6 +34,12 @@ function AppShell() {
   const isAuth = location.pathname === '/auth'
 
   useEffect(() => { refresh() }, [])
+
+  useEffect(() => {
+    if (!user) return
+    const interval = setInterval(() => { api.me().catch(() => {}) }, 3 * 60 * 1000)
+    return () => clearInterval(interval)
+  }, [user])
 
   if (!initialized) {
     return (

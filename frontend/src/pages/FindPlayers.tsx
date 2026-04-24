@@ -6,6 +6,12 @@ import { getInitials, formatSkill, skillLabel } from '../lib/utils'
 import SkillDisplay from '../components/SkillDisplay'
 import ChallengeModal from '../components/ChallengeModal'
 
+const isOnline = (p: any) => {
+  const lastActive = p.user?.lastActive
+  if (!lastActive) return false
+  return Date.now() - new Date(lastActive).getTime() < 5 * 60 * 1000
+}
+
 export default function FindPlayers() {
   const navigate = useNavigate()
   const { user } = useAuth()
@@ -49,6 +55,12 @@ export default function FindPlayers() {
                 <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
                   <div className="flex items-center gap-2 mb-1" style={{ flexWrap: 'wrap' }}>
                     <strong>{p.displayName}</strong>
+                    {isOnline(p) && (
+                      <span style={{
+                        fontSize: 10, fontWeight: 800, letterSpacing: 1,
+                        color: '#00ff00', textShadow: '0 0 4px rgba(0,255,0,0.4)',
+                      }}>ONLINE</span>
+                    )}
                     {p.lookingToPlay && <span className="badge badge-green" style={{ fontSize: 10 }}>Looking to play</span>}
                   </div>
                   <SkillDisplay level={p.skillLevel || 3} showLabel />

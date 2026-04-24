@@ -25,7 +25,7 @@ export async function playerRoutes(server: FastifyInstance) {
     }
     return prisma.profile.findMany({
       where,
-      include: { user: { select: { id: true, rating: true } } },
+      include: { user: { select: { id: true, lastActive: true, rating: true } } },
       take: 30
     })
   })

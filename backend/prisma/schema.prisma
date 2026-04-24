@@ -12,6 +12,7 @@ model User {
   email        String   @unique
   passwordHash String   @map("password_hash")
   isAdmin      Boolean  @default(false) @map("is_admin")
+  lastActive   DateTime? @map("last_active")
   createdAt    DateTime @default(now()) @map("created_at")
 
   profile             Profile?

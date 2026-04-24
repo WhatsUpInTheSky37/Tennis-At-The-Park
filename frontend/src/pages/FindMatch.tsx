@@ -189,6 +189,12 @@ export default function FindMatch() {
                             {/* Name + availability badge */}
                             <div className="flex items-center gap-2 mb-1">
                               <strong style={{ fontSize: '1.05rem' }}>{p.displayName}</strong>
+                              {p.user?.lastActive && (Date.now() - new Date(p.user.lastActive).getTime() < 5 * 60 * 1000) && (
+                                <span style={{
+                                  fontSize: 10, fontWeight: 800, letterSpacing: 1,
+                                  color: '#00ff00', textShadow: '0 0 4px rgba(0,255,0,0.4)',
+                                }}>ONLINE</span>
+                              )}
                               {p.lookingToPlay && <div className="looking-badge"><div className="dot" />Available</div>}
                             </div>
 
