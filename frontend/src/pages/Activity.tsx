@@ -17,25 +17,17 @@ export default function Activity() {
   const [tab, setTab] = useState<Tab>(initialTab)
   const [sessions, setSessions] = useState<any[]>([])
   const [matches, setMatches] = useState<any[]>([])
-  const [locations, setLocations] = useState<any[]>([])
   const [loadingSessions, setLoadingSessions] = useState(true)
   const [loadingMatches, setLoadingMatches] = useState(true)
-  const [filters, setFilters] = useState({ format: '', locationId: '', date: '' })
   const [showDispute, setShowDispute] = useState<string | null>(null)
   const [disputeReason, setDisputeReason] = useState('')
   const [disputeDetails, setDisputeDetails] = useState('')
   const [deleting, setDeleting] = useState<string | null>(null)
 
-  useEffect(() => { api.getLocations().then(setLocations) }, [])
-
   useEffect(() => {
     setLoadingSessions(true)
-    const params: Record<string, string> = {}
-    if (filters.format) params.format = filters.format
-    if (filters.locationId) params.locationId = filters.locationId
-    if (filters.date) params.date = filters.date
-    api.getSessions(params).then(s => { setSessions(s); setLoadingSessions(false) })
-  }, [filters])
+    api.getSessions({}).then(s => { setSessions(s); setLoadingSessions(false) })
+  }, [])
 
   useEffect(() => {
     api.getMatches().then(m => { setMatches(m); setLoadingMatches(false) })
@@ -123,34 +115,6 @@ export default function Activity() {
       {tab === 'upcoming' && (
         <>
           <DisclaimerBox showRotation />
-
-          <div className="card mb-4" style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
-            <div className="form-group" style={{ margin: 0, flex: 1, minWidth: 140 }}>
-              <label htmlFor="filter-date">Date</label>
-              <input id="filter-date" type="date" value={filters.date} onChange={e => setFilters(f => ({ ...f, date: e.target.value }))} />
-            </div>
-            <div className="form-group" style={{ margin: 0, flex: 1, minWidth: 140 }}>
-              <label htmlFor="filter-location">Location</label>
-              <select id="filter-location" value={filters.locationId} onChange={e => setFilters(f => ({ ...f, locationId: e.target.value }))}>
-                <option value="">All locations</option>
-                {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-              </select>
-            </div>
-            <div className="form-group" style={{ margin: 0, flex: 1, minWidth: 140 }}>
-              <label htmlFor="filter-format">Format</label>
-              <select id="filter-format" value={filters.format} onChange={e => setFilters(f => ({ ...f, format: e.target.value }))}>
-                <option value="">All formats</option>
-                <option value="singles">Singles</option>
-                <option value="doubles">Doubles</option>
-                <option value="mixed">Mixed</option>
-              </select>
-            </div>
-            {(filters.format || filters.locationId || filters.date) && (
-              <button className="btn btn-ghost btn-sm" onClick={() => setFilters({ format: '', locationId: '', date: '' })} style={{ alignSelf: 'flex-end', marginBottom: 4 }}>
-                Clear filters
-              </button>
-            )}
-          </div>
 
           {loadingSessions ? (
             <div className="loading-screen"><div className="spinner" /></div>
