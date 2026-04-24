@@ -88,7 +88,7 @@ function AppShell() {
           <Route path="*" element={<Navigate to="/dashboard" />} />
         </Routes>
       </main>
-      <footer style={{ textAlign: 'center', padding: '24px 16px 80px', fontSize: '0.8rem', color: 'var(--text3)' }}>
+      <footer className="app-footer">
         Tennis at the Park created by Will Farrar
       </footer>
       <BottomNav />
