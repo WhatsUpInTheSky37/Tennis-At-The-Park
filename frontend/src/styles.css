@@ -269,6 +269,8 @@ input, select, textarea {
   font-family: var(--font);
   transition: border-color 0.15s;
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 
 input:focus, select:focus, textarea:focus {
@@ -338,6 +340,7 @@ select option { background: var(--bg3); }
   .modal { padding: 16px; max-width: 100%; }
   .modal-title { font-size: 20px; }
   .form-group select, .form-group input, .form-group textarea { max-width: 100%; }
+  input[type="datetime-local"], input[type="date"], input[type="time"] { font-size: 13px; padding: 10px 8px; }
 }
 
 /* Section */
