@@ -468,6 +468,35 @@ export default function Profile() {
                 </div>
               </div>
 
+              {/* Instructor */}
+              <div className="form-group mb-4">
+                <label style={{
+                  display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
+                  background: form.isInstructor ? 'var(--accent-dim)' : 'var(--gray-50)',
+                  border: `1.5px solid ${form.isInstructor ? 'var(--accent)' : 'var(--gray-200)'}`,
+                  borderRadius: 8, padding: '10px 14px', transition: 'all 0.15s'
+                }}>
+                  <input type="checkbox" checked={form.isInstructor} onChange={e => setForm((f: any) => ({ ...f, isInstructor: e.target.checked, acceptingClients: e.target.checked ? f.acceptingClients : false }))} style={{ width: 'auto' }} />
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ color: form.isInstructor ? 'var(--accent)' : 'var(--text3)' }}><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+                  <span className="text-sm font-bold">I'm a Tennis Instructor</span>
+                </label>
+              </div>
+
+              {form.isInstructor && (
+                <div className="form-group mb-4" style={{ marginLeft: 16 }}>
+                  <label style={{
+                    display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
+                    background: form.acceptingClients ? 'var(--green-100)' : 'var(--gray-50)',
+                    border: `1.5px solid ${form.acceptingClients ? 'var(--green-500)' : 'var(--gray-200)'}`,
+                    borderRadius: 8, padding: '10px 14px', transition: 'all 0.15s'
+                  }}>
+                    <input type="checkbox" checked={form.acceptingClients} onChange={e => setForm((f: any) => ({ ...f, acceptingClients: e.target.checked }))} style={{ width: 'auto' }} />
+                    <span className="text-sm font-bold">Accepting New Clients</span>
+                  </label>
+                  <span className="form-hint">Let players know you're available for lessons</span>
+                </div>
+              )}
+
               {/* Preferred Formats */}
               <div className="form-group mb-4">
                 <label className="form-label">Preferred Formats</label>
@@ -498,35 +527,6 @@ export default function Profile() {
                   <span className="text-sm font-bold">Looking to Play</span>
                 </label>
               </div>
-
-              {/* Instructor */}
-              <div className="form-group mb-4">
-                <label style={{
-                  display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
-                  background: form.isInstructor ? 'var(--accent-dim)' : 'var(--gray-50)',
-                  border: `1.5px solid ${form.isInstructor ? 'var(--accent)' : 'var(--gray-200)'}`,
-                  borderRadius: 8, padding: '10px 14px', transition: 'all 0.15s'
-                }}>
-                  <input type="checkbox" checked={form.isInstructor} onChange={e => setForm((f: any) => ({ ...f, isInstructor: e.target.checked, acceptingClients: e.target.checked ? f.acceptingClients : false }))} style={{ width: 'auto' }} />
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style={{ color: form.isInstructor ? 'var(--accent)' : 'var(--text3)' }}><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
-                  <span className="text-sm font-bold">I'm a Tennis Instructor</span>
-                </label>
-              </div>
-
-              {form.isInstructor && (
-                <div className="form-group mb-4" style={{ marginLeft: 16 }}>
-                  <label style={{
-                    display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
-                    background: form.acceptingClients ? 'var(--green-100)' : 'var(--gray-50)',
-                    border: `1.5px solid ${form.acceptingClients ? 'var(--green-500)' : 'var(--gray-200)'}`,
-                    borderRadius: 8, padding: '10px 14px', transition: 'all 0.15s'
-                  }}>
-                    <input type="checkbox" checked={form.acceptingClients} onChange={e => setForm((f: any) => ({ ...f, acceptingClients: e.target.checked }))} style={{ width: 'auto' }} />
-                    <span className="text-sm font-bold">Accepting New Clients</span>
-                  </label>
-                  <span className="form-hint">Let players know you're available for lessons</span>
-                </div>
-              )}
 
               {/* Times Available */}
               <div className="form-group mb-4">
