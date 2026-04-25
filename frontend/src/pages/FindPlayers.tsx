@@ -107,15 +107,26 @@ export default function FindPlayers() {
                     </div>
                   )}
                   {user && p.userId !== user.id && (
-                    <button
-                      className="btn btn-primary btn-sm mt-3"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setChallengeTarget({ id: p.userId, name: p.displayName })
-                      }}
-                    >
-                      &#9876;&#65039; Challenge
-                    </button>
+                    <div className="flex gap-2 mt-3">
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          navigate(`/messages/${p.userId}`)
+                        }}
+                      >
+                        &#9993; Message
+                      </button>
+                      <button
+                        className="btn btn-primary btn-sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setChallengeTarget({ id: p.userId, name: p.displayName })
+                        }}
+                      >
+                        &#9876;&#65039; Challenge
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
