@@ -83,6 +83,29 @@ export async function forumRoutes(server: FastifyInstance) {
     return { ok: true }
   })
 
+  server.put('/:id', { preHandler: [(server as any).authenticate] }, async (req, reply) => {
+    const { id } = req.params as any
+    const { userId } = (req as any).user
+    const parsed = postSchema.safeParse(req.body)
+    if (!parsed.success) return reply.status(400).send({ error: parsed.error.flatten() })
+    const post = await prisma.forumPost.findUnique({ where: { id } })
+    if (!post) return reply.status(404).send({ error: 'Post not found' })
+    if (post.userId !== userId) return reply.status(403).send({ error: 'You can only edit your own posts' })
+    return prisma.forumPost.update({
+      where: { id },
+      data: { subject: parsed.data.subject, body: parsed.data.body },
+      include: {
+        author: { select: { id: true, profile: { select: { displayName: true, photoUrl: true } } } },
+        replies: {
+          include: {
+            author: { select: { id: true, profile: { select: { displayName: true, photoUrl: true } } } },
+          },
+          orderBy: { createdAt: 'asc' as const },
+        },
+      },
+    })
+  })
+
   server.post('/:id/replies', { preHandler: [(server as any).authenticate] }, async (req, reply) => {
     const { id } = req.params as any
     const parsed = replySchema.safeParse(req.body)
