@@ -116,7 +116,7 @@ export async function challengeRoutes(server: FastifyInstance) {
       }
     })
 
-    sendChallengeEmail(
+    await sendChallengeEmail(
       challenged.email,
       challenge.challenged?.profile?.displayName || 'Player',
       challenge.challenger?.profile?.displayName || 'Someone',
