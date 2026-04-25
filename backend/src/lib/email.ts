@@ -1,57 +1,38 @@
-import nodemailer from 'nodemailer'
-
 const ADMIN_EMAIL = 'wfarrar@pms-corp.net'
 const SITE_URL = process.env.FRONTEND_URL || 'https://salisburytennis.com'
 
-let transporter: nodemailer.Transporter | null = null
-
-function getTransporter() {
-  if (transporter) return transporter
-
-  const host = process.env.SMTP_HOST || ''
-  const port = Number(process.env.SMTP_PORT) || 587
-  const user = process.env.SMTP_USER || ''
-  const pass = process.env.SMTP_PASS || ''
-
-  if (!host) {
-    console.log('[EMAIL] No SMTP_HOST configured — emails disabled')
-    return null
-  }
-
-  console.log(`[EMAIL] Creating transporter: host=${host} port=${port} user=${user} secure=${port === 465}`)
-
-  transporter = nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465,
-    auth: { user, pass },
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 10000,
-  })
-
-  return transporter
-}
-
 async function send(to: string, subject: string, html: string) {
-  const t = getTransporter()
-  if (!t) {
-    console.log(`[EMAIL SKIPPED] To: ${to} | Subject: ${subject}`)
+  const apiKey = process.env.RESEND_API_KEY || process.env.SMTP_PASS || ''
+  if (!apiKey) {
+    console.log(`[EMAIL SKIPPED - no RESEND_API_KEY] To: ${to} | Subject: ${subject}`)
     return
   }
 
-  const from_email = process.env.FROM_EMAIL || 'noreply@salisburytennis.com'
-  const from_name = process.env.FROM_NAME || 'Tennis at the Park'
+  const fromEmail = process.env.FROM_EMAIL || 'noreply@salisburytennis.com'
+  const fromName = process.env.FROM_NAME || 'Tennis at the Park'
 
-  console.log(`[EMAIL] Sending to ${to} | Subject: ${subject} | From: ${from_email}`)
+  console.log(`[EMAIL] Sending to ${to} | Subject: ${subject}`)
   try {
-    const info = await t.sendMail({
-      from: `"${from_name}" <${from_email}>`,
-      to,
-      subject,
-      html,
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: `${fromName} <${fromEmail}>`,
+        to: [to],
+        subject,
+        html,
+      }),
     })
-    console.log(`[EMAIL] Sent successfully: ${info.messageId}`)
+
+    const data: any = await res.json()
+    if (!res.ok) {
+      console.error(`[EMAIL ERROR] ${res.status}:`, JSON.stringify(data))
+    } else {
+      console.log(`[EMAIL] Sent successfully: ${data.id}`)
+    }
   } catch (err: any) {
     console.error(`[EMAIL ERROR] Failed to send to ${to}:`, err.message || err)
   }
