@@ -142,6 +142,19 @@ export async function sessionRoutes(server: FastifyInstance) {
     return prisma.sessionParticipant.create({ data: { sessionId: id, userId, role: 'guest' } })
   })
 
+  // Leave session
+  server.post('/:id/leave', { preHandler: [(server as any).authenticate] }, async (req, reply) => {
+    const { userId } = (req as any).user
+    const { id } = req.params as { id: string }
+    const session = await prisma.session.findUnique({ where: { id } })
+    if (!session) return reply.status(404).send({ error: 'Session not found' })
+    if (session.createdBy === userId) return reply.status(400).send({ error: 'The host cannot leave. Cancel the session instead.' })
+    const participant = await prisma.sessionParticipant.findUnique({ where: { sessionId_userId: { sessionId: id, userId } } })
+    if (!participant) return reply.status(404).send({ error: 'You are not in this session' })
+    await prisma.sessionParticipant.delete({ where: { sessionId_userId: { sessionId: id, userId } } })
+    return { ok: true }
+  })
+
   // Invite player
   server.post('/:id/invite', { preHandler: [(server as any).authenticate] }, async (req, reply) => {
     const { userId } = (req as any).user

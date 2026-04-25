@@ -41,6 +41,7 @@ export default function SessionDetail() {
   }, [isParticipant, id])
 
   const join = async () => { await api.joinSession(id!); load() }
+  const leave = async () => { await api.leaveSession(id!); load() }
 
   const sendMsg = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -142,6 +143,9 @@ export default function SessionDetail() {
         <div className="flex gap-2 flex-wrap mt-4">
           {user && !isParticipant && session.status !== 'cancelled' && (
             <button className="btn btn-primary" onClick={join}>Join Session</button>
+          )}
+          {user && isParticipant && !isHost && session.status !== 'cancelled' && (
+            <button className="btn btn-danger btn-sm" onClick={leave}>Leave Session</button>
           )}
           <button className="btn btn-secondary btn-sm" onClick={copyLink}>{copied ? '✓ Copied!' : '🔗 Copy Link'}</button>
           <button className="btn btn-secondary btn-sm" onClick={downloadICS}>📅 Add to Calendar</button>
