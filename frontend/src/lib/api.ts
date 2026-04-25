@@ -113,6 +113,8 @@ export const api = {
     request<any>('/forum', { method: 'POST', body: JSON.stringify(data) }),
   createForumReply: (postId: string, body: string) =>
     request<any>(`/forum/${postId}/replies`, { method: 'POST', body: JSON.stringify({ body }) }),
+  editForumPost: (id: string, data: { subject: string; body: string }) =>
+    request<any>(`/forum/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteForumPost: (id: string) =>
     request<any>(`/forum/${id}`, { method: 'DELETE' }),
 

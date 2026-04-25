@@ -14,6 +14,10 @@ export default function ForumPost() {
   const [replyBody, setReplyBody] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [editing, setEditing] = useState(false)
+  const [editSubject, setEditSubject] = useState('')
+  const [editBody, setEditBody] = useState('')
+  const [editSaving, setEditSaving] = useState(false)
 
   useEffect(() => {
     if (id) {
@@ -67,20 +71,62 @@ export default function ForumPost() {
                 {' · '}{format(new Date(post.createdAt), 'MMM d, yyyy h:mm a')}
               </span>
               {user && user.id === post.author?.id && (
-                <button
-                  className="btn btn-danger btn-sm"
-                  style={{ padding: '2px 8px', fontSize: 11 }}
-                  onClick={async () => {
-                    if (!confirm('Delete this post and all its replies?')) return
-                    await api.deleteForumPost(post.id)
-                    navigate('/forum')
-                  }}
-                >
-                  Delete Post
-                </button>
+                <>
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    style={{ padding: '2px 8px', fontSize: 11 }}
+                    onClick={() => {
+                      setEditing(!editing)
+                      setEditSubject(post.subject)
+                      setEditBody(post.body)
+                    }}
+                  >
+                    {editing ? 'Cancel Edit' : 'Edit'}
+                  </button>
+                  <button
+                    className="btn btn-danger btn-sm"
+                    style={{ padding: '2px 8px', fontSize: 11 }}
+                    onClick={async () => {
+                      if (!confirm('Delete this post and all its replies?')) return
+                      await api.deleteForumPost(post.id)
+                      navigate('/forum')
+                    }}
+                  >
+                    Delete
+                  </button>
+                </>
               )}
             </div>
-            <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{post.body}</div>
+            {editing ? (
+              <form onSubmit={async (e) => {
+                e.preventDefault()
+                setEditSaving(true)
+                try {
+                  const updated = await api.editForumPost(post.id, { subject: editSubject, body: editBody })
+                  setPost(updated)
+                  setEditing(false)
+                } catch (err: any) {
+                  setError(err.message)
+                } finally { setEditSaving(false) }
+              }} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Subject</label>
+                  <input value={editSubject} onChange={e => setEditSubject(e.target.value)} required maxLength={200} style={{ width: '100%' }} />
+                </div>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Message</label>
+                  <textarea value={editBody} onChange={e => setEditBody(e.target.value)} required maxLength={5000} rows={4} style={{ width: '100%' }} />
+                </div>
+                <div className="flex gap-2">
+                  <button type="submit" className="btn btn-primary btn-sm" disabled={editSaving}>
+                    {editSaving ? 'Saving...' : 'Save Changes'}
+                  </button>
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditing(false)}>Cancel</button>
+                </div>
+              </form>
+            ) : (
+              <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{post.body}</div>
+            )}
           </div>
         </div>
       </div>
