@@ -50,6 +50,8 @@ model Profile {
   favoritePro  String?  @map("favorite_pro")
   phone        String?  @map("phone")
   okToText     Boolean  @default(false) @map("ok_to_text")
+  isInstructor Boolean  @default(false) @map("is_instructor")
+  acceptingClients Boolean @default(false) @map("accepting_clients")
   availability String[] @default([]) @map("availability_times")
   createdAt    DateTime @default(now()) @map("created_at")
 
