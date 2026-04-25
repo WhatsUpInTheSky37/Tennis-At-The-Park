@@ -63,6 +63,7 @@ export const api = {
   updateSession: (id: string, data: any) => request<any>(`/sessions/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   cancelSession: (id: string) => request<any>(`/sessions/${id}`, { method: 'DELETE' }),
   joinSession: (id: string) => request<any>(`/sessions/${id}/join`, { method: 'POST', body: JSON.stringify({}) }),
+  leaveSession: (id: string) => request<any>(`/sessions/${id}/leave`, { method: 'POST', body: JSON.stringify({}) }),
   inviteToSession: (id: string, toUser: string) => request<any>(`/sessions/${id}/invite`, { method: 'POST', body: JSON.stringify({ toUser }) }),
   respondToInvite: (inviteId: string, status: string) => request<any>(`/sessions/invites/${inviteId}/respond`, { method: 'POST', body: JSON.stringify({ status }) }),
   getMessages: (sessionId: string) => request<any[]>(`/sessions/${sessionId}/messages`),
