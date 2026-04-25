@@ -91,7 +91,7 @@ function AppShell() {
         </Routes>
       </main>
       <footer className="app-footer">
-        <img src="/tennis-at-the-park.png" alt="Tennis at the Park" style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', marginBottom: 8 }} />
+        <img src="/tennis-at-the-park.png" alt="Tennis at the Park" style={{ width: '55%', maxWidth: 320, borderRadius: '50%', objectFit: 'cover', marginBottom: 8 }} />
         <div>Tennis at the Park created by Will Farrar</div>
       </footer>
       <BottomNav />
