@@ -123,7 +123,7 @@ export async function challengeRoutes(server: FastifyInstance) {
       data.format,
       location.name,
       new Date(data.proposedTime)
-    ).catch(() => {})
+    )
 
     return reply.status(201).send(challenge)
   })

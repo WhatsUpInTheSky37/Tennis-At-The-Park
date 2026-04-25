@@ -105,7 +105,7 @@ export async function dmRoutes(server: FastifyInstance) {
       recipient.profile?.displayName || 'Player',
       sender?.profile?.displayName || 'Someone',
       body
-    ).catch(() => {})
+    )
 
     return msg
   })

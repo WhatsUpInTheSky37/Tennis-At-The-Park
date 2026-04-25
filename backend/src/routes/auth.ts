@@ -38,8 +38,8 @@ export async function authRoutes(server: FastifyInstance) {
 
     const token = server.jwt.sign({ userId: user.id, email: user.email, isAdmin: user.isAdmin })
 
-    sendWelcomeEmail(email, displayName).catch(() => {})
-    sendAdminNewSignupEmail(displayName, email).catch(() => {})
+    sendWelcomeEmail(email, displayName)
+    sendAdminNewSignupEmail(displayName, email)
 
     return { token, user: { id: user.id, email: user.email, displayName: user.profile?.displayName, isAdmin: user.isAdmin } }
   })
