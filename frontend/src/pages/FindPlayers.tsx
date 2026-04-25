@@ -69,6 +69,15 @@ export default function FindPlayers() {
                 <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
                   <div className="flex items-center gap-2 mb-1" style={{ flexWrap: 'wrap' }}>
                     <strong>{p.displayName}</strong>
+                    {p.isInstructor && (
+                      <span className="badge badge-instructor" style={{ fontSize: 10 }}>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" style={{ marginRight: 3 }}><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+                        Instructor
+                      </span>
+                    )}
+                    {p.isInstructor && p.acceptingClients && (
+                      <span className="badge badge-green" style={{ fontSize: 10, animation: 'pulse 2s infinite' }}>Taking Clients</span>
+                    )}
                     {isOnline(p) && (
                       <span style={{
                         fontSize: 10, fontWeight: 800, letterSpacing: 1,

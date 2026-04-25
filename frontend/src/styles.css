@@ -328,6 +328,15 @@ select option { background: var(--bg3); }
 .badge-red { background: rgba(255,75,75,0.12); color: var(--red); }
 .badge-blue { background: rgba(75,158,255,0.12); color: var(--blue); }
 .badge-gray { background: var(--bg3); color: var(--text2); }
+.badge-instructor {
+  background: linear-gradient(135deg, rgba(255,215,0,0.15), rgba(255,154,31,0.15));
+  color: #ffd700;
+  border: 1px solid rgba(255,215,0,0.3);
+  display: inline-flex;
+  align-items: center;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
 
 /* Alert / disclaimer */
 .alert {

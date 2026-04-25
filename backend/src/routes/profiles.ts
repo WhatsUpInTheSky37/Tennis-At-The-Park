@@ -15,6 +15,8 @@ const updateSchema = z.object({
   favoritePro: z.string().max(100).optional().nullable().transform(v => (!v || v === '') ? null : v),
   phone: z.string().max(20).optional().nullable().transform(v => (!v || v === '') ? null : v),
   okToText: z.boolean().optional(),
+  isInstructor: z.boolean().optional(),
+  acceptingClients: z.boolean().optional(),
   availability: z.array(z.string()).optional()
 })
 
