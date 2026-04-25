@@ -168,10 +168,47 @@ export async function challengeRoutes(server: FastifyInstance) {
     if (!await checkEnforcement(userId, reply)) return
     const { id } = req.params as { id: string }
 
-    const challenge = await prisma.challenge.findUnique({ where: { id } })
+    const challenge = await prisma.challenge.findUnique({
+      where: { id },
+      include: {
+        challenger: { select: { id: true, profile: { select: { displayName: true, skillLevel: true } } } },
+        challenged: { select: { id: true, profile: { select: { displayName: true, skillLevel: true } } } },
+        location: true
+      }
+    })
     if (!challenge) return reply.status(404).send({ error: 'Challenge not found' })
     if (challenge.challengedId !== userId) return reply.status(403).send({ error: 'Only the challenged player can accept' })
     if (challenge.status !== 'pending') return reply.status(400).send({ error: `Challenge is already ${challenge.status}` })
+
+    const challengerSkill = challenge.challenger?.profile?.skillLevel || 3
+    const challengedSkill = challenge.challenged?.profile?.skillLevel || 3
+    const levelMin = Math.min(challengerSkill, challengedSkill)
+    const levelMax = Math.max(challengerSkill, challengedSkill)
+    const challengerName = challenge.challenger?.profile?.displayName || 'Player'
+    const challengedName = challenge.challenged?.profile?.displayName || 'Player'
+
+    const session = await prisma.session.create({
+      data: {
+        createdBy: challenge.challengerId,
+        locationId: challenge.locationId,
+        startTime: challenge.proposedTime,
+        endTime: challenge.proposedEndTime,
+        format: challenge.format,
+        stakes: challenge.stakes,
+        levelMin,
+        levelMax,
+        notes: `Challenge match: ${challengerName} vs ${challengedName}`,
+        flexibleCourt: true,
+        participants: {
+          createMany: {
+            data: [
+              { userId: challenge.challengerId, role: 'host', status: 'confirmed' },
+              { userId: challenge.challengedId, role: 'guest', status: 'confirmed' },
+            ]
+          }
+        }
+      }
+    })
 
     const updated = await prisma.challenge.update({
       where: { id },
@@ -183,7 +220,7 @@ export async function challengeRoutes(server: FastifyInstance) {
       }
     })
 
-    return updated
+    return { ...updated, sessionId: session.id }
   })
 
   // Decline a challenge
