@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma'
+import { sendNewMessageEmail } from '../lib/email'
 
 const sendSchema = z.object({
   toId: z.string().min(1),
@@ -89,13 +90,22 @@ export async function dmRoutes(server: FastifyInstance) {
     const { toId, subject, body } = parsed.data
     if (toId === userId) return reply.status(400).send({ error: 'Cannot message yourself' })
 
-    const recipient = await prisma.user.findUnique({ where: { id: toId } })
+    const recipient = await prisma.user.findUnique({ where: { id: toId }, include: { profile: { select: { displayName: true } } } })
     if (!recipient) return reply.status(404).send({ error: 'User not found' })
+
+    const sender = await prisma.user.findUnique({ where: { id: userId }, include: { profile: { select: { displayName: true } } } })
 
     const msg = await prisma.directMessage.create({
       data: { fromId: userId, toId, subject, body },
       include: { sender: { select: { id: true, profile: { select: { displayName: true, photoUrl: true } } } } },
     })
+
+    sendNewMessageEmail(
+      recipient.email,
+      recipient.profile?.displayName || 'Player',
+      sender?.profile?.displayName || 'Someone',
+      body
+    ).catch(() => {})
 
     return msg
   })

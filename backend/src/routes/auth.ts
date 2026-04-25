@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify'
 import argon2 from 'argon2'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma'
+import { sendWelcomeEmail, sendAdminNewSignupEmail } from '../lib/email'
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -36,6 +37,10 @@ export async function authRoutes(server: FastifyInstance) {
     })
 
     const token = server.jwt.sign({ userId: user.id, email: user.email, isAdmin: user.isAdmin })
+
+    sendWelcomeEmail(email, displayName).catch(() => {})
+    sendAdminNewSignupEmail(displayName, email).catch(() => {})
+
     return { token, user: { id: user.id, email: user.email, displayName: user.profile?.displayName, isAdmin: user.isAdmin } }
   })
 
