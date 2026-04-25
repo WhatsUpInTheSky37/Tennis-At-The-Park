@@ -1,37 +1,56 @@
 import nodemailer from 'nodemailer'
 
-const SMTP_HOST = process.env.SMTP_HOST || ''
-const SMTP_PORT = Number(process.env.SMTP_PORT) || 587
-const SMTP_USER = process.env.SMTP_USER || ''
-const SMTP_PASS = process.env.SMTP_PASS || ''
-const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@salisburytennis.com'
-const FROM_NAME = process.env.FROM_NAME || 'Tennis at the Park'
 const ADMIN_EMAIL = 'wfarrar@pms-corp.net'
 const SITE_URL = process.env.FRONTEND_URL || 'https://salisburytennis.com'
 
-const transporter = SMTP_HOST
-  ? nodemailer.createTransport({
-      host: SMTP_HOST,
-      port: SMTP_PORT,
-      secure: SMTP_PORT === 465,
-      auth: { user: SMTP_USER, pass: SMTP_PASS },
-    })
-  : null
+let transporter: nodemailer.Transporter | null = null
+
+function getTransporter() {
+  if (transporter) return transporter
+
+  const host = process.env.SMTP_HOST || ''
+  const port = Number(process.env.SMTP_PORT) || 587
+  const user = process.env.SMTP_USER || ''
+  const pass = process.env.SMTP_PASS || ''
+
+  if (!host) {
+    console.log('[EMAIL] No SMTP_HOST configured — emails disabled')
+    return null
+  }
+
+  console.log(`[EMAIL] Creating transporter: host=${host} port=${port} user=${user} secure=${port === 465}`)
+
+  transporter = nodemailer.createTransport({
+    host,
+    port,
+    secure: port === 465,
+    auth: { user, pass },
+  })
+
+  return transporter
+}
 
 async function send(to: string, subject: string, html: string) {
-  if (!transporter) {
-    console.log(`[EMAIL SKIPPED - no SMTP configured] To: ${to} | Subject: ${subject}`)
+  const t = getTransporter()
+  if (!t) {
+    console.log(`[EMAIL SKIPPED] To: ${to} | Subject: ${subject}`)
     return
   }
+
+  const from_email = process.env.FROM_EMAIL || 'noreply@salisburytennis.com'
+  const from_name = process.env.FROM_NAME || 'Tennis at the Park'
+
+  console.log(`[EMAIL] Sending to ${to} | Subject: ${subject} | From: ${from_email}`)
   try {
-    await transporter.sendMail({
-      from: `"${FROM_NAME}" <${FROM_EMAIL}>`,
+    const info = await t.sendMail({
+      from: `"${from_name}" <${from_email}>`,
       to,
       subject,
       html,
     })
-  } catch (err) {
-    console.error('[EMAIL ERROR]', err)
+    console.log(`[EMAIL] Sent successfully: ${info.messageId}`)
+  } catch (err: any) {
+    console.error(`[EMAIL ERROR] Failed to send to ${to}:`, err.message || err)
   }
 }
 
