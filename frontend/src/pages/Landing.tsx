@@ -45,12 +45,9 @@ export default function Landing() {
           Find a tennis game in Salisbury this week.
         </p>
 
-        <div style={{ textAlign: 'center', margin: '8px auto 20px', maxWidth: 560 }}>
-          <div style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(20px, 4.5vw, 28px)', letterSpacing: 2, color: 'var(--color-primary)' }}>
+        <div style={{ textAlign: 'center', margin: '12px auto 24px', maxWidth: 640 }}>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(28px, 7vw, 44px)', letterSpacing: 3, color: '#fff', textShadow: '0 0 18px rgba(74,222,128,0.45)' }}>
             Game on, neighbors.
-          </div>
-          <div style={{ marginTop: 6, fontSize: 'clamp(14px, 2.5vw, 16px)', color: 'var(--color-text-muted, #555)' }}>
-            Find someone to hit with this week — no pressure, no reservations needed.
           </div>
         </div>
 
