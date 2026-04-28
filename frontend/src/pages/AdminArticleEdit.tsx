@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import { renderRichText, RichTextarea } from '../lib/forumUtils'
@@ -19,6 +19,9 @@ export default function AdminArticleEdit() {
   const [coverImage, setCoverImage] = useState('')
   const [published, setPublished] = useState(false)
   const [slugTouched, setSlugTouched] = useState(false)
+  const [coverUploading, setCoverUploading] = useState(false)
+  const [coverUploadError, setCoverUploadError] = useState('')
+  const coverFileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (isNew) return
@@ -42,6 +45,18 @@ export default function AdminArticleEdit() {
       .slice(0, 80)
     setSlug(auto)
   }, [title, slugTouched])
+
+  const handleCoverUpload = async (file: File) => {
+    setCoverUploading(true); setCoverUploadError('')
+    try {
+      const { url } = await api.uploadArticleImage(file)
+      setCoverImage(url)
+    } catch (e: any) {
+      setCoverUploadError(e.message || 'Upload failed')
+    } finally {
+      setCoverUploading(false)
+    }
+  }
 
   const submit = async (publishNow?: boolean) => {
     setSaving(true); setError('')
@@ -105,13 +120,43 @@ export default function AdminArticleEdit() {
             </div>
 
             <div className="form-group" style={{ margin: 0 }}>
-              <label className="form-label">Cover Image URL (optional)</label>
+              <label className="form-label">Cover Image (optional)</label>
+              <div className="flex gap-2 flex-wrap" style={{ marginBottom: 6 }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  disabled={coverUploading}
+                  onClick={() => coverFileInputRef.current?.click()}
+                >
+                  {coverUploading ? 'Uploading...' : coverImage ? 'Replace Image' : '🖼️ Upload Image'}
+                </button>
+                {coverImage && (
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => setCoverImage('')}>
+                    Remove
+                  </button>
+                )}
+                <input
+                  ref={coverFileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  style={{ display: 'none' }}
+                  onChange={async e => {
+                    const f = e.target.files?.[0]
+                    if (f) await handleCoverUpload(f)
+                    if (e.target) e.target.value = ''
+                  }}
+                />
+              </div>
+              {coverUploadError && <div className="alert alert-danger" style={{ marginBottom: 6 }}>{coverUploadError}</div>}
               <input
                 value={coverImage}
                 onChange={e => setCoverImage(e.target.value)}
-                placeholder="https://..."
+                placeholder="…or paste an image URL"
                 style={{ width: '100%' }}
               />
+              {coverImage && (
+                <img src={coverImage} alt="" style={{ marginTop: 8, maxWidth: '100%', maxHeight: 220, objectFit: 'cover', borderRadius: 4, display: 'block' }} />
+              )}
             </div>
 
             <div className="form-group" style={{ margin: 0 }}>
@@ -134,6 +179,7 @@ export default function AdminArticleEdit() {
                 placeholder="Write the article body..."
                 required
                 rows={16}
+                allowImageUpload
               />
             </div>
 

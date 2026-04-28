@@ -8,6 +8,7 @@ import cors from '@fastify/cors'
 import jwt from '@fastify/jwt'
 import rateLimit from '@fastify/rate-limit'
 import fastifyStatic from '@fastify/static'
+import fastifyMultipart from '@fastify/multipart'
 import { authRoutes } from './routes/auth'
 import { profileRoutes } from './routes/profiles'
 import { locationRoutes } from './routes/locations'
@@ -23,6 +24,7 @@ import { forumRoutes } from './routes/forum'
 import { dmRoutes } from './routes/dm'
 import { notificationRoutes } from './routes/notifications'
 import { articleRoutes } from './routes/articles'
+import { uploadRoutes, UPLOADS_DIR } from './routes/uploads'
 
 const server = Fastify({ logger: true })
 const JWT_SECRET = process.env.JWT_SECRET || 'changeme-secret-at-least-32-chars!!'
@@ -30,6 +32,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'changeme-secret-at-least-32-chars!
 server.register(cors, { origin: process.env.FRONTEND_URL || true, credentials: true })
 server.register(jwt, { secret: JWT_SECRET })
 server.register(rateLimit, { max: 100, timeWindow: '1 minute' })
+server.register(fastifyMultipart, { limits: { fileSize: 8 * 1024 * 1024, files: 1 } })
 
 server.decorate('authenticate', async function(request: any, reply: any) {
   try { await request.jwtVerify() } catch { reply.status(401).send({ error: 'Unauthorized' }) }
@@ -52,6 +55,7 @@ const apiRoutes = [
   { plugin: dmRoutes, prefix: '/dm' },
   { plugin: notificationRoutes, prefix: '/notifications' },
   { plugin: articleRoutes, prefix: '/articles' },
+  { plugin: uploadRoutes, prefix: '/uploads' },
 ]
 
 for (const route of apiRoutes) {
@@ -61,6 +65,14 @@ for (const route of apiRoutes) {
 
 server.get('/health', async () => ({ status: 'ok' }))
 server.get('/api/health', async () => ({ status: 'ok' }))
+
+// Serve uploaded images at /uploads/*
+fs.mkdirSync(UPLOADS_DIR, { recursive: true })
+server.register(fastifyStatic, {
+  root: UPLOADS_DIR,
+  prefix: '/uploads/',
+  decorateReply: false,
+})
 
 // Serve frontend static files in production (combined deploy)
 const frontendDir = path.join(__dirname, '..', 'public')
