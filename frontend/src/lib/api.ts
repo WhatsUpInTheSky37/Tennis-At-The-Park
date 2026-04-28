@@ -159,6 +159,13 @@ export const api = {
   adminSuspendUser: (id: string, suspended: boolean) => request<any>(`/admin/users/${id}/suspend`, { method: 'POST', body: JSON.stringify({ suspended }) }),
   adminGetDisputes: () => request<any[]>('/admin/disputes'),
   adminResolveDispute: (id: string, status: string) => request<any>(`/admin/disputes/${id}/resolve`, { method: 'POST', body: JSON.stringify({ status }) }),
+  adminGetUsers: (search?: string) => {
+    const q = search ? '?search=' + encodeURIComponent(search) : ''
+    return request<any[]>(`/admin/users${q}`)
+  },
+  adminGetUser: (id: string) => request<any>(`/admin/users/${id}`),
+  adminToggleAdmin: (id: string) => request<any>(`/admin/users/${id}/toggle-admin`, { method: 'POST', body: JSON.stringify({}) }),
+  adminDeleteUser: (id: string) => request<any>(`/admin/users/${id}`, { method: 'DELETE' }),
 
   // Generic HTTP methods for direct path access
   get: <T = any>(path: string) => request<T>(path),
