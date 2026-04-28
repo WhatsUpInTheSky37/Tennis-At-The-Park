@@ -23,6 +23,10 @@ import ForumPost from './pages/ForumPost'
 import Inbox from './pages/Inbox'
 import Conversation from './pages/Conversation'
 import Notifications from './pages/Notifications'
+import Articles from './pages/Articles'
+import ArticleDetail from './pages/ArticleDetail'
+import AdminArticles from './pages/AdminArticles'
+import AdminArticleEdit from './pages/AdminArticleEdit'
 
 // Components
 import TopNav from './components/TopNav'
@@ -87,6 +91,11 @@ function AppShell() {
           <Route path="/messages" element={user ? <Inbox /> : <Navigate to="/auth" />} />
           <Route path="/messages/:userId" element={user ? <Conversation /> : <Navigate to="/auth" />} />
           <Route path="/notifications" element={user ? <Notifications /> : <Navigate to="/auth" />} />
+          <Route path="/articles" element={<Articles />} />
+          <Route path="/articles/:slug" element={<ArticleDetail />} />
+          <Route path="/admin/articles" element={user?.isAdmin ? <AdminArticles /> : <Navigate to="/dashboard" />} />
+          <Route path="/admin/articles/new" element={user?.isAdmin ? <AdminArticleEdit /> : <Navigate to="/dashboard" />} />
+          <Route path="/admin/articles/:id/edit" element={user?.isAdmin ? <AdminArticleEdit /> : <Navigate to="/dashboard" />} />
           <Route path="/rules" element={user ? <Rules /> : <Navigate to="/auth" />} />
           <Route path="/admin" element={user?.isAdmin ? <Admin /> : <Navigate to="/dashboard" />} />
           <Route path="*" element={<Navigate to={user ? "/dashboard" : "/auth"} />} />

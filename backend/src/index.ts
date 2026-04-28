@@ -22,6 +22,7 @@ import inviteRoutes from './routes/invites'
 import { forumRoutes } from './routes/forum'
 import { dmRoutes } from './routes/dm'
 import { notificationRoutes } from './routes/notifications'
+import { articleRoutes } from './routes/articles'
 
 const server = Fastify({ logger: true })
 const JWT_SECRET = process.env.JWT_SECRET || 'changeme-secret-at-least-32-chars!!'
@@ -50,6 +51,7 @@ const apiRoutes = [
   { plugin: forumRoutes, prefix: '/forum' },
   { plugin: dmRoutes, prefix: '/dm' },
   { plugin: notificationRoutes, prefix: '/notifications' },
+  { plugin: articleRoutes, prefix: '/articles' },
 ]
 
 for (const route of apiRoutes) {

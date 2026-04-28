@@ -11,6 +11,7 @@ export default function Landing() {
   const navigate = useNavigate()
   const [recentPosts, setRecentPosts] = useState<any[]>([])
   const [weekSessions, setWeekSessions] = useState<any[]>([])
+  const [latestArticles, setLatestArticles] = useState<any[]>([])
 
   useEffect(() => {
     api.getRecentForumPosts().then(setRecentPosts).catch(() => {})
@@ -19,6 +20,7 @@ export default function Landing() {
     api.getSessions({ date: ymd(today), dateTo: ymd(weekOut) })
       .then(s => setWeekSessions((s || []).slice(0, 4)))
       .catch(() => {})
+    api.getLatestArticles().then(setLatestArticles).catch(() => {})
   }, [])
 
   return (
@@ -168,6 +170,46 @@ export default function Landing() {
             </ul>
           </div>
         </div>
+
+        {latestArticles.length > 0 && (
+          <div style={{ marginTop: 24 }}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 style={{ fontFamily: 'var(--font-display)', letterSpacing: 2, fontSize: 20 }}>LATEST ARTICLES</h3>
+              <button className="btn btn-ghost btn-sm" onClick={() => navigate('/articles')}>View All →</button>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+              {latestArticles.map(a => (
+                <div
+                  key={a.id}
+                  className="card"
+                  style={{ cursor: 'pointer', padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
+                  onClick={() => navigate(`/articles/${a.slug}`)}
+                >
+                  {a.coverImage && (
+                    <img src={a.coverImage} alt="" style={{ width: '100%', height: 130, objectFit: 'cover', display: 'block' }} />
+                  )}
+                  <div style={{ padding: 12, flex: 1, display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ fontWeight: 700, marginBottom: 4, lineHeight: 1.3 }}>{a.title}</div>
+                    {a.excerpt && (
+                      <div className="text-sm text-muted" style={{
+                        flex: 1,
+                        display: '-webkit-box',
+                        WebkitLineClamp: 3,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                      }}>
+                        {a.excerpt}
+                      </div>
+                    )}
+                    <div className="text-xs text-muted" style={{ marginTop: 8 }}>
+                      {a.publishedAt && format(new Date(a.publishedAt), 'MMM d, yyyy')}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {recentPosts.length > 0 && (
           <div style={{ marginTop: 24 }}>

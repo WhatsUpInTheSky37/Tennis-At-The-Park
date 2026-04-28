@@ -237,9 +237,12 @@ export default function Admin() {
 
   return (
     <div className="page">
-      <div className="page-header">
-        <h1 className="page-title">ADMIN PANEL</h1>
-        <p className="page-subtitle">Moderation tools</p>
+      <div className="page-header flex items-center justify-between" style={{ flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <h1 className="page-title">ADMIN PANEL</h1>
+          <p className="page-subtitle">Moderation tools</p>
+        </div>
+        <Link to="/admin/articles" className="btn btn-secondary btn-sm">📰 Manage Articles</Link>
       </div>
 
       <div className="tabs">
