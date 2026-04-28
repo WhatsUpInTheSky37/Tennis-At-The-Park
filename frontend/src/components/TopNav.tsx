@@ -9,10 +9,14 @@ export default function TopNav() {
   const location = useLocation()
   const navigate = useNavigate()
   const [unreadDms, setUnreadDms] = useState(0)
+  const [unreadNotifs, setUnreadNotifs] = useState(0)
 
   useEffect(() => {
     if (!user) return
-    const load = () => api.getUnreadDmCount().then(r => setUnreadDms(r.count)).catch(() => {})
+    const load = () => {
+      api.getUnreadDmCount().then(r => setUnreadDms(r.count)).catch(() => {})
+      api.getUnreadNotificationCount().then(r => setUnreadNotifs(r.count)).catch(() => {})
+    }
     load()
     const interval = setInterval(load, 30000)
     return () => clearInterval(interval)
@@ -24,6 +28,7 @@ export default function TopNav() {
     { to: '/players', label: 'Find Players' },
     { to: '/messages', label: 'Messages', badge: unreadDms },
     { to: '/forum', label: 'Forum' },
+    { to: '/notifications', label: '🔔', badge: unreadNotifs },
   ]
 
   return (

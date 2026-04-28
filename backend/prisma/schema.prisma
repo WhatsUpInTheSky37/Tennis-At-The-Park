@@ -30,6 +30,9 @@ model User {
   enforcement         Enforcement?
   forumPosts          ForumPost[]
   forumReplies        ForumReply[]
+  forumReactions      ForumReaction[]
+  notifications       Notification[]     @relation("NotificationsReceived")
+  notificationsSent   Notification[]     @relation("NotificationsSent")
   dmsSent             DirectMessage[]    @relation("DmSender")
   dmsReceived         DirectMessage[]    @relation("DmReceiver")
 
@@ -193,16 +196,20 @@ model Report {
   matchId        String?  @map("match_id")
   sessionId      String?  @map("session_id")
   disputeId      String?  @map("dispute_id")
+  forumPostId    String?  @map("forum_post_id")
+  forumReplyId   String?  @map("forum_reply_id")
   category       String
   details        String
   status         String   @default("pending")
   createdAt      DateTime @default(now()) @map("created_at")
 
-  reporter User     @relation("Reporter", fields: [reporterUser], references: [id])
-  reported User?    @relation("Reported", fields: [reportedUser], references: [id])
-  message  Message? @relation(fields: [messageId], references: [id])
-  match    Match?   @relation(fields: [matchId], references: [id])
-  dispute  Dispute? @relation(fields: [disputeId], references: [id])
+  reporter   User        @relation("Reporter", fields: [reporterUser], references: [id])
+  reported   User?       @relation("Reported", fields: [reportedUser], references: [id])
+  message    Message?    @relation(fields: [messageId], references: [id])
+  match      Match?      @relation(fields: [matchId], references: [id])
+  dispute    Dispute?    @relation(fields: [disputeId], references: [id])
+  forumPost  ForumPost?  @relation(fields: [forumPostId], references: [id])
+  forumReply ForumReply? @relation(fields: [forumReplyId], references: [id])
 
   @@map("reports")
 }
@@ -261,31 +268,96 @@ model Challenge {
 }
 
 model ForumPost {
-  id        String   @id @default(cuid())
-  userId    String   @map("user_id")
-  subject   String
-  body      String
-  createdAt DateTime @default(now()) @map("created_at")
+  id         String    @id @default(cuid())
+  userId     String    @map("user_id")
+  categoryId String?   @map("category_id")
+  subject    String
+  body       String
+  pinned     Boolean   @default(false)
+  editedAt   DateTime? @map("edited_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
 
-  author  User         @relation(fields: [userId], references: [id])
-  replies ForumReply[]
+  author        User            @relation(fields: [userId], references: [id])
+  category      ForumCategory?  @relation(fields: [categoryId], references: [id])
+  replies       ForumReply[]
+  reactions     ForumReaction[]
+  notifications Notification[]
+  reports       Report[]
 
   @@index([createdAt])
+  @@index([pinned, createdAt])
+  @@index([categoryId])
   @@map("forum_posts")
 }
 
 model ForumReply {
-  id        String   @id @default(cuid())
-  postId    String   @map("post_id")
-  userId    String   @map("user_id")
+  id        String    @id @default(cuid())
+  postId    String    @map("post_id")
+  userId    String    @map("user_id")
   body      String
-  createdAt DateTime @default(now()) @map("created_at")
+  editedAt  DateTime? @map("edited_at")
+  createdAt DateTime  @default(now()) @map("created_at")
 
-  post   ForumPost @relation(fields: [postId], references: [id])
-  author User      @relation(fields: [userId], references: [id])
+  post          ForumPost       @relation(fields: [postId], references: [id])
+  author        User            @relation(fields: [userId], references: [id])
+  reactions     ForumReaction[]
+  notifications Notification[]
+  reports       Report[]
 
   @@index([postId])
   @@map("forum_replies")
+}
+
+model ForumCategory {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  emoji     String   @default("")
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  posts ForumPost[]
+
+  @@map("forum_categories")
+}
+
+model ForumReaction {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  postId    String?  @map("post_id")
+  replyId   String?  @map("reply_id")
+  emoji     String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user  User        @relation(fields: [userId], references: [id])
+  post  ForumPost?  @relation(fields: [postId], references: [id])
+  reply ForumReply? @relation(fields: [replyId], references: [id])
+
+  @@unique([userId, postId, emoji])
+  @@unique([userId, replyId, emoji])
+  @@index([postId])
+  @@index([replyId])
+  @@map("forum_reactions")
+}
+
+model Notification {
+  id         String   @id @default(cuid())
+  userId     String   @map("user_id")
+  fromUserId String?  @map("from_user_id")
+  type       String
+  postId     String?  @map("post_id")
+  replyId    String?  @map("reply_id")
+  read       Boolean  @default(false)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user     User        @relation("NotificationsReceived", fields: [userId], references: [id])
+  fromUser User?       @relation("NotificationsSent", fields: [fromUserId], references: [id])
+  post     ForumPost?  @relation(fields: [postId], references: [id])
+  reply    ForumReply? @relation(fields: [replyId], references: [id])
+
+  @@index([userId, read])
+  @@index([createdAt])
+  @@map("notifications")
 }
 
 model DirectMessage {

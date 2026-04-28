@@ -65,6 +65,24 @@ export default function Admin() {
                   <span className="text-xs text-muted">{formatRelative(r.createdAt)}</span>
                 </div>
                 <div className="text-sm mb-1"><strong>From:</strong> {r.reporter?.profile?.displayName}</div>
+                {r.reported?.profile?.displayName && (
+                  <div className="text-sm mb-1"><strong>About:</strong> {r.reported.profile.displayName}</div>
+                )}
+                {r.forumPost && (
+                  <div style={{ background: 'var(--gray-50, #fafafa)', borderLeft: '3px solid var(--accent)', padding: 8, marginBottom: 8, borderRadius: 4 }}>
+                    <div className="text-xs text-muted">Forum post:</div>
+                    <a href={`/forum/${r.forumPost.id}`} target="_blank" rel="noreferrer" style={{ fontWeight: 700 }}>{r.forumPost.subject}</a>
+                    <div className="text-sm" style={{ marginTop: 4, whiteSpace: 'pre-wrap' }}>{r.forumPost.body}</div>
+                  </div>
+                )}
+                {r.forumReply && (
+                  <div style={{ background: 'var(--gray-50, #fafafa)', borderLeft: '3px solid var(--accent)', padding: 8, marginBottom: 8, borderRadius: 4 }}>
+                    <div className="text-xs text-muted">
+                      Forum reply (<a href={`/forum/${r.forumReply.postId}`} target="_blank" rel="noreferrer">view thread</a>):
+                    </div>
+                    <div className="text-sm" style={{ marginTop: 4, whiteSpace: 'pre-wrap' }}>{r.forumReply.body}</div>
+                  </div>
+                )}
                 <p className="text-sm text-muted mb-3">{r.details}</p>
                 <div className="flex gap-2 flex-wrap">
                   <button className="btn btn-secondary btn-sm" onClick={() => resolveReport(r.id, 'resolved')}>✓ Resolve</button>
