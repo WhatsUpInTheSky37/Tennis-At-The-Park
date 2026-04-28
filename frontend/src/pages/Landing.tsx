@@ -32,7 +32,7 @@ export default function Landing() {
         </div>
 
         <p className="hero-tagline" style={{ maxWidth: '100%' }}>
-          Connecting Salisbury's tennis community — one match at a time.
+          Find a tennis game in Salisbury this week.
         </p>
 
         <div style={{ textAlign: 'center', margin: '8px auto 20px', maxWidth: 560 }}>
@@ -40,13 +40,13 @@ export default function Landing() {
             Game on, neighbors.
           </div>
           <div style={{ marginTop: 6, fontSize: 'clamp(14px, 2.5vw, 16px)', color: 'var(--color-text-muted, #555)' }}>
-            Talk tennis, find partners, and share a little friendly rivalry along the way.
+            Find someone to hit with this week — no pressure, no reservations needed.
           </div>
         </div>
 
         <div className="hero-actions">
           <button className="btn btn-primary btn-lg" onClick={() => navigate('/auth?mode=register')}>
-            Create Free Profile
+            Find a Game This Week
           </button>
           <button className="btn btn-secondary btn-lg" onClick={() => navigate('/auth')}>
             Sign In
@@ -99,9 +99,6 @@ export default function Landing() {
               <li>Clean up after your match</li>
               <li>Record match scores honestly</li>
             </ul>
-            <p style={{ marginTop: 16, textAlign: 'center', fontStyle: 'italic', color: 'var(--color-primary)' }}>
-              Let's build a great tennis community in Salisbury.
-            </p>
           </div>
         </div>
 
