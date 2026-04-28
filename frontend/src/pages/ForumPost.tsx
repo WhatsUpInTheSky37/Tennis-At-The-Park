@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useAuth } from '../store/auth'
 import { getInitials } from '../lib/utils'
-import { REACTION_EMOJIS, summarizeReactions, renderRichText } from '../lib/forumUtils'
+import { REACTION_EMOJIS, summarizeReactions, renderRichText, RichTextarea } from '../lib/forumUtils'
 import { formatDistanceToNow, format } from 'date-fns'
 
 function ReactionBar({
@@ -309,7 +309,7 @@ export default function ForumPost() {
                 </div>
                 <div className="form-group" style={{ margin: 0 }}>
                   <label className="form-label">Message</label>
-                  <textarea value={editBody} onChange={e => setEditBody(e.target.value)} required maxLength={5000} rows={5} style={{ width: '100%' }} />
+                  <RichTextarea value={editBody} onChange={setEditBody} required maxLength={5000} rows={5} />
                 </div>
                 <div className="flex gap-2">
                   <button type="submit" className="btn btn-primary btn-sm" disabled={editSaving}>
@@ -408,13 +408,12 @@ export default function ForumPost() {
                       }}
                       style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
                     >
-                      <textarea
+                      <RichTextarea
                         value={editReplyBody}
-                        onChange={e => setEditReplyBody(e.target.value)}
+                        onChange={setEditReplyBody}
                         required
                         maxLength={2000}
                         rows={3}
-                        style={{ width: '100%' }}
                       />
                       <div className="flex gap-2">
                         <button type="submit" className="btn btn-primary btn-sm">Save</button>
@@ -436,14 +435,13 @@ export default function ForumPost() {
         <div className="card">
           <form onSubmit={handleReply} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <label className="form-label">Reply</label>
-            <textarea
+            <RichTextarea
               value={replyBody}
-              onChange={e => setReplyBody(e.target.value)}
+              onChange={setReplyBody}
               placeholder="Write a reply... mention with @name"
               required
               maxLength={2000}
               rows={3}
-              style={{ width: '100%' }}
             />
             {error && <div className="alert alert-danger">{error}</div>}
             <button type="submit" className="btn btn-primary btn-sm" disabled={submitting || !replyBody.trim()}>
