@@ -104,20 +104,43 @@ export const api = {
   },
 
   // Forum
+  getForumCategories: () => request<any[]>('/forum/categories'),
   getForumPosts: (params?: Record<string, string>) => {
     const q = params ? '?' + new URLSearchParams(params).toString() : ''
     return request<{ posts: any[]; total: number }>(`/forum${q}`)
   },
   getRecentForumPosts: () => request<any[]>('/forum/recent'),
   getForumPost: (id: string) => request<any>(`/forum/${id}`),
-  createForumPost: (data: { subject: string; body: string }) =>
+  createForumPost: (data: { subject: string; body: string; categoryId?: string | null }) =>
     request<any>('/forum', { method: 'POST', body: JSON.stringify(data) }),
   createForumReply: (postId: string, body: string) =>
     request<any>(`/forum/${postId}/replies`, { method: 'POST', body: JSON.stringify({ body }) }),
-  editForumPost: (id: string, data: { subject: string; body: string }) =>
+  editForumPost: (id: string, data: { subject: string; body: string; categoryId?: string | null }) =>
     request<any>(`/forum/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   deleteForumPost: (id: string) =>
     request<any>(`/forum/${id}`, { method: 'DELETE' }),
+  editForumReply: (replyId: string, body: string) =>
+    request<any>(`/forum/replies/${replyId}`, { method: 'PUT', body: JSON.stringify({ body }) }),
+  deleteForumReply: (replyId: string) =>
+    request<any>(`/forum/replies/${replyId}`, { method: 'DELETE' }),
+  pinForumPost: (id: string) =>
+    request<any>(`/forum/${id}/pin`, { method: 'POST', body: JSON.stringify({}) }),
+  reactToForumPost: (id: string, emoji: string) =>
+    request<any>(`/forum/${id}/reactions`, { method: 'POST', body: JSON.stringify({ emoji }) }),
+  reactToForumReply: (replyId: string, emoji: string) =>
+    request<any>(`/forum/replies/${replyId}/reactions`, { method: 'POST', body: JSON.stringify({ emoji }) }),
+  reportForumPost: (id: string, category: string, details: string) =>
+    request<any>(`/forum/${id}/report`, { method: 'POST', body: JSON.stringify({ category, details }) }),
+  reportForumReply: (replyId: string, category: string, details: string) =>
+    request<any>(`/forum/replies/${replyId}/report`, { method: 'POST', body: JSON.stringify({ category, details }) }),
+
+  // Notifications
+  getNotifications: () => request<any[]>('/notifications'),
+  getUnreadNotificationCount: () => request<{ count: number }>('/notifications/unread-count'),
+  markNotificationRead: (id: string) =>
+    request<any>(`/notifications/${id}/read`, { method: 'POST', body: JSON.stringify({}) }),
+  markAllNotificationsRead: () =>
+    request<any>('/notifications/read-all', { method: 'POST', body: JSON.stringify({}) }),
 
   // Direct Messages
   getInbox: (page?: number) => request<{ messages: any[]; total: number; unreadCount: number }>(`/dm/inbox?page=${page || 1}`),

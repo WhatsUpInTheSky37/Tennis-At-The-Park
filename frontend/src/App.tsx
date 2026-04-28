@@ -22,6 +22,7 @@ import Forum from './pages/Forum'
 import ForumPost from './pages/ForumPost'
 import Inbox from './pages/Inbox'
 import Conversation from './pages/Conversation'
+import Notifications from './pages/Notifications'
 
 // Components
 import TopNav from './components/TopNav'
@@ -85,6 +86,7 @@ function AppShell() {
           <Route path="/forum/:id" element={user ? <ForumPost /> : <Navigate to="/auth" />} />
           <Route path="/messages" element={user ? <Inbox /> : <Navigate to="/auth" />} />
           <Route path="/messages/:userId" element={user ? <Conversation /> : <Navigate to="/auth" />} />
+          <Route path="/notifications" element={user ? <Notifications /> : <Navigate to="/auth" />} />
           <Route path="/rules" element={user ? <Rules /> : <Navigate to="/auth" />} />
           <Route path="/admin" element={user?.isAdmin ? <Admin /> : <Navigate to="/dashboard" />} />
           <Route path="*" element={<Navigate to={user ? "/dashboard" : "/auth"} />} />

@@ -12,7 +12,17 @@ export async function adminRoutes(server: FastifyInstance) {
     const q = req.query as any
     const where: any = {}
     if (q.status) where.status = q.status
-    return prisma.report.findMany({ where, orderBy: { createdAt: 'desc' }, take: 50, include: { reporter: { select: { id: true, profile: { select: { displayName: true } } } } } })
+    return prisma.report.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+      include: {
+        reporter:   { select: { id: true, profile: { select: { displayName: true } } } },
+        reported:   { select: { id: true, profile: { select: { displayName: true } } } },
+        forumPost:  { select: { id: true, subject: true, body: true } },
+        forumReply: { select: { id: true, postId: true, body: true } },
+      },
+    })
   })
 
   server.post('/reports/:id/resolve', { preHandler }, async (req, reply) => {
