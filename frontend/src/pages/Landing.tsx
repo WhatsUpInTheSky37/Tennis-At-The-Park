@@ -139,12 +139,13 @@ export default function Landing() {
         </div>
 
         <div className="card" style={{ marginTop: 24, padding: 24, textAlign: 'center', cursor: 'pointer' }} onClick={() => navigate('/auth?mode=register')}>
-          <h3 style={{ marginBottom: 8, fontFamily: 'var(--font-display)', letterSpacing: 2 }}>
+          <h3 style={{ marginBottom: 8, fontFamily: 'var(--font-display)', letterSpacing: 2, color: '#fff' }}>
             Coaches & Instructors Welcome
           </h3>
-          <p style={{ margin: 0, color: 'var(--color-text-muted, #555)' }}>
-            Set up an instructor profile so local players can find you for lessons.
-            No ads, no fees — just a simple way to connect with new students in Salisbury.
+          <p style={{ margin: 0, color: '#fff' }}>
+            Already a trainer? Flip the <strong>"I'm a Tennis Instructor"</strong> toggle on your profile
+            and you'll show up when local players search for lessons — complete with your skill level,
+            availability, and contact info. No ads, no fees, no extra signup.
           </p>
         </div>
 
