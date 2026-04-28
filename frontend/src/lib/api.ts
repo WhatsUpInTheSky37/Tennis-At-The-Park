@@ -134,6 +134,20 @@ export const api = {
   reportForumReply: (replyId: string, category: string, details: string) =>
     request<any>(`/forum/replies/${replyId}/report`, { method: 'POST', body: JSON.stringify({ category, details }) }),
 
+  // Articles
+  getArticles: (params?: Record<string, string>) => {
+    const q = params ? '?' + new URLSearchParams(params).toString() : ''
+    return request<{ articles: any[]; total: number }>(`/articles${q}`)
+  },
+  getLatestArticles: () => request<any[]>('/articles/latest'),
+  getArticleBySlug: (slug: string) => request<any>(`/articles/by-slug/${slug}`),
+  adminGetAllArticles: () => request<any[]>('/articles/admin/all'),
+  adminGetArticle: (id: string) => request<any>(`/articles/admin/${id}`),
+  adminCreateArticle: (data: any) => request<any>('/articles', { method: 'POST', body: JSON.stringify(data) }),
+  adminUpdateArticle: (id: string, data: any) => request<any>(`/articles/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  adminToggleArticlePublish: (id: string) => request<any>(`/articles/${id}/publish`, { method: 'POST', body: JSON.stringify({}) }),
+  adminDeleteArticle: (id: string) => request<any>(`/articles/${id}`, { method: 'DELETE' }),
+
   // Notifications
   getNotifications: () => request<any[]>('/notifications'),
   getUnreadNotificationCount: () => request<{ count: number }>('/notifications/unread-count'),
@@ -159,6 +173,13 @@ export const api = {
   adminSuspendUser: (id: string, suspended: boolean) => request<any>(`/admin/users/${id}/suspend`, { method: 'POST', body: JSON.stringify({ suspended }) }),
   adminGetDisputes: () => request<any[]>('/admin/disputes'),
   adminResolveDispute: (id: string, status: string) => request<any>(`/admin/disputes/${id}/resolve`, { method: 'POST', body: JSON.stringify({ status }) }),
+  adminGetUsers: (search?: string) => {
+    const q = search ? '?search=' + encodeURIComponent(search) : ''
+    return request<any[]>(`/admin/users${q}`)
+  },
+  adminGetUser: (id: string) => request<any>(`/admin/users/${id}`),
+  adminToggleAdmin: (id: string) => request<any>(`/admin/users/${id}/toggle-admin`, { method: 'POST', body: JSON.stringify({}) }),
+  adminDeleteUser: (id: string) => request<any>(`/admin/users/${id}`, { method: 'DELETE' }),
 
   // Generic HTTP methods for direct path access
   get: <T = any>(path: string) => request<T>(path),

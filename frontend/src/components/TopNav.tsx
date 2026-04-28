@@ -28,6 +28,7 @@ export default function TopNav() {
     { to: '/players', label: 'Find Players' },
     { to: '/messages', label: 'Messages', badge: unreadDms },
     { to: '/forum', label: 'Forum' },
+    { to: '/articles', label: 'Articles' },
     { to: '/notifications', label: '🔔', badge: unreadNotifs },
   ]
 
