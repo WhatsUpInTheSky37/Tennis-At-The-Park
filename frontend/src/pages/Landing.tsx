@@ -69,17 +69,14 @@ export default function Landing() {
           ))}
         </div>
 
-        <div className="card" style={{ marginTop: 24, padding: 24, textAlign: 'center' }}>
+        <div className="card" style={{ marginTop: 24, padding: 24, textAlign: 'center', cursor: 'pointer' }} onClick={() => navigate('/auth?mode=register')}>
           <h3 style={{ marginBottom: 8, fontFamily: 'var(--font-display)', letterSpacing: 2 }}>
             Coaches & Instructors Welcome
           </h3>
-          <p style={{ marginBottom: 14, color: 'var(--color-text-muted, #555)' }}>
+          <p style={{ margin: 0, color: 'var(--color-text-muted, #555)' }}>
             Set up an instructor profile so local players can find you for lessons.
             No ads, no fees — just a simple way to connect with new students in Salisbury.
           </p>
-          <button className="btn btn-primary" onClick={() => navigate('/auth?mode=register')}>
-            Create Instructor Profile
-          </button>
         </div>
 
         <div className="disclaimer" style={{ marginTop: 24, textAlign: 'center' }}>
