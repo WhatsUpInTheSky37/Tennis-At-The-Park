@@ -20,7 +20,7 @@ export function summarizeReactions(rows: ReactionRow[] | undefined, currentUserI
     .filter(r => r.count > 0)
 }
 
-const TOKEN_RE = /(\*\*[^\n*]+?\*\*)|(__[^\n_]+?__)|(\*[^\n*]+?\*)|(https?:\/\/[^\s]+)|(@\[[^\]\n]{2,60}\])|(@[a-zA-Z0-9_-]{2,30})/g
+const TOKEN_RE = /(!\[[^\]\n]*?\]\([^)\s]+\))|(\*\*[^\n*]+?\*\*)|(__[^\n_]+?__)|(\*[^\n*]+?\*)|(https?:\/\/[^\s]+)|(@\[[^\]\n]{2,60}\])|(@[a-zA-Z0-9_-]{2,30})/g
 
 function tokenize(line: string, keyPrefix: string): React.ReactNode[] {
   const out: React.ReactNode[] = []
@@ -34,7 +34,22 @@ function tokenize(line: string, keyPrefix: string): React.ReactNode[] {
     }
     const tok = m[0]
     const k = `${keyPrefix}-${n++}`
-    if (tok.startsWith('**') && tok.endsWith('**') && tok.length > 4) {
+    if (tok.startsWith('![')) {
+      const imgMatch = tok.match(/^!\[([^\]]*)\]\(([^)\s]+)\)$/)
+      if (imgMatch) {
+        const [, alt, src] = imgMatch
+        out.push(
+          <img
+            key={k}
+            src={src}
+            alt={alt}
+            style={{ maxWidth: '100%', height: 'auto', borderRadius: 6, display: 'block', margin: '12px auto' }}
+          />
+        )
+      } else {
+        out.push(<span key={k}>{tok}</span>)
+      }
+    } else if (tok.startsWith('**') && tok.endsWith('**') && tok.length > 4) {
       out.push(<strong key={k}>{tokenize(tok.slice(2, -2), k + 'b')}</strong>)
     } else if (tok.startsWith('__') && tok.endsWith('__') && tok.length > 4) {
       out.push(<u key={k}>{tokenize(tok.slice(2, -2), k + 'u')}</u>)
@@ -99,14 +114,18 @@ interface RichTextareaProps {
   maxLength?: number
   required?: boolean
   hint?: boolean
+  allowImageUpload?: boolean
 }
 
-export function RichTextarea({ value, onChange, placeholder, rows, maxLength, required, hint = true }: RichTextareaProps) {
+export function RichTextarea({ value, onChange, placeholder, rows, maxLength, required, hint = true, allowImageUpload = false }: RichTextareaProps) {
   const ref = useRef<HTMLTextAreaElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [mentionQuery, setMentionQuery] = useState<string | null>(null)
   const [triggerStart, setTriggerStart] = useState<number | null>(null)
   const [results, setResults] = useState<any[]>([])
   const [highlightIdx, setHighlightIdx] = useState(0)
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState('')
 
   function wrap(marker: string) {
     const ta = ref.current
@@ -167,6 +186,29 @@ export function RichTextarea({ value, onChange, placeholder, rows, maxLength, re
     })
   }
 
+  async function uploadAndInsertImage(file: File) {
+    setUploading(true); setUploadError('')
+    try {
+      const { url } = await api.uploadArticleImage(file)
+      const ta = ref.current
+      const cursor = ta?.selectionStart ?? value.length
+      const insert = `\n![${file.name.replace(/\.[^.]+$/, '')}](${url})\n`
+      const next = value.slice(0, cursor) + insert + value.slice(cursor)
+      onChange(next)
+      requestAnimationFrame(() => {
+        if (!ta) return
+        ta.focus()
+        const pos = cursor + insert.length
+        ta.setSelectionRange(pos, pos)
+      })
+    } catch (e: any) {
+      setUploadError(e.message || 'Upload failed')
+      setTimeout(() => setUploadError(''), 4000)
+    } finally {
+      setUploading(false)
+    }
+  }
+
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (mentionQuery === null || results.length === 0) return
     if (e.key === 'ArrowDown') { e.preventDefault(); setHighlightIdx(i => (i + 1) % results.length) }
@@ -188,10 +230,35 @@ export function RichTextarea({ value, onChange, placeholder, rows, maxLength, re
 
   return (
     <div style={{ position: 'relative' }}>
-      <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 6, alignItems: 'center' }}>
         <button type="button" title="Bold (**text**)" style={{ ...btnStyle, fontWeight: 800 }} onClick={() => wrap('**')}>B</button>
         <button type="button" title="Italic (*text*)" style={{ ...btnStyle, fontStyle: 'italic' }} onClick={() => wrap('*')}>I</button>
         <button type="button" title="Underline (__text__)" style={{ ...btnStyle, textDecoration: 'underline' }} onClick={() => wrap('__')}>U</button>
+        {allowImageUpload && (
+          <>
+            <button
+              type="button"
+              title="Insert image"
+              style={{ ...btnStyle, width: 'auto', padding: '0 10px' }}
+              disabled={uploading}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {uploading ? '⏳' : '🖼️ Image'}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              style={{ display: 'none' }}
+              onChange={async e => {
+                const f = e.target.files?.[0]
+                if (f) await uploadAndInsertImage(f)
+                if (e.target) e.target.value = ''
+              }}
+            />
+          </>
+        )}
+        {uploadError && <span style={{ color: 'var(--red, #c00)', fontSize: 12, marginLeft: 6 }}>{uploadError}</span>}
       </div>
       <textarea
         ref={ref}
@@ -258,7 +325,7 @@ export function RichTextarea({ value, onChange, placeholder, rows, maxLength, re
       )}
       {hint && (
         <div className="form-hint" style={{ marginTop: 4 }}>
-          Format with <strong>**bold**</strong>, <em>*italic*</em>, <u>__underline__</u> · type @ to mention a player
+          Format with <strong>**bold**</strong>, <em>*italic*</em>, <u>__underline__</u>{allowImageUpload ? ' · click 🖼️ to upload an image' : ''} · type @ to mention a player
         </div>
       )}
     </div>

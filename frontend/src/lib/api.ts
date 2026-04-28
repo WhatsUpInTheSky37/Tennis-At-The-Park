@@ -134,6 +134,18 @@ export const api = {
   reportForumReply: (replyId: string, category: string, details: string) =>
     request<any>(`/forum/replies/${replyId}/report`, { method: 'POST', body: JSON.stringify({ category, details }) }),
 
+  // Uploads
+  uploadArticleImage: async (file: File): Promise<{ url: string; filename: string }> => {
+    const fd = new FormData()
+    fd.append('file', file)
+    const headers: Record<string, string> = {}
+    if (token) headers['Authorization'] = `Bearer ${token}`
+    const res = await fetch(`${BASE}/uploads/articles/image`, { method: 'POST', headers, body: fd })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Upload failed')
+    return data
+  },
+
   // Articles
   getArticles: (params?: Record<string, string>) => {
     const q = params ? '?' + new URLSearchParams(params).toString() : ''
