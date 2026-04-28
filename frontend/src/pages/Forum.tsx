@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useAuth } from '../store/auth'
 import { getInitials } from '../lib/utils'
-import { summarizeReactions } from '../lib/forumUtils'
+import { summarizeReactions, RichTextarea } from '../lib/forumUtils'
 import { formatDistanceToNow } from 'date-fns'
 
 const PAGE_SIZE = 10
@@ -104,16 +104,14 @@ export default function Forum() {
             </div>
             <div className="form-group" style={{ margin: 0 }}>
               <label className="form-label">Message</label>
-              <textarea
+              <RichTextarea
                 value={body}
-                onChange={e => setBody(e.target.value)}
+                onChange={setBody}
                 placeholder="Share details, ask a question, mention @someone..."
                 required
                 maxLength={5000}
                 rows={5}
-                style={{ width: '100%' }}
               />
-              <div className="form-hint">Tip: links auto-link, line breaks preserved, mention players with @name.</div>
             </div>
             {error && <div className="alert alert-danger">{error}</div>}
             <button type="submit" className="btn btn-primary" disabled={submitting}>
