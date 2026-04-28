@@ -24,8 +24,15 @@ const reportSchema = z.object({
 const ALLOWED_REACTIONS = ['👍', '🔥', '😂', '🎾', '👏', '💯']
 
 function extractMentions(text: string): string[] {
-  const matches = text.match(/@([a-zA-Z0-9_-]{2,30})/g) || []
-  return Array.from(new Set(matches.map(m => m.slice(1).toLowerCase())))
+  const found: string[] = []
+  const stripped = text.replace(/@\[([^\]\n]{2,60})\]/g, (_, name) => {
+    found.push(name)
+    return ' '
+  })
+  const simpleRe = /@([a-zA-Z0-9_-]{2,30})/g
+  let m: RegExpExecArray | null
+  while ((m = simpleRe.exec(stripped)) !== null) found.push(m[1])
+  return Array.from(new Set(found.map(s => s.toLowerCase())))
 }
 
 async function notifyMentions(text: string, fromUserId: string, postId: string | null, replyId: string | null) {

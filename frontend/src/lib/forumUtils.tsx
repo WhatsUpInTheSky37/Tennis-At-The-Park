@@ -1,5 +1,7 @@
-import { useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { api } from './api'
+import { getInitials } from './utils'
 
 export const REACTION_EMOJIS = ['👍', '🔥', '😂', '🎾', '👏', '💯']
 
@@ -18,7 +20,7 @@ export function summarizeReactions(rows: ReactionRow[] | undefined, currentUserI
     .filter(r => r.count > 0)
 }
 
-const TOKEN_RE = /(\*\*[^\n*]+?\*\*)|(__[^\n_]+?__)|(\*[^\n*]+?\*)|(https?:\/\/[^\s]+)|(@[a-zA-Z0-9_-]{2,30})/g
+const TOKEN_RE = /(\*\*[^\n*]+?\*\*)|(__[^\n_]+?__)|(\*[^\n*]+?\*)|(https?:\/\/[^\s]+)|(@\[[^\]\n]{2,60}\])|(@[a-zA-Z0-9_-]{2,30})/g
 
 function tokenize(line: string, keyPrefix: string): React.ReactNode[] {
   const out: React.ReactNode[] = []
@@ -43,6 +45,13 @@ function tokenize(line: string, keyPrefix: string): React.ReactNode[] {
         <a key={k} href={tok} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', wordBreak: 'break-all' }}>
           {tok}
         </a>
+      )
+    } else if (tok.startsWith('@[')) {
+      const name = tok.slice(2, -1)
+      out.push(
+        <Link key={k} to={`/players?search=${encodeURIComponent(name)}`} style={{ color: 'var(--accent)', fontWeight: 600 }}>
+          @{name}
+        </Link>
       )
     } else if (tok.startsWith('@')) {
       const handle = tok.slice(1)
@@ -71,6 +80,17 @@ export function renderRichText(body: string): React.ReactNode[] {
   return out
 }
 
+function getMentionTrigger(value: string, cursor: number): { triggerStart: number; query: string } | null {
+  const before = value.slice(0, cursor)
+  const lastAt = before.lastIndexOf('@')
+  if (lastAt === -1) return null
+  if (lastAt > 0 && !/\s/.test(value[lastAt - 1])) return null
+  const segment = before.slice(lastAt + 1)
+  if (/[\s\n\]]/.test(segment)) return null
+  if (segment.length > 30) return null
+  return { triggerStart: lastAt, query: segment }
+}
+
 interface RichTextareaProps {
   value: string
   onChange: (v: string) => void
@@ -83,6 +103,10 @@ interface RichTextareaProps {
 
 export function RichTextarea({ value, onChange, placeholder, rows, maxLength, required, hint = true }: RichTextareaProps) {
   const ref = useRef<HTMLTextAreaElement>(null)
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null)
+  const [triggerStart, setTriggerStart] = useState<number | null>(null)
+  const [results, setResults] = useState<any[]>([])
+  const [highlightIdx, setHighlightIdx] = useState(0)
 
   function wrap(marker: string) {
     const ta = ref.current
@@ -100,6 +124,57 @@ export function RichTextarea({ value, onChange, placeholder, rows, maxLength, re
     })
   }
 
+  function syncMentionState(nextValue: string, cursor: number) {
+    const trig = getMentionTrigger(nextValue, cursor)
+    if (!trig) {
+      setMentionQuery(null); setTriggerStart(null); setResults([])
+      return
+    }
+    setTriggerStart(trig.triggerStart)
+    setMentionQuery(trig.query)
+  }
+
+  useEffect(() => {
+    if (mentionQuery === null) return
+    const handle = setTimeout(() => {
+      const params: Record<string, string> = {}
+      if (mentionQuery) params.search = mentionQuery
+      api.getPlayers(params)
+        .then(rows => {
+          setResults((rows || []).slice(0, 8))
+          setHighlightIdx(0)
+        })
+        .catch(() => setResults([]))
+    }, 150)
+    return () => clearTimeout(handle)
+  }, [mentionQuery])
+
+  function selectMention(p: any) {
+    const ta = ref.current
+    if (!ta || triggerStart === null) return
+    const name = p.displayName as string
+    const replacement = name.includes(' ') ? `@[${name}] ` : `@${name} `
+    const cursor = ta.selectionStart ?? value.length
+    const before = value.slice(0, triggerStart)
+    const after = value.slice(cursor)
+    const next = before + replacement + after
+    onChange(next)
+    setMentionQuery(null); setTriggerStart(null); setResults([])
+    requestAnimationFrame(() => {
+      ta.focus()
+      const pos = (before + replacement).length
+      ta.setSelectionRange(pos, pos)
+    })
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (mentionQuery === null || results.length === 0) return
+    if (e.key === 'ArrowDown') { e.preventDefault(); setHighlightIdx(i => (i + 1) % results.length) }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setHighlightIdx(i => (i - 1 + results.length) % results.length) }
+    else if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); selectMention(results[highlightIdx]) }
+    else if (e.key === 'Escape') { setMentionQuery(null); setTriggerStart(null); setResults([]) }
+  }
+
   const btnStyle: React.CSSProperties = {
     width: 30, height: 28, padding: 0,
     background: 'var(--bg3, #222)',
@@ -112,7 +187,7 @@ export function RichTextarea({ value, onChange, placeholder, rows, maxLength, re
   }
 
   return (
-    <div>
+    <div style={{ position: 'relative' }}>
       <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
         <button type="button" title="Bold (**text**)" style={{ ...btnStyle, fontWeight: 800 }} onClick={() => wrap('**')}>B</button>
         <button type="button" title="Italic (*text*)" style={{ ...btnStyle, fontStyle: 'italic' }} onClick={() => wrap('*')}>I</button>
@@ -121,16 +196,69 @@ export function RichTextarea({ value, onChange, placeholder, rows, maxLength, re
       <textarea
         ref={ref}
         value={value}
-        onChange={e => onChange(e.target.value)}
+        onChange={e => {
+          onChange(e.target.value)
+          syncMentionState(e.target.value, e.target.selectionStart)
+        }}
+        onKeyDown={handleKeyDown}
+        onKeyUp={e => syncMentionState((e.target as HTMLTextAreaElement).value, (e.target as HTMLTextAreaElement).selectionStart)}
+        onClick={e => syncMentionState((e.target as HTMLTextAreaElement).value, (e.target as HTMLTextAreaElement).selectionStart)}
+        onBlur={() => setTimeout(() => { setMentionQuery(null); setResults([]) }, 150)}
         placeholder={placeholder}
         rows={rows}
         maxLength={maxLength}
         required={required}
         style={{ width: '100%' }}
       />
+      {mentionQuery !== null && results.length > 0 && (
+        <div
+          style={{
+            position: 'absolute',
+            left: 0, right: 0,
+            top: '100%',
+            background: 'var(--bg2, #1a1a1a)',
+            border: '1px solid var(--border, #444)',
+            borderRadius: 6,
+            zIndex: 30,
+            maxHeight: 240,
+            overflowY: 'auto',
+            boxShadow: '0 6px 20px rgba(0,0,0,0.4)',
+          }}
+        >
+          {results.map((p: any, i: number) => (
+            <div
+              key={p.userId || p.user?.id || i}
+              onMouseDown={e => { e.preventDefault(); selectMention(p) }}
+              onMouseEnter={() => setHighlightIdx(i)}
+              style={{
+                padding: '8px 10px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                background: i === highlightIdx ? 'var(--accent-dim)' : 'transparent',
+              }}
+            >
+              <div style={{
+                width: 28, height: 28, borderRadius: '50%', overflow: 'hidden',
+                background: 'var(--accent-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 11, fontFamily: 'var(--font-display)', color: 'var(--accent)', flexShrink: 0,
+              }}>
+                {p.photoUrl
+                  ? <img src={p.photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : getInitials(p.displayName || '?')
+                }
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 600, fontSize: 14 }}>{p.displayName}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
       {hint && (
         <div className="form-hint" style={{ marginTop: 4 }}>
-          Format with <strong>**bold**</strong>, <em>*italic*</em>, <u>__underline__</u> · links auto-link · mention with @name
+          Format with <strong>**bold**</strong>, <em>*italic*</em>, <u>__underline__</u> · type @ to mention a player
         </div>
       )}
     </div>
