@@ -35,6 +35,15 @@ export default function Landing() {
           Connecting Salisbury's tennis community — one match at a time.
         </p>
 
+        <div style={{ textAlign: 'center', margin: '8px auto 20px', maxWidth: 560 }}>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(20px, 4.5vw, 28px)', letterSpacing: 2, color: 'var(--color-primary)' }}>
+            Game on, neighbors.
+          </div>
+          <div style={{ marginTop: 6, fontSize: 'clamp(14px, 2.5vw, 16px)', color: 'var(--color-text-muted, #555)' }}>
+            Talk tennis, find partners, and share a little friendly rivalry along the way.
+          </div>
+        </div>
+
         <div className="hero-actions">
           <button className="btn btn-primary btn-lg" onClick={() => navigate('/auth?mode=register')}>
             Create Free Profile
