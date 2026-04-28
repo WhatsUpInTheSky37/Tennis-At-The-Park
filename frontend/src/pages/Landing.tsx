@@ -1,14 +1,24 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { api } from '../lib/api'
-import { formatDistanceToNow } from 'date-fns'
+import { formatDistanceToNow, format } from 'date-fns'
+
+function ymd(d: Date) {
+  return d.toISOString().slice(0, 10)
+}
 
 export default function Landing() {
   const navigate = useNavigate()
   const [recentPosts, setRecentPosts] = useState<any[]>([])
+  const [weekSessions, setWeekSessions] = useState<any[]>([])
 
   useEffect(() => {
     api.getRecentForumPosts().then(setRecentPosts).catch(() => {})
+    const today = new Date()
+    const weekOut = new Date(); weekOut.setDate(weekOut.getDate() + 6)
+    api.getSessions({ date: ymd(today), dateTo: ymd(weekOut) })
+      .then(s => setWeekSessions((s || []).slice(0, 4)))
+      .catch(() => {})
   }, [])
 
   return (
@@ -51,6 +61,65 @@ export default function Landing() {
           <button className="btn btn-secondary btn-lg" onClick={() => navigate('/auth')}>
             Sign In
           </button>
+        </div>
+
+        <div style={{ marginTop: 28 }}>
+          <div className="flex items-center justify-between mb-3">
+            <h3 style={{ fontFamily: 'var(--font-display)', letterSpacing: 2, fontSize: 20, margin: 0 }}>
+              THIS WEEK'S GAMES
+            </h3>
+            <button className="btn btn-ghost btn-sm" onClick={() => navigate('/auth?mode=register')}>
+              See all →
+            </button>
+          </div>
+          {weekSessions.length === 0 ? (
+            <div className="card" style={{ padding: 20, textAlign: 'center' }}>
+              <div style={{ fontSize: 32, marginBottom: 6 }}>🎾</div>
+              <div style={{ fontWeight: 700, marginBottom: 4 }}>No games on the books yet this week.</div>
+              <div className="text-sm text-muted" style={{ marginBottom: 12 }}>
+                Be the one who makes it happen — set a time at City Park or Winterplace and players will show.
+              </div>
+              <button className="btn btn-primary btn-sm" onClick={() => navigate('/auth?mode=register')}>
+                Plan a Session
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {weekSessions.map((s: any) => {
+                const filled = s.participants?.length || 0
+                const cap = s.maxPlayers || (s.format?.includes('doubles') ? 4 : 2)
+                const spotsLeft = Math.max(0, cap - filled)
+                return (
+                  <div
+                    key={s.id}
+                    className="card"
+                    style={{ cursor: 'pointer', padding: 14 }}
+                    onClick={() => navigate(`/sessions/${s.id}`)}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, marginBottom: 2 }}>
+                          {format(new Date(s.startTime), 'EEE, MMM d · h:mm a')}
+                        </div>
+                        <div className="text-sm text-muted">
+                          {s.location?.name}
+                          {s.format ? ` · ${s.format}` : ''}
+                        </div>
+                      </div>
+                      <span style={{
+                        fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 12,
+                        background: spotsLeft > 0 ? 'var(--accent-dim)' : 'var(--gray-100, #eee)',
+                        color: spotsLeft > 0 ? 'var(--accent)' : 'var(--text3, #888)',
+                        whiteSpace: 'nowrap',
+                      }}>
+                        {spotsLeft > 0 ? `${spotsLeft} spot${spotsLeft === 1 ? '' : 's'} open` : 'Full'}
+                      </span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, marginTop: 24 }}>
