@@ -159,6 +159,8 @@ export const api = {
   adminUpdateArticle: (id: string, data: any) => request<any>(`/articles/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   adminToggleArticlePublish: (id: string) => request<any>(`/articles/${id}/publish`, { method: 'POST', body: JSON.stringify({}) }),
   adminDeleteArticle: (id: string) => request<any>(`/articles/${id}`, { method: 'DELETE' }),
+  reactToArticle: (id: string, emoji: string) =>
+    request<any>(`/articles/${id}/reactions`, { method: 'POST', body: JSON.stringify({ emoji }) }),
 
   // Notifications
   getNotifications: () => request<any[]>('/notifications'),

@@ -11,6 +11,12 @@ const articleSchema = z.object({
   published: z.boolean().optional(),
 })
 
+const reactionSchema = z.object({
+  emoji: z.string().min(1).max(8),
+})
+
+const ALLOWED_REACTIONS = ['👍', '🔥', '😂', '🎾', '👏', '💯']
+
 function slugify(s: string): string {
   return s.toLowerCase()
     .trim()
@@ -75,10 +81,37 @@ export async function articleRoutes(server: FastifyInstance) {
     const { slug } = req.params as { slug: string }
     const article = await prisma.article.findUnique({
       where: { slug },
-      include: { author: { select: authorSelect } },
+      include: {
+        author: { select: authorSelect },
+        reactions: { select: { emoji: true, userId: true } },
+      },
     })
     if (!article || !article.published) return reply.status(404).send({ error: 'Not found' })
     return article
+  })
+
+  // PUBLIC (auth-required): toggle a reaction on an article
+  server.post('/:id/reactions', { preHandler: [(server as any).authenticate] }, async (req, reply) => {
+    const { id } = req.params as { id: string }
+    const parsed = reactionSchema.safeParse(req.body)
+    if (!parsed.success) return reply.status(400).send({ error: parsed.error.flatten() })
+    if (!ALLOWED_REACTIONS.includes(parsed.data.emoji)) {
+      return reply.status(400).send({ error: 'Invalid reaction' })
+    }
+    const article = await prisma.article.findUnique({ where: { id }, select: { id: true, published: true } })
+    if (!article || !article.published) return reply.status(404).send({ error: 'Not found' })
+    const { userId } = (req as any).user
+    const existing = await prisma.articleReaction.findFirst({
+      where: { userId, articleId: id, emoji: parsed.data.emoji },
+    })
+    if (existing) {
+      await prisma.articleReaction.delete({ where: { id: existing.id } })
+      return { toggled: 'off', emoji: parsed.data.emoji }
+    }
+    await prisma.articleReaction.create({
+      data: { userId, articleId: id, emoji: parsed.data.emoji },
+    })
+    return { toggled: 'on', emoji: parsed.data.emoji }
   })
 
   // ADMIN: list ALL (drafts + published)

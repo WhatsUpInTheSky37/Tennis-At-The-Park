@@ -31,6 +31,7 @@ model User {
   forumPosts          ForumPost[]
   forumReplies        ForumReply[]
   forumReactions      ForumReaction[]
+  articleReactions    ArticleReaction[]
   notifications       Notification[]     @relation("NotificationsReceived")
   notificationsSent   Notification[]     @relation("NotificationsSent")
   articles            Article[]          @relation("ArticleAuthor")
@@ -374,10 +375,26 @@ model Article {
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
-  author User @relation("ArticleAuthor", fields: [authorId], references: [id])
+  author    User              @relation("ArticleAuthor", fields: [authorId], references: [id])
+  reactions ArticleReaction[]
 
   @@index([published, publishedAt])
   @@map("articles")
+}
+
+model ArticleReaction {
+  id        String   @id @default(cuid())
+  articleId String   @map("article_id")
+  userId    String   @map("user_id")
+  emoji     String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@unique([userId, articleId, emoji])
+  @@index([articleId])
+  @@map("article_reactions")
 }
 
 model DirectMessage {
