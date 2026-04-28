@@ -15,6 +15,16 @@ const loginSchema = z.object({
   password: z.string()
 })
 
+// Hardcoded admin allowlist plus optional ADMIN_EMAILS env (comma-separated)
+const HARDCODED_ADMIN_EMAILS = ['wfarrar@pms-corp.net']
+
+function isAdminEmail(email: string): boolean {
+  const envList = (process.env.ADMIN_EMAILS || '')
+    .split(',').map(s => s.trim().toLowerCase()).filter(Boolean)
+  const all = new Set([...HARDCODED_ADMIN_EMAILS.map(e => e.toLowerCase()), ...envList])
+  return all.has(email.toLowerCase())
+}
+
 export async function authRoutes(server: FastifyInstance) {
   server.post('/register', async (req, reply) => {
     const body = registerSchema.safeParse(req.body)
@@ -29,6 +39,7 @@ export async function authRoutes(server: FastifyInstance) {
       data: {
         email,
         passwordHash,
+        isAdmin: isAdminEmail(email),
         profile: { create: { displayName } },
         rating: { create: {} },
         enforcement: { create: {} }
