@@ -34,6 +34,7 @@ model User {
   notifications       Notification[]     @relation("NotificationsReceived")
   notificationsSent   Notification[]     @relation("NotificationsSent")
   articles            Article[]          @relation("ArticleAuthor")
+  articleComments     ArticleComment[]   @relation("ArticleCommentAuthor")
   dmsSent             DirectMessage[]    @relation("DmSender")
   dmsReceived         DirectMessage[]    @relation("DmReceiver")
 
@@ -190,27 +191,29 @@ model Dispute {
 }
 
 model Report {
-  id             String   @id @default(cuid())
-  reporterUser   String   @map("reporter_user")
-  reportedUser   String?  @map("reported_user")
-  messageId      String?  @map("message_id")
-  matchId        String?  @map("match_id")
-  sessionId      String?  @map("session_id")
-  disputeId      String?  @map("dispute_id")
-  forumPostId    String?  @map("forum_post_id")
-  forumReplyId   String?  @map("forum_reply_id")
-  category       String
-  details        String
-  status         String   @default("pending")
-  createdAt      DateTime @default(now()) @map("created_at")
+  id               String   @id @default(cuid())
+  reporterUser     String   @map("reporter_user")
+  reportedUser     String?  @map("reported_user")
+  messageId        String?  @map("message_id")
+  matchId          String?  @map("match_id")
+  sessionId        String?  @map("session_id")
+  disputeId        String?  @map("dispute_id")
+  forumPostId      String?  @map("forum_post_id")
+  forumReplyId     String?  @map("forum_reply_id")
+  articleCommentId String?  @map("article_comment_id")
+  category         String
+  details          String
+  status           String   @default("pending")
+  createdAt        DateTime @default(now()) @map("created_at")
 
-  reporter   User        @relation("Reporter", fields: [reporterUser], references: [id])
-  reported   User?       @relation("Reported", fields: [reportedUser], references: [id])
-  message    Message?    @relation(fields: [messageId], references: [id])
-  match      Match?      @relation(fields: [matchId], references: [id])
-  dispute    Dispute?    @relation(fields: [disputeId], references: [id])
-  forumPost  ForumPost?  @relation(fields: [forumPostId], references: [id])
-  forumReply ForumReply? @relation(fields: [forumReplyId], references: [id])
+  reporter       User             @relation("Reporter", fields: [reporterUser], references: [id])
+  reported       User?            @relation("Reported", fields: [reportedUser], references: [id])
+  message        Message?         @relation(fields: [messageId], references: [id])
+  match          Match?           @relation(fields: [matchId], references: [id])
+  dispute        Dispute?         @relation(fields: [disputeId], references: [id])
+  forumPost      ForumPost?       @relation(fields: [forumPostId], references: [id])
+  forumReply     ForumReply?      @relation(fields: [forumReplyId], references: [id])
+  articleComment ArticleComment?  @relation(fields: [articleCommentId], references: [id])
 
   @@map("reports")
 }
@@ -374,10 +377,32 @@ model Article {
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
-  author User @relation("ArticleAuthor", fields: [authorId], references: [id])
+  author   User             @relation("ArticleAuthor", fields: [authorId], references: [id])
+  comments ArticleComment[]
 
   @@index([published, publishedAt])
   @@map("articles")
+}
+
+model ArticleComment {
+  id        String    @id @default(cuid())
+  articleId String    @map("article_id")
+  userId    String    @map("user_id")
+  parentId  String?   @map("parent_id")
+  body      String
+  hidden    Boolean   @default(false)
+  editedAt  DateTime? @map("edited_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  article Article          @relation(fields: [articleId], references: [id])
+  author  User             @relation("ArticleCommentAuthor", fields: [userId], references: [id])
+  parent  ArticleComment?  @relation("ArticleCommentReplies", fields: [parentId], references: [id])
+  replies ArticleComment[] @relation("ArticleCommentReplies")
+  reports Report[]
+
+  @@index([articleId, createdAt])
+  @@index([parentId])
+  @@map("article_comments")
 }
 
 model DirectMessage {

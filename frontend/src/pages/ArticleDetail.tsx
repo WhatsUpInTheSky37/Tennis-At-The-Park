@@ -4,6 +4,7 @@ import { api } from '../lib/api'
 import { renderRichText } from '../lib/forumUtils'
 import { format } from 'date-fns'
 import { getInitials } from '../lib/utils'
+import ArticleComments from '../components/ArticleComments'
 
 export default function ArticleDetail() {
   const { slug } = useParams<{ slug: string }>()
@@ -70,6 +71,8 @@ export default function ArticleDetail() {
           </div>
         </div>
       </article>
+
+      <ArticleComments articleId={article.id} />
     </div>
   )
 }
