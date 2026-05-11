@@ -121,7 +121,7 @@ export default function Dashboard() {
         <button className="card clickable text-center" style={{ background: 'var(--green-700)', color: 'white', borderColor: 'var(--green-700)', position: 'relative' }} onClick={() => navigate('/challenges')}>
           <div style={{ fontSize: 28, marginBottom: 6 }}>&#9876;&#65039;</div>
           <div className="font-bold text-sm" style={{ color: 'white' }}>Challenges</div>
-          {pendingChallenges.length > 0 && (
+          {pendingChallenges.length > 0 && user?.notificationPrefs?.challenges !== false && (
             <span style={{
               position: 'absolute', top: 6, right: 6,
               background: 'var(--red)', color: '#fff', borderRadius: '50%',
@@ -135,7 +135,7 @@ export default function Dashboard() {
       </div>
 
       {/* Session Invites */}
-      {pendingInvites.length > 0 && (
+      {pendingInvites.length > 0 && user?.notificationPrefs?.sessionInvites !== false && (
         <div className="section mb-4">
           <h2 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             ✉️ SESSION INVITES
@@ -187,7 +187,7 @@ export default function Dashboard() {
       )}
 
       {/* Pending Challenges */}
-      {pendingChallenges.length > 0 && (
+      {pendingChallenges.length > 0 && user?.notificationPrefs?.challenges !== false && (
         <div className="section mb-4">
           <h2 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             &#9876;&#65039; INCOMING CHALLENGES

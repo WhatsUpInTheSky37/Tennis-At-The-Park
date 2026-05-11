@@ -43,6 +43,11 @@ export const api = {
   getMyProfile: () => request<any>('/profiles/me'),
   updateMyProfile: (data: any) => request<any>('/profiles/me', { method: 'PUT', body: JSON.stringify(data) }),
   getProfile: (userId: string) => request<any>(`/profiles/${userId}`),
+  getNotificationPrefs: () => request<any>('/profiles/me/notifications'),
+  updateNotificationPrefs: (data: Partial<{
+    dms: boolean; forumReplies: boolean; forumReactions: boolean;
+    challenges: boolean; sessionInvites: boolean;
+  }>) => request<any>('/profiles/me/notifications', { method: 'PUT', body: JSON.stringify(data) }),
 
   // Locations
   getLocations: () => request<any[]>('/locations'),

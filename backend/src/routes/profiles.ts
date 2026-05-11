@@ -20,6 +20,28 @@ const updateSchema = z.object({
   availability: z.array(z.string()).optional()
 })
 
+const notificationPrefsSchema = z.object({
+  dms: z.boolean().optional(),
+  forumReplies: z.boolean().optional(),
+  forumReactions: z.boolean().optional(),
+  challenges: z.boolean().optional(),
+  sessionInvites: z.boolean().optional(),
+})
+
+export const NOTIFICATION_PREF_DEFAULTS = {
+  dms: true,
+  forumReplies: true,
+  forumReactions: true,
+  challenges: true,
+  sessionInvites: true,
+}
+
+export async function getNotificationPrefs(userId: string) {
+  const existing = await prisma.notificationPreferences.findUnique({ where: { userId } })
+  if (existing) return existing
+  return prisma.notificationPreferences.create({ data: { userId } })
+}
+
 export async function profileRoutes(server: FastifyInstance) {
   server.get('/me', { preHandler: [(server as any).authenticate] }, async (req) => {
     const { userId } = (req as any).user
@@ -31,6 +53,23 @@ export async function profileRoutes(server: FastifyInstance) {
     const body = updateSchema.safeParse(req.body)
     if (!body.success) return reply.status(400).send({ error: body.error.flatten() })
     return prisma.profile.update({ where: { userId }, data: body.data })
+  })
+
+  // Notification preferences (lazy-created with defaults the first time)
+  server.get('/me/notifications', { preHandler: [(server as any).authenticate] }, async (req) => {
+    const { userId } = (req as any).user
+    return getNotificationPrefs(userId)
+  })
+
+  server.put('/me/notifications', { preHandler: [(server as any).authenticate] }, async (req, reply) => {
+    const { userId } = (req as any).user
+    const body = notificationPrefsSchema.safeParse(req.body)
+    if (!body.success) return reply.status(400).send({ error: body.error.flatten() })
+    return prisma.notificationPreferences.upsert({
+      where: { userId },
+      update: body.data,
+      create: { userId, ...body.data },
+    })
   })
 
   server.get('/:userId', async (req) => {

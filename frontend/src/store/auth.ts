@@ -9,6 +9,13 @@ interface User {
   profile?: any
   rating?: any
   enforcement?: any
+  notificationPrefs?: {
+    dms: boolean
+    forumReplies: boolean
+    forumReactions: boolean
+    challenges: boolean
+    sessionInvites: boolean
+  } | null
 }
 
 interface AuthStore {
