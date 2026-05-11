@@ -51,6 +51,9 @@ async function deleteUserCascade(userId: string) {
       await tx.articleComment.deleteMany({ where: { id: { in: userCommentIds } } })
     }
 
+    // 3c. User's article likes
+    await tx.articleLike.deleteMany({ where: { userId } })
+
     // 4. Notifications addressed to or from user
     await tx.notification.deleteMany({ where: { OR: [{ userId }, { fromUserId: userId }] } })
 

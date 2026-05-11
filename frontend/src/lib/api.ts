@@ -153,6 +153,8 @@ export const api = {
   },
   getLatestArticles: () => request<any[]>('/articles/latest'),
   getArticleBySlug: (slug: string) => request<any>(`/articles/by-slug/${slug}`),
+  incrementArticleView: (id: string) => request<{ viewCount: number }>(`/articles/${id}/view`, { method: 'POST', body: JSON.stringify({}) }),
+  toggleArticleLike: (id: string) => request<{ liked: boolean; count: number }>(`/articles/${id}/like`, { method: 'POST', body: JSON.stringify({}) }),
   adminGetAllArticles: () => request<any[]>('/articles/admin/all'),
   adminGetArticle: (id: string) => request<any>(`/articles/admin/${id}`),
   adminCreateArticle: (data: any) => request<any>('/articles', { method: 'POST', body: JSON.stringify(data) }),
