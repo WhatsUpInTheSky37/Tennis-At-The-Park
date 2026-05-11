@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma'
-import { sendNewMessageEmail } from '../lib/email'
+import { sendNewMessageEmail, shouldEmailUser } from '../lib/email'
 
 const sendSchema = z.object({
   toId: z.string().min(1),
@@ -100,12 +100,14 @@ export async function dmRoutes(server: FastifyInstance) {
       include: { sender: { select: { id: true, profile: { select: { displayName: true, photoUrl: true } } } } },
     })
 
-    await sendNewMessageEmail(
-      recipient.email,
-      recipient.profile?.displayName || 'Player',
-      sender?.profile?.displayName || 'Someone',
-      body
-    )
+    if (await shouldEmailUser(toId, 'dms')) {
+      await sendNewMessageEmail(
+        recipient.email,
+        recipient.profile?.displayName || 'Player',
+        sender?.profile?.displayName || 'Someone',
+        body
+      )
+    }
 
     return msg
   })

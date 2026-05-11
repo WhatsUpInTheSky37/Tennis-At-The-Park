@@ -46,7 +46,7 @@ export const api = {
   getNotificationPrefs: () => request<any>('/profiles/me/notifications'),
   updateNotificationPrefs: (data: Partial<{
     dms: boolean; forumReplies: boolean; forumReactions: boolean;
-    challenges: boolean; sessionInvites: boolean;
+    challenges: boolean; sessionInvites: boolean; emailNotifications: boolean;
   }>) => request<any>('/profiles/me/notifications', { method: 'PUT', body: JSON.stringify(data) }),
 
   // Locations

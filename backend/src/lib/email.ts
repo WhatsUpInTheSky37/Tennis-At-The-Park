@@ -1,5 +1,19 @@
+import { prisma } from './prisma'
+
 const ADMIN_EMAIL = 'wfarrar@pms-corp.net'
 const SITE_URL = process.env.FRONTEND_URL || 'https://salisburytennis.com'
+
+type PrefKey = 'dms' | 'forumReplies' | 'forumReactions' | 'challenges' | 'sessionInvites'
+
+// Returns true when emails are enabled at the master level AND for the given
+// category. Missing preference rows are treated as defaults (everything on),
+// so users who haven't visited the settings page keep getting notifications.
+export async function shouldEmailUser(userId: string, category: PrefKey): Promise<boolean> {
+  const prefs = await prisma.notificationPreferences.findUnique({ where: { userId } })
+  if (!prefs) return true
+  if (!prefs.emailNotifications) return false
+  return prefs[category] !== false
+}
 
 async function send(to: string, subject: string, html: string) {
   const apiKey = process.env.RESEND_API_KEY || process.env.SMTP_PASS || ''
@@ -92,6 +106,49 @@ export async function sendChallengeEmail(recipientEmail: string, recipientName: 
         <p style="margin: 4px 0;"><strong>When:</strong> ${dateStr}</p>
       </div>
       <p><a href="${SITE_URL}/challenges" style="color: #7ffe4a;">Accept or decline</a></p>
+      <p style="color: #888; font-size: 12px;">Tennis at the Park — Salisbury, MD</p>
+    </div>
+  `)
+}
+
+export async function sendForumReplyEmail(recipientEmail: string, recipientName: string, fromName: string, postSubject: string, postId: string, bodyPreview: string) {
+  const preview = bodyPreview.length > 200 ? bodyPreview.slice(0, 200) + '…' : bodyPreview
+  await send(recipientEmail, `${fromName} replied to "${postSubject}"`, `
+    <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 24px;">
+      <h3 style="color: #7ffe4a;">New reply on your post</h3>
+      <p>Hey ${recipientName}, <strong>${fromName}</strong> replied to <em>${postSubject}</em>:</p>
+      <div style="background: #1a1f2e; color: #e6edf3; padding: 14px; border-radius: 8px; margin: 12px 0;">${preview}</div>
+      <p><a href="${SITE_URL}/forum/${postId}" style="color: #7ffe4a;">View the thread</a></p>
+      <p style="color: #888; font-size: 12px;">Tennis at the Park — Salisbury, MD</p>
+    </div>
+  `)
+}
+
+export async function sendForumMentionEmail(recipientEmail: string, recipientName: string, fromName: string, postSubject: string, postId: string, bodyPreview: string) {
+  const preview = bodyPreview.length > 200 ? bodyPreview.slice(0, 200) + '…' : bodyPreview
+  await send(recipientEmail, `${fromName} mentioned you in "${postSubject}"`, `
+    <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 24px;">
+      <h3 style="color: #7ffe4a;">You were mentioned</h3>
+      <p>Hey ${recipientName}, <strong>${fromName}</strong> mentioned you in <em>${postSubject}</em>:</p>
+      <div style="background: #1a1f2e; color: #e6edf3; padding: 14px; border-radius: 8px; margin: 12px 0;">${preview}</div>
+      <p><a href="${SITE_URL}/forum/${postId}" style="color: #7ffe4a;">View the thread</a></p>
+      <p style="color: #888; font-size: 12px;">Tennis at the Park — Salisbury, MD</p>
+    </div>
+  `)
+}
+
+export async function sendSessionInviteEmail(recipientEmail: string, recipientName: string, fromName: string, locationName: string, startTime: Date, sessionId: string) {
+  const dateStr = startTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+  await send(recipientEmail, `${fromName} invited you to a session`, `
+    <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 24px;">
+      <h3 style="color: #7ffe4a;">You're invited to play</h3>
+      <p>Hey ${recipientName}, <strong>${fromName}</strong> invited you to a session:</p>
+      <div style="background: #1a1f2e; color: #e6edf3; padding: 14px; border-radius: 8px; margin: 12px 0;">
+        <p style="margin: 4px 0;"><strong>Where:</strong> ${locationName}</p>
+        <p style="margin: 4px 0;"><strong>When:</strong> ${dateStr}</p>
+      </div>
+      <p>You count as "possible" until you respond. Invites expire 12 hours before start.</p>
+      <p><a href="${SITE_URL}/sessions/${sessionId}" style="color: #7ffe4a;">View session</a></p>
       <p style="color: #888; font-size: 12px;">Tennis at the Park — Salisbury, MD</p>
     </div>
   `)

@@ -15,6 +15,7 @@ interface User {
     forumReactions: boolean
     challenges: boolean
     sessionInvites: boolean
+    emailNotifications: boolean
   } | null
 }
 
