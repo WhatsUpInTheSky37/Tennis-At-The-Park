@@ -26,6 +26,7 @@ const notificationPrefsSchema = z.object({
   forumReactions: z.boolean().optional(),
   challenges: z.boolean().optional(),
   sessionInvites: z.boolean().optional(),
+  emailNotifications: z.boolean().optional(),
 })
 
 export const NOTIFICATION_PREF_DEFAULTS = {
@@ -34,6 +35,7 @@ export const NOTIFICATION_PREF_DEFAULTS = {
   forumReactions: true,
   challenges: true,
   sessionInvites: true,
+  emailNotifications: true,
 }
 
 export async function getNotificationPrefs(userId: string) {

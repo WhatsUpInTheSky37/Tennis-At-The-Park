@@ -12,9 +12,12 @@ type NotificationPrefs = {
   forumReactions: boolean
   challenges: boolean
   sessionInvites: boolean
+  emailNotifications: boolean
 }
 
-const NOTIFICATION_PREF_LABELS: Array<{ key: keyof NotificationPrefs; label: string; description: string }> = [
+type CategoryKey = Exclude<keyof NotificationPrefs, 'emailNotifications'>
+
+const NOTIFICATION_PREF_LABELS: Array<{ key: CategoryKey; label: string; description: string }> = [
   { key: 'dms',            label: 'Direct messages',      description: 'Show a badge when someone messages you.' },
   { key: 'forumReplies',   label: 'Forum replies & mentions', description: 'Notify me when someone replies to my forum post or @-mentions me.' },
   { key: 'forumReactions', label: 'Forum reactions',      description: 'Notify me when someone reacts to my forum post or reply.' },
@@ -104,6 +107,7 @@ export default function Profile() {
     api.getNotificationPrefs().then(p => setNotifPrefs({
       dms: p.dms, forumReplies: p.forumReplies, forumReactions: p.forumReactions,
       challenges: p.challenges, sessionInvites: p.sessionInvites,
+      emailNotifications: p.emailNotifications,
     })).catch(() => {})
   }, [isOwnProfile, user?.id])
 
@@ -673,6 +677,38 @@ export default function Profile() {
                 )
               })}
             </div>
+
+            <hr className="divider" style={{ margin: '16px 0 12px' }} />
+
+            {(() => {
+              const on = notifPrefs.emailNotifications
+              const busy = notifSaving === 'emailNotifications'
+              return (
+                <label
+                  style={{
+                    display: 'flex', alignItems: 'flex-start', gap: 12, cursor: busy ? 'wait' : 'pointer',
+                    background: on ? 'var(--green-100)' : 'var(--gray-50)',
+                    border: `1.5px solid ${on ? 'var(--green-500)' : 'var(--gray-200)'}`,
+                    borderRadius: 8, padding: '10px 14px', transition: 'all 0.15s',
+                    opacity: busy ? 0.7 : 1,
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={on}
+                    disabled={busy}
+                    onChange={() => toggleNotifPref('emailNotifications')}
+                    style={{ width: 'auto', marginTop: 3 }}
+                  />
+                  <div style={{ flex: 1 }}>
+                    <div className="text-sm font-bold">✉️ Also send notifications via email</div>
+                    <div className="text-xs text-muted" style={{ marginTop: 2 }}>
+                      When on, the categories you've enabled above also get emailed to <strong>{user?.email}</strong>. Turn this off to keep notifications in the app only.
+                    </div>
+                  </div>
+                </label>
+              )
+            })()}
           </div>
         </div>
       )}

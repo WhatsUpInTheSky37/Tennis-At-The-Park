@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma'
 import { checkEnforcement } from '../middleware/auth'
+import { sendSessionInviteEmail, shouldEmailUser } from '../lib/email'
 
 const createSchema = z.object({
   locationId: z.string(),
@@ -245,10 +246,35 @@ export async function sessionRoutes(server: FastifyInstance) {
     })
     if (existingPending) return reply.status(409).send({ error: 'Player already has a pending invite' })
 
-    return prisma.invite.create({
+    const invite = await prisma.invite.create({
       data: { sessionId: id, fromUser: userId, toUser },
       include: inviteInclude,
     })
+
+    if (await shouldEmailUser(toUser, 'sessionInvites')) {
+      const [recipient, sessionInfo] = await Promise.all([
+        prisma.user.findUnique({
+          where: { id: toUser },
+          select: { email: true, profile: { select: { displayName: true } } },
+        }),
+        prisma.session.findUnique({
+          where: { id },
+          select: { startTime: true, location: { select: { name: true } } },
+        }),
+      ])
+      if (recipient && sessionInfo) {
+        await sendSessionInviteEmail(
+          recipient.email,
+          recipient.profile?.displayName || 'Player',
+          invite.sender?.profile?.displayName || 'Someone',
+          sessionInfo.location?.name || 'a tennis location',
+          sessionInfo.startTime,
+          id,
+        )
+      }
+    }
+
+    return invite
   })
 
   // Respond to invite (accept = join the session; decline = drop the invite)
@@ -281,6 +307,22 @@ export async function sessionRoutes(server: FastifyInstance) {
       if (!existing) await prisma.sessionParticipant.create({ data: { sessionId: invite.sessionId, userId, role: 'guest', status: 'confirmed' } })
     }
     return { ok: true, status }
+  })
+
+  // Cancel / withdraw an invite. Allowed for the session host or the invitee.
+  server.delete('/invites/:inviteId', { preHandler: [(server as any).authenticate] }, async (req, reply) => {
+    const { userId } = (req as any).user
+    const { inviteId } = req.params as { inviteId: string }
+    const invite = await prisma.invite.findUnique({
+      where: { id: inviteId },
+      include: { session: { select: { createdBy: true } } },
+    })
+    if (!invite) return reply.status(404).send({ error: 'Invite not found' })
+    const isHost = invite.session.createdBy === userId
+    const isInvitee = invite.toUser === userId
+    if (!isHost && !isInvitee) return reply.status(403).send({ error: 'Not allowed' })
+    await prisma.invite.delete({ where: { id: inviteId } })
+    return { ok: true }
   })
 
   // Messages

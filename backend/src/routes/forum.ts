@@ -1,6 +1,11 @@
 import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma'
+import {
+  sendForumReplyEmail,
+  sendForumMentionEmail,
+  shouldEmailUser,
+} from '../lib/email'
 
 const postSchema = z.object({
   subject: z.string().min(1).max(200),
@@ -67,6 +72,35 @@ async function notifyMentions(text: string, fromUserId: string, postId: string |
       replyId,
     })),
   })
+
+  // Optional email fan-out for each mentioned user with email notifications on.
+  if (postId) {
+    const post = await prisma.forumPost.findUnique({
+      where: { id: postId },
+      select: { id: true, subject: true },
+    })
+    if (post) {
+      const recipients = await prisma.user.findMany({
+        where: { id: { in: targets } },
+        select: { id: true, email: true, profile: { select: { displayName: true } } },
+      })
+      const sender = await prisma.user.findUnique({
+        where: { id: fromUserId },
+        select: { profile: { select: { displayName: true } } },
+      })
+      for (const r of recipients) {
+        if (!(await shouldEmailUser(r.id, 'forumReplies'))) continue
+        await sendForumMentionEmail(
+          r.email,
+          r.profile?.displayName || 'Player',
+          sender?.profile?.displayName || 'Someone',
+          post.subject,
+          post.id,
+          text,
+        )
+      }
+    }
+  }
 }
 
 const postInclude = {
@@ -240,6 +274,26 @@ export async function forumRoutes(server: FastifyInstance) {
             replyId: created.id,
           },
         })
+        if (await shouldEmailUser(post.userId, 'forumReplies')) {
+          const author = await prisma.user.findUnique({
+            where: { id: post.userId },
+            select: { email: true, profile: { select: { displayName: true } } },
+          })
+          const sender = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { profile: { select: { displayName: true } } },
+          })
+          if (author) {
+            await sendForumReplyEmail(
+              author.email,
+              author.profile?.displayName || 'Player',
+              sender?.profile?.displayName || 'Someone',
+              post.subject,
+              post.id,
+              parsed.data.body,
+            )
+          }
+        }
       }
     }
     await notifyMentions(parsed.data.body, userId, id, created.id)

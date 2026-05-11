@@ -2,7 +2,7 @@ import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma'
 import { checkEnforcement } from '../middleware/auth'
-import { sendChallengeEmail } from '../lib/email'
+import { sendChallengeEmail, shouldEmailUser } from '../lib/email'
 
 const createSchema = z.object({
   challengedId: z.string(),
@@ -116,14 +116,16 @@ export async function challengeRoutes(server: FastifyInstance) {
       }
     })
 
-    await sendChallengeEmail(
-      challenged.email,
-      challenge.challenged?.profile?.displayName || 'Player',
-      challenge.challenger?.profile?.displayName || 'Someone',
-      data.format,
-      location.name,
-      new Date(data.proposedTime)
-    )
+    if (await shouldEmailUser(challenged.id, 'challenges')) {
+      await sendChallengeEmail(
+        challenged.email,
+        challenge.challenged?.profile?.displayName || 'Player',
+        challenge.challenger?.profile?.displayName || 'Someone',
+        data.format,
+        location.name,
+        new Date(data.proposedTime)
+      )
+    }
 
     return reply.status(201).send(challenge)
   })
