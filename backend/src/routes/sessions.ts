@@ -16,6 +16,35 @@ const createSchema = z.object({
   flexibleCourt: z.boolean().default(false)
 })
 
+// An invite is considered "active" until 12 hours before the session start.
+// After that point, unanswered pending invites disappear from the UI and
+// can no longer be accepted, so the "possible" slot frees up.
+const INVITE_CUTOFF_MS = 12 * 60 * 60 * 1000
+
+function inviteCutoff(startTime: Date): Date {
+  return new Date(startTime.getTime() - INVITE_CUTOFF_MS)
+}
+
+const inviteProfileSelect = {
+  id: true,
+  profile: { select: { displayName: true, photoUrl: true, skillLevel: true } },
+}
+
+const inviteInclude = {
+  sender:   { select: inviteProfileSelect },
+  receiver: { select: inviteProfileSelect },
+}
+
+// Drop pending invites whose session is within the 12-hour cutoff window.
+function filterActiveInvites(invites: any[], sessionStart: Date) {
+  const cutoff = inviteCutoff(sessionStart)
+  const now = new Date()
+  return invites.filter((i: any) => {
+    if (i.status !== 'pending') return true // keep accepted/declined for history
+    return now < cutoff
+  })
+}
+
 export async function sessionRoutes(server: FastifyInstance) {
   // List sessions
   server.get('/', async (req) => {
@@ -102,12 +131,12 @@ export async function sessionRoutes(server: FastifyInstance) {
         location: true,
         creator: { select: { id: true } },
         participants: { include: { user: { select: { id: true, profile: { select: { displayName: true, skillLevel: true, photoUrl: true } } } } } },
-        invites: true,
+        invites: { include: inviteInclude, orderBy: { createdAt: 'desc' } },
         messages: { include: { user: { select: { id: true, profile: { select: { displayName: true } } } } }, orderBy: { createdAt: 'asc' } }
       }
     })
     if (!session) return reply.status(404).send({ error: 'Session not found' })
-    return session
+    return { ...session, invites: filterActiveInvites(session.invites, session.startTime) }
   })
 
   // Update session
@@ -155,28 +184,103 @@ export async function sessionRoutes(server: FastifyInstance) {
     return { ok: true }
   })
 
-  // Invite player
+  // List my pending (non-expired) invites
+  server.get('/my-invites', { preHandler: [(server as any).authenticate] }, async (req) => {
+    const { userId } = (req as any).user
+    const now = new Date()
+    const invites = await prisma.invite.findMany({
+      where: {
+        toUser: userId,
+        status: 'pending',
+        session: {
+          status: { not: 'cancelled' },
+          // Only return invites where now < (startTime - 12h)
+          startTime: { gt: new Date(now.getTime() + INVITE_CUTOFF_MS) },
+        },
+      },
+      include: {
+        sender: { select: inviteProfileSelect },
+        session: {
+          include: { location: true, creator: { select: { id: true, profile: { select: { displayName: true } } } } },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+    return invites
+  })
+
+  // Invite player (host only)
   server.post('/:id/invite', { preHandler: [(server as any).authenticate] }, async (req, reply) => {
     const { userId } = (req as any).user
     if (!await checkEnforcement(userId, reply)) return
     const { id } = req.params as { id: string }
-    const { toUser } = req.body as { toUser: string }
-    return prisma.invite.create({ data: { sessionId: id, fromUser: userId, toUser } })
+    const parsed = z.object({ toUser: z.string().min(1) }).safeParse(req.body)
+    if (!parsed.success) return reply.status(400).send({ error: parsed.error.flatten() })
+    const { toUser } = parsed.data
+
+    if (toUser === userId) return reply.status(400).send({ error: "You can't invite yourself" })
+
+    const session = await prisma.session.findUnique({
+      where: { id },
+      include: { participants: { select: { userId: true } } },
+    })
+    if (!session) return reply.status(404).send({ error: 'Session not found' })
+    if (session.status === 'cancelled') return reply.status(400).send({ error: 'Session is cancelled' })
+    if (session.createdBy !== userId) return reply.status(403).send({ error: 'Only the host can invite players' })
+
+    const now = new Date()
+    if (session.startTime.getTime() - now.getTime() <= INVITE_CUTOFF_MS) {
+      return reply.status(400).send({ error: 'Too late to invite — session starts within 12 hours' })
+    }
+
+    const invitee = await prisma.user.findUnique({ where: { id: toUser }, select: { id: true } })
+    if (!invitee) return reply.status(404).send({ error: 'Player not found' })
+
+    if (session.participants.some(p => p.userId === toUser)) {
+      return reply.status(409).send({ error: 'Player is already in this session' })
+    }
+
+    const existingPending = await prisma.invite.findFirst({
+      where: { sessionId: id, toUser, status: 'pending' },
+    })
+    if (existingPending) return reply.status(409).send({ error: 'Player already has a pending invite' })
+
+    return prisma.invite.create({
+      data: { sessionId: id, fromUser: userId, toUser },
+      include: inviteInclude,
+    })
   })
 
-  // Respond to invite
+  // Respond to invite (accept = join the session; decline = drop the invite)
   server.post('/invites/:inviteId/respond', { preHandler: [(server as any).authenticate] }, async (req, reply) => {
     const { userId } = (req as any).user
+    if (!await checkEnforcement(userId, reply)) return
     const { inviteId } = req.params as { inviteId: string }
-    const { status } = req.body as { status: 'accepted' | 'declined' }
-    const invite = await prisma.invite.findUnique({ where: { id: inviteId } })
+    const parsed = z.object({ status: z.enum(['accepted', 'declined']) }).safeParse(req.body)
+    if (!parsed.success) return reply.status(400).send({ error: parsed.error.flatten() })
+    const { status } = parsed.data
+
+    const invite = await prisma.invite.findUnique({
+      where: { id: inviteId },
+      include: { session: true },
+    })
     if (!invite || invite.toUser !== userId) return reply.status(403).send({ error: 'Not your invite' })
+    if (invite.status !== 'pending') return reply.status(400).send({ error: 'Invite already responded' })
+    if (invite.session.status === 'cancelled') return reply.status(400).send({ error: 'Session is cancelled' })
+
+    if (status === 'accepted') {
+      const now = new Date()
+      if (invite.session.startTime.getTime() - now.getTime() <= INVITE_CUTOFF_MS) {
+        return reply.status(400).send({ error: 'Invite expired — within 12 hours of session start' })
+      }
+    }
+
     await prisma.invite.update({ where: { id: inviteId }, data: { status } })
     if (status === 'accepted') {
       const existing = await prisma.sessionParticipant.findUnique({ where: { sessionId_userId: { sessionId: invite.sessionId, userId } } })
-      if (!existing) await prisma.sessionParticipant.create({ data: { sessionId: invite.sessionId, userId, role: 'guest' } })
+      if (!existing) await prisma.sessionParticipant.create({ data: { sessionId: invite.sessionId, userId, role: 'guest', status: 'confirmed' } })
     }
-    return { ok: true }
+    return { ok: true, status }
   })
 
   // Messages

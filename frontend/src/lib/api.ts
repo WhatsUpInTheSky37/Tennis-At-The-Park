@@ -65,7 +65,8 @@ export const api = {
   joinSession: (id: string) => request<any>(`/sessions/${id}/join`, { method: 'POST', body: JSON.stringify({}) }),
   leaveSession: (id: string) => request<any>(`/sessions/${id}/leave`, { method: 'POST', body: JSON.stringify({}) }),
   inviteToSession: (id: string, toUser: string) => request<any>(`/sessions/${id}/invite`, { method: 'POST', body: JSON.stringify({ toUser }) }),
-  respondToInvite: (inviteId: string, status: string) => request<any>(`/sessions/invites/${inviteId}/respond`, { method: 'POST', body: JSON.stringify({ status }) }),
+  respondToInvite: (inviteId: string, status: 'accepted' | 'declined') => request<any>(`/sessions/invites/${inviteId}/respond`, { method: 'POST', body: JSON.stringify({ status }) }),
+  getMyPendingInvites: () => request<any[]>('/sessions/my-invites'),
   getMessages: (sessionId: string) => request<any[]>(`/sessions/${sessionId}/messages`),
   sendMessage: (sessionId: string, body: string) => request<any>(`/sessions/${sessionId}/messages`, { method: 'POST', body: JSON.stringify({ body }) }),
 
