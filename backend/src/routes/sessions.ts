@@ -283,6 +283,22 @@ export async function sessionRoutes(server: FastifyInstance) {
     return { ok: true, status }
   })
 
+  // Cancel / withdraw an invite. Allowed for the session host or the invitee.
+  server.delete('/invites/:inviteId', { preHandler: [(server as any).authenticate] }, async (req, reply) => {
+    const { userId } = (req as any).user
+    const { inviteId } = req.params as { inviteId: string }
+    const invite = await prisma.invite.findUnique({
+      where: { id: inviteId },
+      include: { session: { select: { createdBy: true } } },
+    })
+    if (!invite) return reply.status(404).send({ error: 'Invite not found' })
+    const isHost = invite.session.createdBy === userId
+    const isInvitee = invite.toUser === userId
+    if (!isHost && !isInvitee) return reply.status(403).send({ error: 'Not allowed' })
+    await prisma.invite.delete({ where: { id: inviteId } })
+    return { ok: true }
+  })
+
   // Messages
   server.get('/:id/messages', { preHandler: [(server as any).authenticate] }, async (req, reply) => {
     const { userId } = (req as any).user

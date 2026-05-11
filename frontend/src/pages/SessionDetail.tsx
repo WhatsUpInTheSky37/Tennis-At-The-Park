@@ -345,6 +345,39 @@ export default function SessionDetail() {
                             >Decline</button>
                           </span>
                         )}
+                        {isHost && (
+                          <button
+                            type="button"
+                            title={`Cancel invite to ${name}`}
+                            aria-label={`Cancel invite to ${name}`}
+                            disabled={respondingInviteId === inv.id}
+                            onClick={async (e) => {
+                              e.stopPropagation()
+                              if (!confirm(`Cancel the invite to ${name}?`)) return
+                              setRespondingInviteId(inv.id)
+                              try {
+                                await api.cancelInvite(inv.id)
+                                load()
+                              } finally { setRespondingInviteId(null) }
+                            }}
+                            style={{
+                              marginLeft: 4,
+                              width: 22, height: 22,
+                              borderRadius: '50%',
+                              border: '1px solid var(--red, #c00)',
+                              background: 'transparent',
+                              color: 'var(--red, #c00)',
+                              cursor: 'pointer',
+                              fontSize: 12,
+                              lineHeight: 1,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              padding: 0,
+                              flexShrink: 0,
+                            }}
+                          >✕</button>
+                        )}
                       </span>
                     )
                   })}

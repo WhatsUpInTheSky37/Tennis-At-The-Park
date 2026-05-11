@@ -71,6 +71,7 @@ export const api = {
   leaveSession: (id: string) => request<any>(`/sessions/${id}/leave`, { method: 'POST', body: JSON.stringify({}) }),
   inviteToSession: (id: string, toUser: string) => request<any>(`/sessions/${id}/invite`, { method: 'POST', body: JSON.stringify({ toUser }) }),
   respondToInvite: (inviteId: string, status: 'accepted' | 'declined') => request<any>(`/sessions/invites/${inviteId}/respond`, { method: 'POST', body: JSON.stringify({ status }) }),
+  cancelInvite: (inviteId: string) => request<any>(`/sessions/invites/${inviteId}`, { method: 'DELETE' }),
   getMyPendingInvites: () => request<any[]>('/sessions/my-invites'),
   getMessages: (sessionId: string) => request<any[]>(`/sessions/${sessionId}/messages`),
   sendMessage: (sessionId: string, body: string) => request<any>(`/sessions/${sessionId}/messages`, { method: 'POST', body: JSON.stringify({ body }) }),
