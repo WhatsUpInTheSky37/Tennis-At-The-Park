@@ -38,6 +38,19 @@ async function deleteUserCascade(userId: string) {
     // 3. User's reactions on other people's content
     await tx.forumReaction.deleteMany({ where: { userId } })
 
+    // 3b. User's article comments (and any direct replies to them)
+    const userComments = await tx.articleComment.findMany({ where: { userId }, select: { id: true } })
+    const userCommentIds = userComments.map(c => c.id)
+    if (userCommentIds.length) {
+      const replyIds = (await tx.articleComment.findMany({
+        where: { parentId: { in: userCommentIds } }, select: { id: true },
+      })).map(r => r.id)
+      const allCommentIds = [...userCommentIds, ...replyIds]
+      await tx.report.updateMany({ where: { articleCommentId: { in: allCommentIds } }, data: { articleCommentId: null } })
+      await tx.articleComment.deleteMany({ where: { parentId: { in: userCommentIds } } })
+      await tx.articleComment.deleteMany({ where: { id: { in: userCommentIds } } })
+    }
+
     // 4. Notifications addressed to or from user
     await tx.notification.deleteMany({ where: { OR: [{ userId }, { fromUserId: userId }] } })
 
@@ -188,6 +201,12 @@ export async function adminRoutes(server: FastifyInstance) {
         reported:   { select: { id: true, profile: { select: { displayName: true } } } },
         forumPost:  { select: { id: true, subject: true, body: true } },
         forumReply: { select: { id: true, postId: true, body: true } },
+        articleComment: {
+          select: {
+            id: true, body: true, hidden: true,
+            article: { select: { id: true, slug: true, title: true } },
+          },
+        },
       },
     })
   })

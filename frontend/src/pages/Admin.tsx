@@ -289,6 +289,41 @@ export default function Admin() {
                     <div className="text-sm" style={{ marginTop: 4, whiteSpace: 'pre-wrap' }}>{r.forumReply.body}</div>
                   </div>
                 )}
+                {r.articleComment && (
+                  <div style={{ background: 'var(--gray-50, #fafafa)', borderLeft: '3px solid var(--accent)', padding: 8, marginBottom: 8, borderRadius: 4 }}>
+                    <div className="text-xs text-muted">
+                      Article comment{r.articleComment.hidden && ' (currently hidden)'}
+                      {r.articleComment.article && (
+                        <> on <a href={`/articles/${r.articleComment.article.slug}`} target="_blank" rel="noreferrer" style={{ fontWeight: 700 }}>{r.articleComment.article.title}</a></>
+                      )}
+                      :
+                    </div>
+                    <div className="text-sm" style={{ marginTop: 4, whiteSpace: 'pre-wrap' }}>{r.articleComment.body}</div>
+                    <div className="flex gap-2" style={{ marginTop: 6 }}>
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        style={{ padding: '2px 8px', fontSize: 11 }}
+                        onClick={async () => {
+                          await api.adminToggleHideArticleComment(r.articleComment.id)
+                          const fresh = await api.adminGetReports()
+                          setReports(fresh)
+                        }}
+                      >
+                        {r.articleComment.hidden ? 'Unhide' : 'Hide'} comment
+                      </button>
+                      <button
+                        className="btn btn-danger btn-sm"
+                        style={{ padding: '2px 8px', fontSize: 11 }}
+                        onClick={async () => {
+                          if (!confirm('Delete this comment?')) return
+                          await api.deleteArticleComment(r.articleComment.id)
+                          const fresh = await api.adminGetReports()
+                          setReports(fresh)
+                        }}
+                      >Delete comment</button>
+                    </div>
+                  </div>
+                )}
                 <p className="text-sm text-muted mb-3">{r.details}</p>
                 <div className="flex gap-2 flex-wrap">
                   <button className="btn btn-secondary btn-sm" onClick={() => resolveReport(r.id, 'resolved')}>✓ Resolve</button>

@@ -11,6 +11,26 @@ const articleSchema = z.object({
   published: z.boolean().optional(),
 })
 
+const commentSchema = z.object({
+  body: z.string().min(1).max(2000),
+  parentId: z.string().nullable().optional(),
+})
+
+const commentEditSchema = z.object({
+  body: z.string().min(1).max(2000),
+})
+
+const reportSchema = z.object({
+  category: z.string().min(1).max(50),
+  details: z.string().min(1).max(1000),
+})
+
+const commentAuthorSelect = {
+  id: true,
+  isAdmin: true,
+  profile: { select: { displayName: true, photoUrl: true } },
+}
+
 function slugify(s: string): string {
   return s.toLowerCase()
     .trim()
@@ -176,7 +196,137 @@ export async function articleRoutes(server: FastifyInstance) {
     const { id } = req.params as { id: string }
     const existing = await prisma.article.findUnique({ where: { id } })
     if (!existing) return reply.status(404).send({ error: 'Not found' })
-    await prisma.article.delete({ where: { id } })
+    await prisma.$transaction(async (tx) => {
+      const comments = await tx.articleComment.findMany({ where: { articleId: id }, select: { id: true } })
+      const commentIds = comments.map(c => c.id)
+      if (commentIds.length) {
+        await tx.report.updateMany({ where: { articleCommentId: { in: commentIds } }, data: { articleCommentId: null } })
+        await tx.articleComment.deleteMany({ where: { articleId: id } })
+      }
+      await tx.article.delete({ where: { id } })
+    })
     return { ok: true }
+  })
+
+  // PUBLIC: list visible comments for an article (threaded)
+  // Admins (when sending a valid JWT) also see hidden comments.
+  server.get('/:articleId/comments', async (req, reply) => {
+    const { articleId } = req.params as { articleId: string }
+    let isAdmin = false
+    try {
+      await (req as any).jwtVerify()
+      isAdmin = !!(req as any).user?.isAdmin
+    } catch { /* anonymous viewer */ }
+    const article = await prisma.article.findUnique({ where: { id: articleId }, select: { id: true, published: true } })
+    if (!article) return reply.status(404).send({ error: 'Article not found' })
+    if (!article.published && !isAdmin) return reply.status(404).send({ error: 'Article not found' })
+    const where: any = { articleId }
+    if (!isAdmin) where.hidden = false
+    const comments = await prisma.articleComment.findMany({
+      where,
+      orderBy: { createdAt: 'asc' },
+      include: { author: { select: commentAuthorSelect } },
+    })
+    return comments
+  })
+
+  // AUTH: post a comment (or reply) to an article
+  server.post('/:articleId/comments', { preHandler: [(server as any).authenticate] }, async (req, reply) => {
+    const { articleId } = req.params as { articleId: string }
+    const parsed = commentSchema.safeParse(req.body)
+    if (!parsed.success) return reply.status(400).send({ error: parsed.error.flatten() })
+    const { userId } = (req as any).user
+    const article = await prisma.article.findUnique({ where: { id: articleId }, select: { published: true } })
+    if (!article || !article.published) return reply.status(404).send({ error: 'Article not found' })
+
+    // Block suspended users
+    const enf = await prisma.enforcement.findUnique({ where: { userId } })
+    if (enf?.suspended) return reply.status(403).send({ error: 'Your account is suspended.' })
+    if (enf?.cooldownUntil && enf.cooldownUntil > new Date()) {
+      return reply.status(403).send({ error: 'You are in cooldown. Try again later.' })
+    }
+
+    let parentId: string | null = null
+    if (parsed.data.parentId) {
+      const parent = await prisma.articleComment.findUnique({
+        where: { id: parsed.data.parentId },
+        select: { id: true, articleId: true, parentId: true, hidden: true },
+      })
+      if (!parent || parent.articleId !== articleId) {
+        return reply.status(400).send({ error: 'Invalid parent comment' })
+      }
+      if (parent.hidden) return reply.status(400).send({ error: 'Cannot reply to hidden comment' })
+      // Flatten one level: a reply's parent is always a top-level comment
+      parentId = parent.parentId || parent.id
+    }
+
+    return prisma.articleComment.create({
+      data: { articleId, userId, parentId, body: parsed.data.body },
+      include: { author: { select: commentAuthorSelect } },
+    })
+  })
+
+  // AUTH: edit own comment
+  server.put('/comments/:commentId', { preHandler: [(server as any).authenticate] }, async (req, reply) => {
+    const { commentId } = req.params as { commentId: string }
+    const parsed = commentEditSchema.safeParse(req.body)
+    if (!parsed.success) return reply.status(400).send({ error: parsed.error.flatten() })
+    const { userId } = (req as any).user
+    const c = await prisma.articleComment.findUnique({ where: { id: commentId } })
+    if (!c) return reply.status(404).send({ error: 'Comment not found' })
+    if (c.userId !== userId) return reply.status(403).send({ error: 'You can only edit your own comments' })
+    return prisma.articleComment.update({
+      where: { id: commentId },
+      data: { body: parsed.data.body, editedAt: new Date() },
+      include: { author: { select: commentAuthorSelect } },
+    })
+  })
+
+  // AUTH: delete own comment (or admin)
+  server.delete('/comments/:commentId', { preHandler: [(server as any).authenticate] }, async (req, reply) => {
+    const { commentId } = req.params as { commentId: string }
+    const { userId, isAdmin } = (req as any).user
+    const c = await prisma.articleComment.findUnique({ where: { id: commentId } })
+    if (!c) return reply.status(404).send({ error: 'Comment not found' })
+    if (c.userId !== userId && !isAdmin) return reply.status(403).send({ error: 'Not allowed' })
+    await prisma.$transaction(async (tx) => {
+      const replyIds = (await tx.articleComment.findMany({ where: { parentId: commentId }, select: { id: true } })).map(r => r.id)
+      const allIds = [commentId, ...replyIds]
+      await tx.report.updateMany({ where: { articleCommentId: { in: allIds } }, data: { articleCommentId: null } })
+      await tx.articleComment.deleteMany({ where: { parentId: commentId } })
+      await tx.articleComment.delete({ where: { id: commentId } })
+    })
+    return { ok: true }
+  })
+
+  // ADMIN: hide/unhide a comment (soft moderation)
+  server.post('/comments/:commentId/hide', { preHandler: [(server as any).authenticate, requireAdmin] }, async (req, reply) => {
+    const { commentId } = req.params as { commentId: string }
+    const c = await prisma.articleComment.findUnique({ where: { id: commentId } })
+    if (!c) return reply.status(404).send({ error: 'Comment not found' })
+    return prisma.articleComment.update({
+      where: { id: commentId },
+      data: { hidden: !c.hidden },
+      include: { author: { select: commentAuthorSelect } },
+    })
+  })
+
+  // AUTH: report a comment
+  server.post('/comments/:commentId/report', { preHandler: [(server as any).authenticate] }, async (req, reply) => {
+    const { commentId } = req.params as { commentId: string }
+    const parsed = reportSchema.safeParse(req.body)
+    if (!parsed.success) return reply.status(400).send({ error: parsed.error.flatten() })
+    const c = await prisma.articleComment.findUnique({ where: { id: commentId }, select: { userId: true } })
+    if (!c) return reply.status(404).send({ error: 'Comment not found' })
+    const { userId } = (req as any).user
+    return prisma.report.create({
+      data: {
+        reporterUser: userId,
+        reportedUser: c.userId,
+        articleCommentId: commentId,
+        category: parsed.data.category,
+        details: parsed.data.details,
+      },
+    })
   })
 }

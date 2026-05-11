@@ -160,6 +160,19 @@ export const api = {
   adminToggleArticlePublish: (id: string) => request<any>(`/articles/${id}/publish`, { method: 'POST', body: JSON.stringify({}) }),
   adminDeleteArticle: (id: string) => request<any>(`/articles/${id}`, { method: 'DELETE' }),
 
+  // Article Comments
+  getArticleComments: (articleId: string) => request<any[]>(`/articles/${articleId}/comments`),
+  createArticleComment: (articleId: string, body: string, parentId?: string | null) =>
+    request<any>(`/articles/${articleId}/comments`, { method: 'POST', body: JSON.stringify({ body, parentId: parentId || null }) }),
+  editArticleComment: (commentId: string, body: string) =>
+    request<any>(`/articles/comments/${commentId}`, { method: 'PUT', body: JSON.stringify({ body }) }),
+  deleteArticleComment: (commentId: string) =>
+    request<any>(`/articles/comments/${commentId}`, { method: 'DELETE' }),
+  adminToggleHideArticleComment: (commentId: string) =>
+    request<any>(`/articles/comments/${commentId}/hide`, { method: 'POST', body: JSON.stringify({}) }),
+  reportArticleComment: (commentId: string, category: string, details: string) =>
+    request<any>(`/articles/comments/${commentId}/report`, { method: 'POST', body: JSON.stringify({ category, details }) }),
+
   // Notifications
   getNotifications: () => request<any[]>('/notifications'),
   getUnreadNotificationCount: () => request<{ count: number }>('/notifications/unread-count'),
