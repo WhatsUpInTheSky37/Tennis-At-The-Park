@@ -22,11 +22,12 @@ export default function TopNav() {
     return () => clearInterval(interval)
   }, [user])
 
+  const dmsOn = user?.notificationPrefs?.dms !== false
   const links = [
     { to: '/dashboard', label: 'Dashboard' },
     { to: '/activity', label: 'Activity' },
     { to: '/players', label: 'Find Players' },
-    { to: '/messages', label: 'Messages', badge: unreadDms },
+    { to: '/messages', label: 'Messages', badge: dmsOn ? unreadDms : 0 },
     { to: '/forum', label: 'Forum' },
     { to: '/articles', label: 'Articles' },
     { to: '/notifications', label: '🔔', badge: unreadNotifs },
@@ -57,8 +58,15 @@ export default function TopNav() {
       <div className="nav-actions">
         {user ? (
           <>
-            <Link to="/sessions/new" className="btn btn-primary btn-sm hide-mobile">+ Plan Session</Link>
-            <Link to="/profile" className="avatar" title="Edit Profile" style={{ width: 36, height: 36, fontSize: 13 }}>
+            <Link
+              to="/profile?edit=1"
+              className="nav-link hide-mobile"
+              title="Edit Profile"
+              style={{ fontSize: 12, padding: '4px 8px' }}
+            >
+              Edit Profile
+            </Link>
+            <Link to="/profile?edit=1" className="avatar" title="Edit Profile" style={{ width: 36, height: 36, fontSize: 13 }}>
               {user.profile?.photoUrl
                 ? <img src={user.profile.photoUrl} alt="" />
                 : getInitials(user.displayName || user.email)

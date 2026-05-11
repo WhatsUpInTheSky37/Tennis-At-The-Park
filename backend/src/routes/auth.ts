@@ -116,7 +116,7 @@ export async function authRoutes(server: FastifyInstance) {
     await prisma.user.update({ where: { id: userId }, data: { lastActive: new Date() } })
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      include: { profile: true, rating: true, enforcement: true }
+      include: { profile: true, rating: true, enforcement: true, notificationPrefs: true }
     })
     if (!user) throw new Error('User not found')
     return {
@@ -125,7 +125,8 @@ export async function authRoutes(server: FastifyInstance) {
       isAdmin: user.isAdmin,
       profile: user.profile,
       rating: user.rating,
-      enforcement: user.enforcement
+      enforcement: user.enforcement,
+      notificationPrefs: user.notificationPrefs,
     }
   })
 }

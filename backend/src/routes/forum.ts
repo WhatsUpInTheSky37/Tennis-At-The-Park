@@ -35,6 +35,19 @@ function extractMentions(text: string): string[] {
   return Array.from(new Set(found.map(s => s.toLowerCase())))
 }
 
+// Filter a list of recipient user ids down to those who haven't opted out of
+// the given category. Users without a preferences row inherit the defaults
+// (everything on).
+async function filterByPref(userIds: string[], field: 'forumReplies' | 'forumReactions') {
+  if (!userIds.length) return userIds
+  const prefs = await prisma.notificationPreferences.findMany({
+    where: { userId: { in: userIds } },
+    select: { userId: true, forumReplies: true, forumReactions: true },
+  })
+  const optedOut = new Set(prefs.filter(p => p[field] === false).map(p => p.userId))
+  return userIds.filter(id => !optedOut.has(id))
+}
+
 async function notifyMentions(text: string, fromUserId: string, postId: string | null, replyId: string | null) {
   const handles = extractMentions(text)
   if (!handles.length) return
@@ -42,7 +55,8 @@ async function notifyMentions(text: string, fromUserId: string, postId: string |
     where: { displayName: { in: handles, mode: 'insensitive' } },
     select: { userId: true },
   })
-  const targets = profiles.map(p => p.userId).filter(id => id !== fromUserId)
+  const candidates = profiles.map(p => p.userId).filter(id => id !== fromUserId)
+  const targets = await filterByPref(candidates, 'forumReplies')
   if (!targets.length) return
   await prisma.notification.createMany({
     data: targets.map(userId => ({
@@ -213,17 +227,20 @@ export async function forumRoutes(server: FastifyInstance) {
       data: { postId: id, userId, body: parsed.data.body },
       include: replyInclude,
     })
-    // Notify post author (skip self-replies)
+    // Notify post author (skip self-replies, honor preferences)
     if (post.userId !== userId) {
-      await prisma.notification.create({
-        data: {
-          userId: post.userId,
-          fromUserId: userId,
-          type: 'forum_reply',
-          postId: id,
-          replyId: created.id,
-        },
-      })
+      const allowed = await filterByPref([post.userId], 'forumReplies')
+      if (allowed.length) {
+        await prisma.notification.create({
+          data: {
+            userId: post.userId,
+            fromUserId: userId,
+            type: 'forum_reply',
+            postId: id,
+            replyId: created.id,
+          },
+        })
+      }
     }
     await notifyMentions(parsed.data.body, userId, id, created.id)
     return created
