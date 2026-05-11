@@ -67,8 +67,9 @@ export async function articleRoutes(server: FastifyInstance) {
         where: { published: true },
         select: {
           id: true, slug: true, title: true, excerpt: true, coverImage: true,
-          publishedAt: true, createdAt: true,
+          publishedAt: true, createdAt: true, viewCount: true,
           author: { select: authorSelect },
+          _count: { select: { likes: true, comments: true } },
         },
         orderBy: { publishedAt: 'desc' },
         take, skip,
@@ -84,21 +85,67 @@ export async function articleRoutes(server: FastifyInstance) {
       where: { published: true },
       select: {
         id: true, slug: true, title: true, excerpt: true, coverImage: true, publishedAt: true,
+        viewCount: true,
+        _count: { select: { likes: true, comments: true } },
       },
       orderBy: { publishedAt: 'desc' },
       take: 3,
     })
   })
 
-  // PUBLIC: detail by slug
+  // PUBLIC: detail by slug. Includes viewer's-liked state when authenticated.
   server.get('/by-slug/:slug', async (req, reply) => {
     const { slug } = req.params as { slug: string }
+    let viewerId: string | null = null
+    try {
+      await (req as any).jwtVerify()
+      viewerId = (req as any).user?.userId || null
+    } catch { /* anonymous */ }
     const article = await prisma.article.findUnique({
       where: { slug },
-      include: { author: { select: authorSelect } },
+      include: {
+        author: { select: authorSelect },
+        _count: { select: { likes: true, comments: true } },
+        ...(viewerId
+          ? { likes: { where: { userId: viewerId }, select: { userId: true } } }
+          : {}),
+      },
     })
     if (!article || !article.published) return reply.status(404).send({ error: 'Not found' })
-    return article
+    const likedByMe = viewerId ? (article as any).likes?.length > 0 : false
+    const { likes, ...rest } = article as any
+    return { ...rest, likedByMe }
+  })
+
+  // PUBLIC: increment view count (called once per page load)
+  server.post('/:id/view', async (req, reply) => {
+    const { id } = req.params as { id: string }
+    const article = await prisma.article.findUnique({ where: { id }, select: { id: true, published: true } })
+    if (!article || !article.published) return reply.status(404).send({ error: 'Not found' })
+    const updated = await prisma.article.update({
+      where: { id },
+      data: { viewCount: { increment: 1 } },
+      select: { viewCount: true },
+    })
+    return updated
+  })
+
+  // AUTH: toggle a like on an article
+  server.post('/:id/like', { preHandler: [(server as any).authenticate] }, async (req, reply) => {
+    const { id } = req.params as { id: string }
+    const { userId } = (req as any).user
+    const article = await prisma.article.findUnique({ where: { id }, select: { id: true, published: true } })
+    if (!article || !article.published) return reply.status(404).send({ error: 'Not found' })
+    const existing = await prisma.articleLike.findUnique({
+      where: { articleId_userId: { articleId: id, userId } },
+    })
+    if (existing) {
+      await prisma.articleLike.delete({ where: { articleId_userId: { articleId: id, userId } } })
+    } else {
+      await prisma.articleLike.create({ data: { articleId: id, userId } })
+    }
+    const count = await prisma.articleLike.count({ where: { articleId: id } })
+    return { liked: !existing, count }
   })
 
   // ADMIN: list ALL (drafts + published)
@@ -203,6 +250,7 @@ export async function articleRoutes(server: FastifyInstance) {
         await tx.report.updateMany({ where: { articleCommentId: { in: commentIds } }, data: { articleCommentId: null } })
         await tx.articleComment.deleteMany({ where: { articleId: id } })
       }
+      await tx.articleLike.deleteMany({ where: { articleId: id } })
       await tx.article.delete({ where: { id } })
     })
     return { ok: true }
