@@ -89,7 +89,7 @@ export async function articleRoutes(server: FastifyInstance) {
         _count: { select: { likes: true, comments: true } },
       },
       orderBy: { publishedAt: 'desc' },
-      take: 3,
+      take: 4,
     })
   })
 
