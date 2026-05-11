@@ -23,6 +23,8 @@ export default function Dashboard() {
   const [communityPage, setCommunityPage] = useState(0)
   const [recentPosts, setRecentPosts] = useState<any[]>([])
   const [latestArticles, setLatestArticles] = useState<any[]>([])
+  const [pendingInvites, setPendingInvites] = useState<any[]>([])
+  const [inviteActionLoading, setInviteActionLoading] = useState<string | null>(null)
 
   useEffect(() => {
     const today = format(new Date(), 'yyyy-MM-dd')
@@ -33,8 +35,22 @@ export default function Dashboard() {
       .catch(() => {})
     api.getRecentForumPosts().then(setRecentPosts).catch(() => {})
     api.getLatestArticles().then(setLatestArticles).catch(() => {})
+    api.getMyPendingInvites().then(setPendingInvites).catch(() => {})
     if (user) setLookingToPlay(user.profile?.lookingToPlay || false)
   }, [])
+
+  const respondToInvite = async (inviteId: string, status: 'accepted' | 'declined') => {
+    setInviteActionLoading(inviteId)
+    try {
+      await api.respondToInvite(inviteId, status)
+      setPendingInvites(prev => prev.filter(i => i.id !== inviteId))
+      if (status === 'accepted') {
+        const today = format(new Date(), 'yyyy-MM-dd')
+        const endOfWeek = format(addDays(new Date(), 6), 'yyyy-MM-dd')
+        api.getSessions({ date: today, dateTo: endOfWeek }).then(setSessions).catch(() => {})
+      }
+    } finally { setInviteActionLoading(null) }
+  }
 
   const handleAcceptChallenge = async (id: string) => {
     setChallengeActionLoading(id)
@@ -117,6 +133,58 @@ export default function Dashboard() {
           )}
         </button>
       </div>
+
+      {/* Session Invites */}
+      {pendingInvites.length > 0 && (
+        <div className="section mb-4">
+          <h2 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            ✉️ SESSION INVITES
+            <span style={{
+              background: 'var(--accent)', color: '#fff', borderRadius: 12,
+              padding: '2px 8px', fontSize: 12, fontWeight: 700
+            }}>
+              {pendingInvites.length}
+            </span>
+          </h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {pendingInvites.map(inv => (
+              <div key={inv.id} className="card" style={{ borderLeft: '4px solid var(--accent)' }}>
+                <div className="flex gap-3 items-center mb-2" style={{ flexWrap: 'wrap' }}>
+                  <div className="avatar" style={{ width: 40, height: 40, fontSize: 16, background: 'var(--accent-dim)' }}>
+                    {inv.sender?.profile?.photoUrl
+                      ? <img src={inv.sender.profile.photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                      : getInitials(inv.sender?.profile?.displayName || '?')}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="font-bold text-sm">
+                      {inv.sender?.profile?.displayName} invited you to play
+                    </div>
+                    <div className="text-xs text-muted">
+                      {inv.session?.format} · {formatDateTime(inv.session?.startTime)} · {inv.session?.location?.name}
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={() => respondToInvite(inv.id, 'accepted')}
+                      disabled={inviteActionLoading === inv.id}
+                    >Accept</button>
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => respondToInvite(inv.id, 'declined')}
+                      disabled={inviteActionLoading === inv.id}
+                    >Decline</button>
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => navigate(`/sessions/${inv.sessionId}`)}
+                    >View</button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Pending Challenges */}
       {pendingChallenges.length > 0 && (
