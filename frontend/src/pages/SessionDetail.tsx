@@ -62,7 +62,7 @@ function InvitePlayersModal({
           <button className="btn btn-ghost btn-sm" onClick={onClose}>✕</button>
         </div>
         <p className="text-xs text-muted" style={{ marginTop: 0, marginBottom: 10 }}>
-          Invited players count as "possible" until they accept. Invites expire 12 hours before the session.
+          Invited players count as "possible" until they accept. Unanswered invites expire when the session starts.
         </p>
         <input
           value={query}
@@ -395,13 +395,13 @@ export default function SessionDetail() {
             <button className="btn btn-danger btn-sm" onClick={leave}>Leave Session</button>
           )}
           {isHost && session.status !== 'cancelled' && (() => {
-            const tooLate = new Date(session.startTime).getTime() - Date.now() <= 12 * 60 * 60 * 1000
+            const tooLate = new Date(session.startTime).getTime() <= Date.now()
             return (
               <button
                 className="btn btn-secondary btn-sm"
                 onClick={() => setShowInvite(true)}
                 disabled={tooLate}
-                title={tooLate ? 'Too late — session starts within 12 hours' : 'Invite players to this session'}
+                title={tooLate ? 'Too late — the session has already started' : 'Invite players to this session'}
               >
                 ➕ Invite Players
               </button>
