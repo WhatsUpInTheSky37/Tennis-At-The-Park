@@ -17,15 +17,9 @@ const createSchema = z.object({
   flexibleCourt: z.boolean().default(false)
 })
 
-// An invite is considered "active" until 12 hours before the session start.
-// After that point, unanswered pending invites disappear from the UI and
-// can no longer be accepted, so the "possible" slot frees up.
-const INVITE_CUTOFF_MS = 12 * 60 * 60 * 1000
-
-function inviteCutoff(startTime: Date): Date {
-  return new Date(startTime.getTime() - INVITE_CUTOFF_MS)
-}
-
+// An unanswered invite stays "active" (counts as a possible player and shows
+// in the UI) right up until the session starts. Once the session has started,
+// pending invites expire and the "possible" slot frees up.
 const inviteProfileSelect = {
   id: true,
   profile: { select: { displayName: true, photoUrl: true, skillLevel: true } },
@@ -36,13 +30,12 @@ const inviteInclude = {
   receiver: { select: inviteProfileSelect },
 }
 
-// Drop pending invites whose session is within the 12-hour cutoff window.
+// Drop pending invites once the session has started.
 function filterActiveInvites(invites: any[], sessionStart: Date) {
-  const cutoff = inviteCutoff(sessionStart)
   const now = new Date()
   return invites.filter((i: any) => {
     if (i.status !== 'pending') return true // keep accepted/declined for history
-    return now < cutoff
+    return now < sessionStart
   })
 }
 
@@ -195,8 +188,8 @@ export async function sessionRoutes(server: FastifyInstance) {
         status: 'pending',
         session: {
           status: { not: 'cancelled' },
-          // Only return invites where now < (startTime - 12h)
-          startTime: { gt: new Date(now.getTime() + INVITE_CUTOFF_MS) },
+          // Only return invites for sessions that haven't started yet
+          startTime: { gt: now },
         },
       },
       include: {
@@ -229,9 +222,8 @@ export async function sessionRoutes(server: FastifyInstance) {
     if (session.status === 'cancelled') return reply.status(400).send({ error: 'Session is cancelled' })
     if (session.createdBy !== userId) return reply.status(403).send({ error: 'Only the host can invite players' })
 
-    const now = new Date()
-    if (session.startTime.getTime() - now.getTime() <= INVITE_CUTOFF_MS) {
-      return reply.status(400).send({ error: 'Too late to invite — session starts within 12 hours' })
+    if (session.startTime.getTime() <= Date.now()) {
+      return reply.status(400).send({ error: 'Too late to invite — the session has already started' })
     }
 
     const invitee = await prisma.user.findUnique({ where: { id: toUser }, select: { id: true } })
@@ -294,11 +286,8 @@ export async function sessionRoutes(server: FastifyInstance) {
     if (invite.status !== 'pending') return reply.status(400).send({ error: 'Invite already responded' })
     if (invite.session.status === 'cancelled') return reply.status(400).send({ error: 'Session is cancelled' })
 
-    if (status === 'accepted') {
-      const now = new Date()
-      if (invite.session.startTime.getTime() - now.getTime() <= INVITE_CUTOFF_MS) {
-        return reply.status(400).send({ error: 'Invite expired — within 12 hours of session start' })
-      }
+    if (status === 'accepted' && invite.session.startTime.getTime() <= Date.now()) {
+      return reply.status(400).send({ error: 'This session has already started' })
     }
 
     await prisma.invite.update({ where: { id: inviteId }, data: { status } })

@@ -147,7 +147,7 @@ export async function sendSessionInviteEmail(recipientEmail: string, recipientNa
         <p style="margin: 4px 0;"><strong>Where:</strong> ${locationName}</p>
         <p style="margin: 4px 0;"><strong>When:</strong> ${dateStr}</p>
       </div>
-      <p>You count as "possible" until you respond. Invites expire 12 hours before start.</p>
+      <p>You count as "possible" until you respond or the session starts.</p>
       <p><a href="${SITE_URL}/sessions/${sessionId}" style="color: #7ffe4a;">View session</a></p>
       <p style="color: #888; font-size: 12px;">Tennis at the Park — Salisbury, MD</p>
     </div>
