@@ -21,22 +21,8 @@ const updateSchema = z.object({
 })
 
 const notificationPrefsSchema = z.object({
-  dms: z.boolean().optional(),
-  forumReplies: z.boolean().optional(),
-  forumReactions: z.boolean().optional(),
-  challenges: z.boolean().optional(),
-  sessionInvites: z.boolean().optional(),
   emailNotifications: z.boolean().optional(),
 })
-
-export const NOTIFICATION_PREF_DEFAULTS = {
-  dms: true,
-  forumReplies: true,
-  forumReactions: true,
-  challenges: true,
-  sessionInvites: true,
-  emailNotifications: true,
-}
 
 export async function getNotificationPrefs(userId: string) {
   const existing = await prisma.notificationPreferences.findUnique({ where: { userId } })

@@ -243,7 +243,7 @@ export async function sessionRoutes(server: FastifyInstance) {
       include: inviteInclude,
     })
 
-    if (await shouldEmailUser(toUser, 'sessionInvites')) {
+    if (await shouldEmailUser(toUser)) {
       const [recipient, sessionInfo] = await Promise.all([
         prisma.user.findUnique({
           where: { id: toUser },

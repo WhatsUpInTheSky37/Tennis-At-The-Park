@@ -100,7 +100,7 @@ export async function dmRoutes(server: FastifyInstance) {
       include: { sender: { select: { id: true, profile: { select: { displayName: true, photoUrl: true } } } } },
     })
 
-    if (await shouldEmailUser(toId, 'dms')) {
+    if (await shouldEmailUser(toId)) {
       await sendNewMessageEmail(
         recipient.email,
         recipient.profile?.displayName || 'Player',

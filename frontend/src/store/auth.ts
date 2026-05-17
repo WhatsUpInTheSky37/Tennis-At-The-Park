@@ -10,11 +10,6 @@ interface User {
   rating?: any
   enforcement?: any
   notificationPrefs?: {
-    dms: boolean
-    forumReplies: boolean
-    forumReactions: boolean
-    challenges: boolean
-    sessionInvites: boolean
     emailNotifications: boolean
   } | null
 }

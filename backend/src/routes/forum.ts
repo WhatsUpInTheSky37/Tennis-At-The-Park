@@ -41,18 +41,6 @@ function extractMentions(text: string): string[] {
 }
 
 // Filter a list of recipient user ids down to those who haven't opted out of
-// the given category. Users without a preferences row inherit the defaults
-// (everything on).
-async function filterByPref(userIds: string[], field: 'forumReplies' | 'forumReactions') {
-  if (!userIds.length) return userIds
-  const prefs = await prisma.notificationPreferences.findMany({
-    where: { userId: { in: userIds } },
-    select: { userId: true, forumReplies: true, forumReactions: true },
-  })
-  const optedOut = new Set(prefs.filter(p => p[field] === false).map(p => p.userId))
-  return userIds.filter(id => !optedOut.has(id))
-}
-
 async function notifyMentions(text: string, fromUserId: string, postId: string | null, replyId: string | null) {
   const handles = extractMentions(text)
   if (!handles.length) return
@@ -60,8 +48,7 @@ async function notifyMentions(text: string, fromUserId: string, postId: string |
     where: { displayName: { in: handles, mode: 'insensitive' } },
     select: { userId: true },
   })
-  const candidates = profiles.map(p => p.userId).filter(id => id !== fromUserId)
-  const targets = await filterByPref(candidates, 'forumReplies')
+  const targets = profiles.map(p => p.userId).filter(id => id !== fromUserId)
   if (!targets.length) return
   await prisma.notification.createMany({
     data: targets.map(userId => ({
@@ -89,7 +76,7 @@ async function notifyMentions(text: string, fromUserId: string, postId: string |
         select: { profile: { select: { displayName: true } } },
       })
       for (const r of recipients) {
-        if (!(await shouldEmailUser(r.id, 'forumReplies'))) continue
+        if (!(await shouldEmailUser(r.id))) continue
         await sendForumMentionEmail(
           r.email,
           r.profile?.displayName || 'Player',
@@ -261,38 +248,35 @@ export async function forumRoutes(server: FastifyInstance) {
       data: { postId: id, userId, body: parsed.data.body },
       include: replyInclude,
     })
-    // Notify post author (skip self-replies, honor preferences)
+    // Notify post author (skip self-replies)
     if (post.userId !== userId) {
-      const allowed = await filterByPref([post.userId], 'forumReplies')
-      if (allowed.length) {
-        await prisma.notification.create({
-          data: {
-            userId: post.userId,
-            fromUserId: userId,
-            type: 'forum_reply',
-            postId: id,
-            replyId: created.id,
-          },
+      await prisma.notification.create({
+        data: {
+          userId: post.userId,
+          fromUserId: userId,
+          type: 'forum_reply',
+          postId: id,
+          replyId: created.id,
+        },
+      })
+      if (await shouldEmailUser(post.userId)) {
+        const author = await prisma.user.findUnique({
+          where: { id: post.userId },
+          select: { email: true, profile: { select: { displayName: true } } },
         })
-        if (await shouldEmailUser(post.userId, 'forumReplies')) {
-          const author = await prisma.user.findUnique({
-            where: { id: post.userId },
-            select: { email: true, profile: { select: { displayName: true } } },
-          })
-          const sender = await prisma.user.findUnique({
-            where: { id: userId },
-            select: { profile: { select: { displayName: true } } },
-          })
-          if (author) {
-            await sendForumReplyEmail(
-              author.email,
-              author.profile?.displayName || 'Player',
-              sender?.profile?.displayName || 'Someone',
-              post.subject,
-              post.id,
-              parsed.data.body,
-            )
-          }
+        const sender = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { profile: { select: { displayName: true } } },
+        })
+        if (author) {
+          await sendForumReplyEmail(
+            author.email,
+            author.profile?.displayName || 'Player',
+            sender?.profile?.displayName || 'Someone',
+            post.subject,
+            post.id,
+            parsed.data.body,
+          )
         }
       }
     }

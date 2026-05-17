@@ -3,16 +3,13 @@ import { prisma } from './prisma'
 const ADMIN_EMAIL = 'wfarrar@pms-corp.net'
 const SITE_URL = process.env.FRONTEND_URL || 'https://salisburytennis.com'
 
-type PrefKey = 'dms' | 'forumReplies' | 'forumReactions' | 'challenges' | 'sessionInvites'
-
-// Returns true when emails are enabled at the master level AND for the given
-// category. Missing preference rows are treated as defaults (everything on),
-// so users who haven't visited the settings page keep getting notifications.
-export async function shouldEmailUser(userId: string, category: PrefKey): Promise<boolean> {
+// Returns true when the user has email notifications enabled. In-app
+// notifications are always on; this is the only opt-out. Missing preference
+// rows default to enabled, so users who never visited settings still get email.
+export async function shouldEmailUser(userId: string): Promise<boolean> {
   const prefs = await prisma.notificationPreferences.findUnique({ where: { userId } })
   if (!prefs) return true
-  if (!prefs.emailNotifications) return false
-  return prefs[category] !== false
+  return prefs.emailNotifications
 }
 
 async function send(to: string, subject: string, html: string) {

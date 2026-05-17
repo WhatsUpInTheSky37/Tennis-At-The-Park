@@ -7,23 +7,8 @@ import SkillDisplay from '../components/SkillDisplay'
 import ChallengeModal from '../components/ChallengeModal'
 
 type NotificationPrefs = {
-  dms: boolean
-  forumReplies: boolean
-  forumReactions: boolean
-  challenges: boolean
-  sessionInvites: boolean
   emailNotifications: boolean
 }
-
-type CategoryKey = Exclude<keyof NotificationPrefs, 'emailNotifications'>
-
-const NOTIFICATION_PREF_LABELS: Array<{ key: CategoryKey; label: string; description: string }> = [
-  { key: 'dms',            label: 'Direct messages',      description: 'Show a badge when someone messages you.' },
-  { key: 'forumReplies',   label: 'Forum replies & mentions', description: 'Notify me when someone replies to my forum post or @-mentions me.' },
-  { key: 'forumReactions', label: 'Forum reactions',      description: 'Notify me when someone reacts to my forum post or reply.' },
-  { key: 'challenges',     label: 'Challenges',           description: 'Show a badge and dashboard card for incoming challenges.' },
-  { key: 'sessionInvites', label: 'Session invites',      description: 'Show a dashboard card when someone invites me to a session.' },
-]
 
 const CLOUDINARY_CLOUD = 'dph3sgfc3'
 const CLOUDINARY_UPLOAD_PRESET = 'ultimate_tennis_avatars'
@@ -51,7 +36,7 @@ export default function Profile() {
   const [editing, setEditing] = useState(isOwnProfile && searchParams.get('edit') === '1')
   const [showChallenge, setShowChallenge] = useState(false)
   const [notifPrefs, setNotifPrefs] = useState<NotificationPrefs | null>(null)
-  const [notifSaving, setNotifSaving] = useState<keyof NotificationPrefs | null>(null)
+  const [notifSaving, setNotifSaving] = useState(false)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
@@ -104,11 +89,9 @@ export default function Profile() {
   // Load notification prefs for own profile
   useEffect(() => {
     if (!isOwnProfile) return
-    api.getNotificationPrefs().then(p => setNotifPrefs({
-      dms: p.dms, forumReplies: p.forumReplies, forumReactions: p.forumReactions,
-      challenges: p.challenges, sessionInvites: p.sessionInvites,
-      emailNotifications: p.emailNotifications,
-    })).catch(() => {})
+    api.getNotificationPrefs()
+      .then(p => setNotifPrefs({ emailNotifications: p.emailNotifications }))
+      .catch(() => {})
   }, [isOwnProfile, user?.id])
 
   // Re-sync editing state when arriving with ?edit=1 from the top nav
@@ -116,17 +99,17 @@ export default function Profile() {
     if (isOwnProfile && searchParams.get('edit') === '1' && !editing) setEditing(true)
   }, [searchParams, isOwnProfile])
 
-  const toggleNotifPref = async (key: keyof NotificationPrefs) => {
+  const toggleEmailNotifications = async () => {
     if (!notifPrefs) return
-    const next = !notifPrefs[key]
-    setNotifPrefs({ ...notifPrefs, [key]: next })
-    setNotifSaving(key)
+    const next = !notifPrefs.emailNotifications
+    setNotifPrefs({ emailNotifications: next })
+    setNotifSaving(true)
     try {
-      await api.updateNotificationPrefs({ [key]: next })
+      await api.updateNotificationPrefs({ emailNotifications: next })
       await refresh()
     } catch {
-      setNotifPrefs({ ...notifPrefs, [key]: !next })
-    } finally { setNotifSaving(null) }
+      setNotifPrefs({ emailNotifications: !next })
+    } finally { setNotifSaving(false) }
   }
 
   const toggleFormat = (fmt: string) => {
@@ -645,70 +628,31 @@ export default function Profile() {
               NOTIFICATION SETTINGS
             </h3>
             <p className="text-xs text-muted" style={{ marginBottom: 12 }}>
-              Turning a category off hides its badges and dashboard cards. Messages, challenges, and invites still arrive — you just don't get the alert.
+              In-app notifications — the 🔔 bell, badges, and dashboard cards — are always on. The only choice is whether to also get an email.
             </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {NOTIFICATION_PREF_LABELS.map(item => {
-                const on = notifPrefs[item.key]
-                const busy = notifSaving === item.key
-                return (
-                  <label
-                    key={item.key}
-                    style={{
-                      display: 'flex', alignItems: 'flex-start', gap: 12, cursor: busy ? 'wait' : 'pointer',
-                      background: on ? 'var(--green-100)' : 'var(--gray-50)',
-                      border: `1.5px solid ${on ? 'var(--green-500)' : 'var(--gray-200)'}`,
-                      borderRadius: 8, padding: '10px 14px', transition: 'all 0.15s',
-                      opacity: busy ? 0.7 : 1,
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={on}
-                      disabled={busy}
-                      onChange={() => toggleNotifPref(item.key)}
-                      style={{ width: 'auto', marginTop: 3 }}
-                    />
-                    <div style={{ flex: 1 }}>
-                      <div className="text-sm font-bold">{item.label}</div>
-                      <div className="text-xs text-muted" style={{ marginTop: 2 }}>{item.description}</div>
-                    </div>
-                  </label>
-                )
-              })}
-            </div>
-
-            <hr className="divider" style={{ margin: '16px 0 12px' }} />
-
-            {(() => {
-              const on = notifPrefs.emailNotifications
-              const busy = notifSaving === 'emailNotifications'
-              return (
-                <label
-                  style={{
-                    display: 'flex', alignItems: 'flex-start', gap: 12, cursor: busy ? 'wait' : 'pointer',
-                    background: on ? 'var(--green-100)' : 'var(--gray-50)',
-                    border: `1.5px solid ${on ? 'var(--green-500)' : 'var(--gray-200)'}`,
-                    borderRadius: 8, padding: '10px 14px', transition: 'all 0.15s',
-                    opacity: busy ? 0.7 : 1,
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={on}
-                    disabled={busy}
-                    onChange={() => toggleNotifPref('emailNotifications')}
-                    style={{ width: 'auto', marginTop: 3 }}
-                  />
-                  <div style={{ flex: 1 }}>
-                    <div className="text-sm font-bold">✉️ Also send notifications via email</div>
-                    <div className="text-xs text-muted" style={{ marginTop: 2 }}>
-                      When on, the categories you've enabled above also get emailed to <strong>{user?.email}</strong>. Turn this off to keep notifications in the app only.
-                    </div>
-                  </div>
-                </label>
-              )
-            })()}
+            <label
+              style={{
+                display: 'flex', alignItems: 'flex-start', gap: 12, cursor: notifSaving ? 'wait' : 'pointer',
+                background: notifPrefs.emailNotifications ? 'var(--green-100)' : 'var(--gray-50)',
+                border: `1.5px solid ${notifPrefs.emailNotifications ? 'var(--green-500)' : 'var(--gray-200)'}`,
+                borderRadius: 8, padding: '10px 14px', transition: 'all 0.15s',
+                opacity: notifSaving ? 0.7 : 1,
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={notifPrefs.emailNotifications}
+                disabled={notifSaving}
+                onChange={toggleEmailNotifications}
+                style={{ width: 'auto', marginTop: 3 }}
+              />
+              <div style={{ flex: 1 }}>
+                <div className="text-sm font-bold">✉️ Also email me my notifications</div>
+                <div className="text-xs text-muted" style={{ marginTop: 2 }}>
+                  When on, messages, challenges, forum replies &amp; mentions, and session invites are also emailed to <strong>{user?.email}</strong>. Turn this off to keep notifications in the app only.
+                </div>
+              </div>
+            </label>
           </div>
         </div>
       )}
