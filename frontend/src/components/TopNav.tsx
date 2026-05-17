@@ -22,12 +22,11 @@ export default function TopNav() {
     return () => clearInterval(interval)
   }, [user])
 
-  const dmsOn = user?.notificationPrefs?.dms !== false
   const links = [
     { to: '/dashboard', label: 'Dashboard' },
     { to: '/activity', label: 'Activity' },
     { to: '/players', label: 'Find Players' },
-    { to: '/messages', label: 'Messages', badge: dmsOn ? unreadDms : 0 },
+    { to: '/messages', label: 'Messages', badge: unreadDms },
     { to: '/forum', label: 'Forum' },
     { to: '/articles', label: 'Articles' },
     { to: '/notifications', label: '🔔', badge: unreadNotifs },

@@ -424,11 +424,6 @@ model ArticleComment {
 
 model NotificationPreferences {
   userId             String   @id @map("user_id")
-  dms                Boolean  @default(true)
-  forumReplies       Boolean  @default(true) @map("forum_replies")
-  forumReactions     Boolean  @default(true) @map("forum_reactions")
-  challenges         Boolean  @default(true)
-  sessionInvites     Boolean  @default(true) @map("session_invites")
   emailNotifications Boolean  @default(true) @map("email_notifications")
   updatedAt          DateTime @updatedAt @map("updated_at")
 
