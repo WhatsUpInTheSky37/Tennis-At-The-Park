@@ -134,13 +134,29 @@ export async function challengeEventRoutes(server: FastifyInstance) {
       }))
       .sort((a, b) => b.points - a.points || b.gamesWon - a.gamesWon || a.displayName.localeCompare(b.displayName))
 
+    // Full match history (every game played), so completed events show how it went down.
+    const matchRows = await prisma.match.findMany({
+      where: { eventId: id },
+      orderBy: [{ eventRound: 'asc' }, { courtNumber: 'asc' }, { playedAt: 'asc' }]
+    })
+    const matches = matchRows.map(m => ({
+      id: m.id,
+      round: m.eventRound,
+      court: m.courtNumber,
+      teams: m.teamsJson,
+      score: m.scoreJson,
+      winners: m.winnerUserIdsJson,
+      playedAt: m.playedAt
+    }))
+
     return {
       ...event,
       participants: undefined,
       standings,
       playerNames: names,
       currentRound: event.currentRound,
-      round: event.currentRoundJson as RoundJson
+      round: event.currentRoundJson as RoundJson,
+      matches
     }
   })
 

@@ -315,6 +315,46 @@ export default function ChallengeEventDetail() {
         )}
       </div>
 
+      {/* MATCH HISTORY — how it went down, round by round */}
+      {(() => {
+        const matches: any[] = event.matches || []
+        if (matches.length === 0) return null
+        const rounds = Array.from(new Set(matches.map(m => m.round))).sort((a: any, b: any) => a - b)
+        return (
+          <div className="card mt-4">
+            <h3 className="mb-2">📋 Match History</h3>
+            {rounds.map(rn => (
+              <div key={rn} style={{ marginBottom: 14 }}>
+                <div className="text-xs text-muted" style={{ letterSpacing: 1, marginBottom: 6 }}>
+                  {rn ? `ROUND ${rn}` : 'GAMES'}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {matches.filter(m => m.round === rn).map(m => {
+                    const t1 = m.teams?.team1 || [], t2 = m.teams?.team2 || []
+                    const sc = (m.score && m.score[0]) || []
+                    const t1Won = JSON.stringify(m.winners) === JSON.stringify(t1)
+                    return (
+                      <div key={m.id} className="flex items-center justify-between" style={{ background: 'var(--bg3)', borderRadius: 8, padding: '8px 12px', fontSize: 14 }}>
+                        <span style={{ flex: 1, fontWeight: t1Won ? 700 : 400, color: t1Won ? 'var(--accent)' : 'var(--text)' }}>
+                          {t1Won && '✓ '}{teamLabel(t1)}
+                        </span>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, padding: '0 10px' }}>
+                          {sc[0] ?? '–'}–{sc[1] ?? '–'}
+                        </span>
+                        <span style={{ flex: 1, textAlign: 'right', fontWeight: !t1Won ? 700 : 400, color: !t1Won ? 'var(--accent)' : 'var(--text)' }}>
+                          {!t1Won && '✓ '}{teamLabel(t2)}
+                          {m.court ? <span className="text-xs text-muted"> · Ct {m.court}</span> : null}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )
+      })()}
+
       {isOrganizer && (
         <button className="btn btn-ghost btn-sm mt-4" disabled={busy}
           onClick={() => { if (confirm('Delete this event permanently?')) act(async () => { await api.deleteChallengeEvent(id!); navigate('/challenge-events') }) }}>

@@ -107,6 +107,29 @@ export default function ChallengeEvents() {
     return map[status] || 'badge-gray'
   }
 
+  const upcoming = events.filter(e => e.status !== 'completed')
+  const past = events.filter(e => e.status === 'completed')
+
+  const renderCard = (e: any) => (
+    <div key={e.id} className="card clickable" style={{ cursor: 'pointer' }} onClick={() => navigate(`/challenge-events/${e.id}`)}>
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex gap-2 items-center">
+          <span className={`badge ${statusBadge(e.status)}`}>{e.status === 'completed' ? 'final' : e.status}</span>
+          <span className={`badge ${e.format === 'singles' ? 'badge-blue' : 'badge-orange'}`}>{e.format}</span>
+          <span className="badge badge-gray">{e.mode === 'king_of_hill' ? 'King of the Hill' : e.rotation}</span>
+        </div>
+        <span className="text-xs text-muted">{e._count?.participants ?? 0} players</span>
+      </div>
+      <div className="font-bold" style={{ fontSize: 17 }}>{e.name}</div>
+      <div className="session-meta mt-2">
+        <span>📍 {e.location?.name}</span>
+        <span>📅 {formatDate(e.date)}</span>
+        <span>🕐 {timeWindow(e)}</span>
+        <span>🎾 {e.courts} court{e.courts > 1 ? 's' : ''}</span>
+      </div>
+    </div>
+  )
+
   return (
     <div className="page">
       <div className="page-header flex items-center justify-between">
@@ -129,27 +152,24 @@ export default function ChallengeEvents() {
           {isAdmin && <button className="btn btn-primary mt-4" onClick={() => setShowCreate(true)}>Create Event</button>}
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {events.map(e => (
-            <div key={e.id} className="card clickable" style={{ cursor: 'pointer' }} onClick={() => navigate(`/challenge-events/${e.id}`)}>
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex gap-2 items-center">
-                  <span className={`badge ${statusBadge(e.status)}`}>{e.status}</span>
-                  <span className={`badge ${e.format === 'singles' ? 'badge-blue' : 'badge-orange'}`}>{e.format}</span>
-                  <span className="badge badge-gray">{e.mode === 'king_of_hill' ? 'King of the Hill' : e.rotation}</span>
-                </div>
-                <span className="text-xs text-muted">{e._count?.participants ?? 0} players</span>
-              </div>
-              <div className="font-bold" style={{ fontSize: 17 }}>{e.name}</div>
-              <div className="session-meta mt-2">
-                <span>📍 {e.location?.name}</span>
-                <span>📅 {formatDate(e.date)}</span>
-                <span>🕐 {timeWindow(e)}</span>
-                <span>🎾 {e.courts} court{e.courts > 1 ? 's' : ''}</span>
+        <>
+          {upcoming.length > 0 && (
+            <div className="mb-4">
+              <h2 className="section-title">UPCOMING & LIVE</h2>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {upcoming.map(renderCard)}
               </div>
             </div>
-          ))}
-        </div>
+          )}
+          {past.length > 0 && (
+            <div className="mb-4">
+              <h2 className="section-title">🏆 PAST EVENTS</h2>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {past.map(renderCard)}
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {showCreate && (
