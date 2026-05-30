@@ -71,6 +71,21 @@ export default function Landing() {
           </button>
         </div>
 
+        {/* Saturday Summer Challenge flyer */}
+        <div style={{ marginTop: 24, textAlign: 'center' }}>
+          <img
+            src="/summer-challenge-flyer.jpg"
+            alt="Saturday Summer Challenge — Saturday June 13 at City Park Courts, Salisbury MD. Singles in the morning (Americano), Doubles in the afternoon (Mexicano)."
+            onClick={() => navigate('/auth?mode=register')}
+            onError={e => { (e.currentTarget.parentElement as HTMLElement).style.display = 'none' }}
+            style={{
+              width: '100%', maxWidth: 560, height: 'auto', display: 'inline-block',
+              borderRadius: 14, border: '1px solid var(--border2)',
+              boxShadow: '0 8px 30px rgba(0,0,0,0.45)', cursor: 'pointer'
+            }}
+          />
+        </div>
+
         {/* Saturday Summer Challenge — advertisement for logged-out visitors */}
         {upcomingEvents.length > 0 && (
           <div style={{ marginTop: 28 }}>
