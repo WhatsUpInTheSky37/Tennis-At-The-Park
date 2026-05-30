@@ -64,7 +64,7 @@ export default function Landing() {
 
         <div className="hero-actions">
           <button className="btn btn-primary btn-lg" onClick={() => navigate('/auth?mode=register')}>
-            Find a Game This Week
+            Free Signup
           </button>
           <button className="btn btn-secondary btn-lg" onClick={() => navigate('/auth')}>
             Sign In
