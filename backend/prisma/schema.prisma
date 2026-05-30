@@ -39,6 +39,8 @@ model User {
   notificationPrefs   NotificationPreferences?
   dmsSent             DirectMessage[]    @relation("DmSender")
   dmsReceived         DirectMessage[]    @relation("DmReceiver")
+  challengeEventsCreated ChallengeEvent[]      @relation("EventCreator")
+  challengeParticipations ChallengeParticipant[]
 
   @@map("users")
 }
@@ -75,6 +77,7 @@ model Location {
   sessions   Session[]
   matches    Match[]
   challenges Challenge[]
+  challengeEvents ChallengeEvent[]
 
   @@map("locations")
 }
@@ -153,6 +156,8 @@ model Message {
 model Match {
   id               String   @id @default(cuid())
   sessionId        String?  @map("session_id")
+  eventId          String?  @map("event_id")
+  eventRound       Int?     @map("event_round")
   playedAt         DateTime @map("played_at")
   locationId       String   @map("location_id")
   courtNumber      Int?     @map("court_number")
@@ -166,14 +171,64 @@ model Match {
   status           String   @default("normal")
   createdAt        DateTime @default(now()) @map("created_at")
 
-  session    Session?    @relation(fields: [sessionId], references: [id])
-  location   Location    @relation(fields: [locationId], references: [id])
+  session    Session?        @relation(fields: [sessionId], references: [id])
+  event      ChallengeEvent? @relation(fields: [eventId], references: [id])
+  location   Location        @relation(fields: [locationId], references: [id])
   disputes   Dispute[]
   reports    Report[]
   challenges Challenge[]
 
   @@index([playedAt])
+  @@index([eventId])
   @@map("matches")
+}
+
+model ChallengeEvent {
+  id              String   @id @default(cuid())
+  name            String
+  createdBy       String   @map("created_by")
+  locationId      String   @map("location_id")
+  date            DateTime
+  format          String   // "singles" | "doubles"
+  mode            String   @default("rotating") // "rotating" | "king_of_hill"
+  rotation        String   @default("americano") // "americano" | "mexicano"
+  courts          Int      @default(2)
+  scoring         String   @default("first_to_4") // first_to_4 | pro_set_8 | tb_7 | tb_10
+  pointsPerWin    Int      @default(1) @map("points_per_win")
+  affectsElo      Boolean  @default(true) @map("affects_elo")
+  maxHillWins     Int?     @map("max_hill_wins")
+  currentRound    Int      @default(0) @map("current_round")
+  currentRoundJson Json?   @map("current_round_json")
+  status          String   @default("setup") // setup | active | completed
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  creator      User                   @relation("EventCreator", fields: [createdBy], references: [id])
+  location     Location               @relation(fields: [locationId], references: [id])
+  participants ChallengeParticipant[]
+  matches      Match[]
+
+  @@index([status, date])
+  @@map("challenge_events")
+}
+
+model ChallengeParticipant {
+  eventId  String   @map("event_id")
+  userId   String   @map("user_id")
+  status   String   @default("active") // active | sitting | withdrawn
+  points   Int      @default(0)
+  wins     Int      @default(0)
+  losses   Int      @default(0)
+  gamesWon Int      @default(0) @map("games_won")
+  sitCount Int      @default(0) @map("sit_count")
+  joinedAt DateTime @default(now()) @map("joined_at")
+
+  event ChallengeEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User           @relation(fields: [userId], references: [id])
+
+  @@id([eventId, userId])
+  @@index([eventId])
+  @@map("challenge_participants")
 }
 
 model Dispute {

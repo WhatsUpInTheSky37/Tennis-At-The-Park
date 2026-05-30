@@ -108,6 +108,24 @@ export const api = {
     return request<any>(`/challenges/calendar/events${q}`)
   },
 
+  // Challenge Events (Saturday Summer Challenge)
+  getChallengeEvents: (params?: Record<string, string>) => {
+    const q = params ? '?' + new URLSearchParams(params).toString() : ''
+    return request<any[]>(`/challenge-events${q}`)
+  },
+  getChallengeEvent: (id: string) => request<any>(`/challenge-events/${id}`),
+  createChallengeEvent: (data: any) => request<any>('/challenge-events', { method: 'POST', body: JSON.stringify(data) }),
+  joinChallengeEvent: (id: string) => request<any>(`/challenge-events/${id}/join`, { method: 'POST', body: JSON.stringify({}) }),
+  leaveChallengeEvent: (id: string) => request<any>(`/challenge-events/${id}/leave`, { method: 'POST', body: JSON.stringify({}) }),
+  addChallengeEventPlayer: (id: string, userId: string) => request<any>(`/challenge-events/${id}/participants`, { method: 'POST', body: JSON.stringify({ userId }) }),
+  removeChallengeEventPlayer: (id: string, userId: string) => request<any>(`/challenge-events/${id}/participants/${userId}`, { method: 'DELETE' }),
+  startChallengeEvent: (id: string) => request<any>(`/challenge-events/${id}/start`, { method: 'POST', body: JSON.stringify({}) }),
+  scoreChallengeGame: (id: string, court: number, scoreA: number, scoreB: number) =>
+    request<any>(`/challenge-events/${id}/games/score`, { method: 'POST', body: JSON.stringify({ court, scoreA, scoreB }) }),
+  nextChallengeRound: (id: string, force?: boolean) => request<any>(`/challenge-events/${id}/next-round`, { method: 'POST', body: JSON.stringify({ force: !!force }) }),
+  completeChallengeEvent: (id: string) => request<any>(`/challenge-events/${id}/complete`, { method: 'POST', body: JSON.stringify({}) }),
+  deleteChallengeEvent: (id: string) => request<void>(`/challenge-events/${id}`, { method: 'DELETE' }),
+
   // Forum
   getForumCategories: () => request<any[]>('/forum/categories'),
   getForumPosts: (params?: Record<string, string>) => {

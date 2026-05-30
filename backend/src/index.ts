@@ -19,6 +19,7 @@ import { reportRoutes } from './routes/reports'
 import { adminRoutes } from './routes/admin'
 import { playerRoutes } from './routes/players'
 import { challengeRoutes } from './routes/challenges'
+import { challengeEventRoutes } from './routes/challengeEvents'
 import inviteRoutes from './routes/invites'
 import { forumRoutes } from './routes/forum'
 import { dmRoutes } from './routes/dm'
@@ -50,6 +51,7 @@ const apiRoutes = [
   { plugin: adminRoutes, prefix: '/admin' },
   { plugin: playerRoutes, prefix: '/players' },
   { plugin: challengeRoutes, prefix: '/challenges' },
+  { plugin: challengeEventRoutes, prefix: '/challenge-events' },
   { plugin: inviteRoutes, prefix: '/invites' },
   { plugin: forumRoutes, prefix: '/forum' },
   { plugin: dmRoutes, prefix: '/dm' },
