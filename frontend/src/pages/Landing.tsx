@@ -12,6 +12,7 @@ export default function Landing() {
   const [recentPosts, setRecentPosts] = useState<any[]>([])
   const [weekSessions, setWeekSessions] = useState<any[]>([])
   const [latestArticles, setLatestArticles] = useState<any[]>([])
+  const [upcomingEvents, setUpcomingEvents] = useState<any[]>([])
 
   useEffect(() => {
     api.getRecentForumPosts().then(setRecentPosts).catch(() => {})
@@ -21,6 +22,14 @@ export default function Landing() {
       .then(s => setWeekSessions((s || []).slice(0, 4)))
       .catch(() => {})
     api.getLatestArticles().then(setLatestArticles).catch(() => {})
+    api.getChallengeEvents().then(evs => {
+      const now = Date.now()
+      const upcoming = (evs || [])
+        .filter((e: any) => e.status !== 'completed' && new Date(e.endTime || e.date).getTime() > now - 12 * 3600 * 1000)
+        .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime())
+        .slice(0, 2)
+      setUpcomingEvents(upcoming)
+    }).catch(() => {})
   }, [])
 
   return (
@@ -61,6 +70,67 @@ export default function Landing() {
             Sign In
           </button>
         </div>
+
+        {/* Saturday Summer Challenge — advertisement for logged-out visitors */}
+        {upcomingEvents.length > 0 && (
+          <div style={{ marginTop: 28 }}>
+            <div
+              className="card"
+              style={{
+                padding: 24,
+                background: 'linear-gradient(135deg, var(--green-700), var(--accent))',
+                borderColor: 'transparent',
+                color: '#fff',
+                textAlign: 'center'
+              }}
+            >
+              <div style={{ fontSize: 30, marginBottom: 6 }}>🏆</div>
+              <h3 style={{ margin: 0, fontFamily: 'var(--font-display)', letterSpacing: 2, color: '#fff', fontSize: 'clamp(20px, 5vw, 28px)' }}>
+                SATURDAY SUMMER CHALLENGE
+              </h3>
+              <p style={{ margin: '8px auto 16px', maxWidth: 520, color: 'rgba(255,255,255,0.95)' }}>
+                Fast singles &amp; doubles matches with live standings — come rotate through the courts with the neighborhood. Free to play.
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 520, margin: '0 auto 18px' }}>
+                {upcomingEvents.map(e => (
+                  <div
+                    key={e.id}
+                    style={{
+                      background: 'rgba(255,255,255,0.15)',
+                      borderRadius: 12,
+                      padding: '12px 16px',
+                      textAlign: 'left'
+                    }}
+                  >
+                    <div style={{ fontWeight: 800, fontSize: 16 }}>{e.name}</div>
+                    <div style={{ fontSize: 13, opacity: 0.95, marginTop: 4 }}>
+                      📍 {e.location?.name} · 📅 {format(new Date(e.date), 'EEE, MMM d')} · 🕐 {format(new Date(e.date), 'h:mm a')}
+                      {e.endTime ? ` – ${format(new Date(e.endTime), 'h:mm a')}` : ''}
+                    </div>
+                    <div style={{ fontSize: 13, opacity: 0.95, marginTop: 2 }}>
+                      {e.format} · {e._count?.participants ?? 0} player{(e._count?.participants ?? 0) === 1 ? '' : 's'} signed up
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                className="btn btn-lg"
+                style={{ background: '#fff', color: 'var(--green-700)', fontWeight: 800 }}
+                onClick={() => navigate('/auth?mode=register')}
+              >
+                Create an Account &amp; Sign Up →
+              </button>
+              <div style={{ marginTop: 10, fontSize: 13 }}>
+                Already have an account?{' '}
+                <span style={{ textDecoration: 'underline', cursor: 'pointer', fontWeight: 700 }} onClick={() => navigate('/auth')}>
+                  Sign in to join
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div style={{ marginTop: 28 }}>
           <div className="flex items-center justify-between mb-3">
