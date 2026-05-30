@@ -17,7 +17,11 @@ const updateSchema = z.object({
   okToText: z.boolean().optional(),
   isInstructor: z.boolean().optional(),
   acceptingClients: z.boolean().optional(),
-  availability: z.array(z.string()).optional()
+  availability: z.array(z.string()).optional(),
+  bannerColor: z.string().max(30).optional().nullable().transform(v => (!v || v === '') ? null : v),
+  homeCourt: z.string().max(60).optional().nullable().transform(v => (!v || v === '') ? null : v),
+  playStyle: z.string().max(40).optional().nullable().transform(v => (!v || v === '') ? null : v),
+  favoriteShot: z.string().max(40).optional().nullable().transform(v => (!v || v === '') ? null : v)
 })
 
 const notificationPrefsSchema = z.object({

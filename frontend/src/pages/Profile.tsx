@@ -22,6 +22,34 @@ const AVAILABILITY_OPTIONS = [
   'Weekend Evenings',
 ]
 
+const BANNER_PRESETS: Record<string, string> = {
+  court: 'linear-gradient(135deg, #0b3d2e 0%, #0a0c0f 100%)',
+  night: 'linear-gradient(135deg, #0c1a3a 0%, #05060a 100%)',
+  sunset: 'linear-gradient(135deg, #ff7e3f 0%, #7a1f4b 100%)',
+  clay: 'linear-gradient(135deg, #c1572e 0%, #2a1611 100%)',
+  grass: 'linear-gradient(135deg, #2f7d32 0%, #0c2a14 100%)',
+  hardcourt: 'linear-gradient(135deg, #1d6fb8 0%, #0a1a2a 100%)',
+}
+const DEFAULT_BANNER = 'court'
+const bannerStyle = (key?: string | null) => BANNER_PRESETS[key || DEFAULT_BANNER] || BANNER_PRESETS[DEFAULT_BANNER]
+
+const HOME_COURTS = ['City Park Courts', 'Winterplace Park Courts']
+const PLAY_STYLES = ['Baseliner', 'Serve & Volley', 'All-Court', 'Counterpuncher', 'Aggressive']
+
+// Auto-earned achievement badges from a player's record.
+function computeBadges(rating: any, trophyCount: number, isInstructor: boolean): { icon: string; label: string }[] {
+  const out: { icon: string; label: string }[] = []
+  if (trophyCount > 0) out.push({ icon: '🏆', label: trophyCount > 1 ? `${trophyCount}× Champion` : 'Champion' })
+  const w = rating?.wins || 0
+  const winMilestone = [50, 25, 10, 1].find(m => w >= m)
+  if (winMilestone) out.push({ icon: winMilestone >= 25 ? '🌟' : winMilestone >= 10 ? '⭐' : '🥇', label: winMilestone === 1 ? 'First Win' : `${winMilestone} Wins` })
+  const streak = rating?.currentStreak || 0
+  if (streak >= 3) out.push({ icon: '🔥', label: `${streak}-Win Streak` })
+  if ((rating?.matchesPlayed || 0) >= 100) out.push({ icon: '💯', label: 'Century Club' })
+  if (isInstructor) out.push({ icon: '🎓', label: 'Instructor' })
+  return out
+}
+
 export default function Profile() {
   const { userId } = useParams()
   const { user, refresh, logout } = useAuth()
@@ -33,6 +61,7 @@ export default function Profile() {
 
   const [profile, setProfile] = useState<any>(null)
   const [rating, setRating] = useState<any>(null)
+  const [stats, setStats] = useState<any>(null)
   const [wins, setWins] = useState<any[]>([])
   const [editing, setEditing] = useState(isOwnProfile && searchParams.get('edit') === '1')
   const [showChallenge, setShowChallenge] = useState(false)
@@ -61,6 +90,10 @@ export default function Profile() {
     isInstructor: false,
     acceptingClients: false,
     availability: [] as string[],
+    bannerColor: DEFAULT_BANNER,
+    homeCourt: '',
+    playStyle: '',
+    favoriteShot: '',
   })
 
   useEffect(() => {
@@ -82,9 +115,13 @@ export default function Profile() {
         isInstructor: p?.isInstructor || false,
         acceptingClients: p?.acceptingClients || false,
         availability: p?.availability || [],
+        bannerColor: p?.bannerColor || DEFAULT_BANNER,
+        homeCourt: p?.homeCourt || '',
+        playStyle: p?.playStyle || '',
+        favoriteShot: p?.favoriteShot || '',
       })
     })
-    api.getStats(targetId).then(s => setRating(s?.rating))
+    api.getStats(targetId).then(s => { setRating(s?.rating); setStats(s) })
     api.getChallengeWins(targetId).then(setWins).catch(() => {})
   }, [targetId])
 
@@ -237,49 +274,51 @@ export default function Profile() {
 
       {!editing ? (
         <div>
-          {/* Profile Header Card with circular avatar top-left */}
-          <div className="card mb-4">
-            <div className="flex gap-4 items-start" style={{ padding: 0 }}>
-              {/* Circular avatar - top left */}
+          {/* Profile header with cover banner + overlapping avatar */}
+          <div className="card mb-4" style={{ padding: 0, overflow: 'hidden' }}>
+            <div style={{ height: 110, background: bannerStyle(profile?.bannerColor) }} />
+            <div style={{ padding: '0 18px 18px' }}>
               <div style={{
-                width: 88, height: 88, borderRadius: '50%', overflow: 'hidden', flexShrink: 0,
-                border: '3px solid var(--green-500)', background: 'var(--green-100)',
+                width: 92, height: 92, borderRadius: '50%', overflow: 'hidden', marginTop: -46,
+                border: '4px solid var(--bg2)', background: 'var(--green-100)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 28, fontFamily: 'var(--font-display)', color: 'var(--green-700)',
+                fontSize: 30, fontFamily: 'var(--font-display)', color: 'var(--green-700)',
               }}>
                 {profile?.photoUrl
                   ? <img src={profile.photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   : getInitials(profile?.displayName || '?')
                 }
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 28, letterSpacing: 1 }}>
-                  {profile?.displayName}
-                </h2>
-                <SkillDisplay level={profile?.skillLevel || 3} showLabel />
-                <div className="flex gap-2 flex-wrap mt-2">
-                  {profile?.isInstructor && (
-                    <span className="badge badge-instructor">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style={{ marginRight: 4 }}><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
-                      Certified Instructor
-                    </span>
-                  )}
-                  {profile?.isInstructor && profile?.acceptingClients && (
-                    <span className="badge badge-green" style={{ animation: 'pulse 2s infinite' }}>Taking New Clients</span>
-                  )}
-                  {profile?.lookingToPlay && <span className="badge badge-green">Looking to Play</span>}
-                  <span className="badge badge-gray">
-                    {profile?.handedness === 'left' ? 'Left-handed' : profile?.handedness === 'ambidextrous' ? 'Ambidextrous' : 'Right-handed'}
+              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 28, letterSpacing: 1, marginTop: 10 }}>
+                {profile?.displayName}
+              </h2>
+              <SkillDisplay level={profile?.skillLevel || 3} showLabel />
+              <div className="flex gap-2 flex-wrap mt-2">
+                {profile?.isInstructor && (
+                  <span className="badge badge-instructor">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style={{ marginRight: 4 }}><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+                    Certified Instructor
                   </span>
-                </div>
+                )}
+                {profile?.isInstructor && profile?.acceptingClients && (
+                  <span className="badge badge-green" style={{ animation: 'pulse 2s infinite' }}>Taking New Clients</span>
+                )}
+                {profile?.lookingToPlay && <span className="badge badge-green">Looking to Play</span>}
+                <span className="badge badge-gray">
+                  {profile?.handedness === 'left' ? 'Left-handed' : profile?.handedness === 'ambidextrous' ? 'Ambidextrous' : 'Right-handed'}
+                </span>
+                {profile?.homeCourt && <span className="badge badge-blue">📍 {profile.homeCourt.replace(' Courts', '')}</span>}
               </div>
+              <div className="text-xs text-muted mt-2">
+                {stats?.rank ? `Rank #${stats.rank} of ${stats.totalRanked} · ` : ''}
+                {profile?.user?.createdAt ? `Member since ${formatDate(profile.user.createdAt)}` : ''}
+              </div>
+              {profile?.bio && (
+                <p className="text-sm" style={{ color: 'var(--text2)', borderTop: '1px solid var(--border)', paddingTop: 12, marginTop: 12 }}>
+                  {profile.bio}
+                </p>
+              )}
             </div>
-
-            {profile?.bio && (
-              <p className="text-sm" style={{ color: 'var(--gray-600)', borderTop: '1px solid var(--gray-100)', paddingTop: 12, marginTop: 12 }}>
-                {profile.bio}
-              </p>
-            )}
           </div>
 
           {/* Player Details Card */}
@@ -305,6 +344,24 @@ export default function Profile() {
                   <div>
                     <div className="text-xs text-muted font-semibold" style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>Favorite Pro</div>
                     <div className="text-sm font-bold">{profile.favoritePro}</div>
+                  </div>
+                )}
+                {profile?.homeCourt && (
+                  <div>
+                    <div className="text-xs text-muted font-semibold" style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>Home Court</div>
+                    <div className="text-sm font-bold">{profile.homeCourt}</div>
+                  </div>
+                )}
+                {profile?.playStyle && (
+                  <div>
+                    <div className="text-xs text-muted font-semibold" style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>Playing Style</div>
+                    <div className="text-sm font-bold">{profile.playStyle}</div>
+                  </div>
+                )}
+                {profile?.favoriteShot && (
+                  <div>
+                    <div className="text-xs text-muted font-semibold" style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>Favorite Shot</div>
+                    <div className="text-sm font-bold">{profile.favoriteShot}</div>
                   </div>
                 )}
               </div>
@@ -355,32 +412,89 @@ export default function Profile() {
             </div>
           )}
 
-          {/* Stats */}
-          {rating && (
-            <div className="card mb-4">
-              <div className="card-body">
-                <h3 style={{ fontFamily: 'var(--font-display)', letterSpacing: 1, marginBottom: 16, fontSize: 18 }}>MATCH RECORD</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 12 }}>
-                  <div className="text-center">
-                    <div style={{ fontFamily: 'var(--font-display)', fontSize: 36, color: 'var(--green-700)' }}>{rating.wins}</div>
-                    <div className="text-xs text-muted">WINS</div>
+          {/* Stat strip */}
+          {rating && (() => {
+            const decided = (rating.wins || 0) + (rating.losses || 0)
+            const winPct = decided > 0 ? Math.round((rating.wins / decided) * 100) + '%' : '—'
+            const tiles = [
+              { v: winPct, l: 'WIN %', c: 'var(--accent)' },
+              { v: `${rating.wins}-${rating.losses}`, l: 'W–L', c: 'var(--text)' },
+              { v: rating.currentStreak, l: 'STREAK', c: 'var(--orange)' },
+              { v: rating.matchesPlayed, l: 'MATCHES', c: 'var(--text)' },
+              { v: stats?.rank ? `#${stats.rank}` : '—', l: 'RANK', c: 'var(--text)' },
+              { v: wins.length, l: 'TROPHIES', c: 'var(--accent)' },
+            ]
+            return (
+              <div className="card mb-4">
+                <div className="card-body">
+                  <h3 style={{ fontFamily: 'var(--font-display)', letterSpacing: 1, marginBottom: 16, fontSize: 18 }}>MATCH RECORD</h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))', gap: 12 }}>
+                    {tiles.map(t => (
+                      <div key={t.l} className="text-center">
+                        <div style={{ fontFamily: 'var(--font-display)', fontSize: 30, color: t.c }}>{t.v}</div>
+                        <div className="text-xs text-muted">{t.l}</div>
+                      </div>
+                    ))}
                   </div>
-                  <div className="text-center">
-                    <div style={{ fontFamily: 'var(--font-display)', fontSize: 36, color: 'var(--red)' }}>{rating.losses}</div>
-                    <div className="text-xs text-muted">LOSSES</div>
-                  </div>
-                  <div className="text-center">
-                    <div style={{ fontFamily: 'var(--font-display)', fontSize: 36, color: 'var(--orange)' }}>{rating.currentStreak}</div>
-                    <div className="text-xs text-muted">STREAK</div>
-                  </div>
-                  <div className="text-center">
-                    <div style={{ fontFamily: 'var(--font-display)', fontSize: 36 }}>{rating.matchesPlayed}</div>
-                    <div className="text-xs text-muted">MATCHES</div>
+                  <button className="btn btn-ghost btn-sm mt-3" style={{ width: '100%' }} onClick={() => navigate('/leaderboards')}>
+                    View Community Rankings →
+                  </button>
+                </div>
+              </div>
+            )
+          })()}
+
+          {/* Achievements */}
+          {(() => {
+            const badges = computeBadges(rating, wins.length, profile?.isInstructor)
+            if (badges.length === 0) return null
+            return (
+              <div className="card mb-4">
+                <div className="card-body">
+                  <h3 style={{ fontFamily: 'var(--font-display)', letterSpacing: 1, marginBottom: 14, fontSize: 18 }}>🎖️ ACHIEVEMENTS</h3>
+                  <div className="flex gap-2 flex-wrap">
+                    {badges.map(b => (
+                      <span key={b.label} style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 20,
+                        padding: '6px 12px', fontSize: 13, fontWeight: 600
+                      }}>
+                        <span style={{ fontSize: 16 }}>{b.icon}</span>{b.label}
+                      </span>
+                    ))}
                   </div>
                 </div>
-                <button className="btn btn-ghost btn-sm mt-3" style={{ width: '100%' }} onClick={() => navigate('/leaderboards')}>
-                  View Community Rankings →
-                </button>
+              </div>
+            )
+          })()}
+
+          {/* Recent matches */}
+          {stats?.recentMatches?.length > 0 && (
+            <div className="card mb-4">
+              <div className="card-body">
+                <h3 style={{ fontFamily: 'var(--font-display)', letterSpacing: 1, marginBottom: 14, fontSize: 18 }}>RECENT MATCHES</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {stats.recentMatches.slice(0, 5).map((m: any) => {
+                    const t = m.teamsJson || {}
+                    const inT1 = (t.team1 || []).includes(targetId)
+                    const opp = inT1 ? (t.team2 || []) : (t.team1 || [])
+                    const won = (m.winnerUserIdsJson || []).includes(targetId)
+                    const scoreStr = (m.scoreJson || []).map((s: any) => Array.isArray(s) ? s.join('-') : s).join(', ')
+                    const oppNames = opp.map((id: string) => stats.playerNames?.[id] || 'Player').join(' & ') || '—'
+                    return (
+                      <div key={m.id} className="flex items-center justify-between" style={{ background: 'var(--bg3)', borderRadius: 8, padding: '8px 12px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                          <span className={`badge ${won ? 'badge-green' : 'badge-red'}`} style={{ minWidth: 24, textAlign: 'center' }}>{won ? 'W' : 'L'}</span>
+                          <div style={{ minWidth: 0 }}>
+                            <div className="text-sm font-bold" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>vs {oppNames}</div>
+                            <div className="text-xs text-muted">{m.format} · {formatDate(m.playedAt)}</div>
+                          </div>
+                        </div>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700 }}>{scoreStr || '—'}</span>
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
             </div>
           )}
@@ -508,6 +622,25 @@ export default function Profile() {
               </div>
 
               <div className="form-group mb-4">
+                <label className="form-label">Profile Banner</label>
+                <div style={{ height: 60, borderRadius: 10, background: bannerStyle(form.bannerColor), marginBottom: 10, border: '1px solid var(--border)' }} />
+                <div className="flex gap-2 flex-wrap">
+                  {Object.keys(BANNER_PRESETS).map(key => (
+                    <button
+                      type="button"
+                      key={key}
+                      onClick={() => setForm((f: any) => ({ ...f, bannerColor: key }))}
+                      title={key}
+                      style={{
+                        width: 40, height: 40, borderRadius: 8, background: BANNER_PRESETS[key], cursor: 'pointer',
+                        border: form.bannerColor === key ? '3px solid var(--accent)' : '1px solid var(--border)'
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div className="form-group mb-4">
                 <label className="form-label" htmlFor="displayName">Name *</label>
                 <input className="form-input" id="displayName" value={form.displayName} onChange={e => setForm((f: any) => ({ ...f, displayName: e.target.value }))} required minLength={2} maxLength={50} />
               </div>
@@ -543,6 +676,28 @@ export default function Profile() {
                   <label className="form-label" htmlFor="favoritePro">Favorite Pro</label>
                   <input className="form-input" id="favoritePro" value={form.favoritePro || ''} onChange={e => setForm((f: any) => ({ ...f, favoritePro: e.target.value }))} maxLength={100} placeholder="e.g. Roger Federer" />
                 </div>
+              </div>
+
+              <div className="grid-2 mb-4">
+                <div className="form-group">
+                  <label className="form-label" htmlFor="homeCourt">Home Court</label>
+                  <select className="form-select" id="homeCourt" value={form.homeCourt || ''} onChange={e => setForm((f: any) => ({ ...f, homeCourt: e.target.value }))}>
+                    <option value="">No preference</option>
+                    {HOME_COURTS.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label" htmlFor="playStyle">Playing Style</label>
+                  <select className="form-select" id="playStyle" value={form.playStyle || ''} onChange={e => setForm((f: any) => ({ ...f, playStyle: e.target.value }))}>
+                    <option value="">Not specified</option>
+                    {PLAY_STYLES.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-group mb-4">
+                <label className="form-label" htmlFor="favoriteShot">Favorite Shot</label>
+                <input className="form-input" id="favoriteShot" value={form.favoriteShot || ''} onChange={e => setForm((f: any) => ({ ...f, favoriteShot: e.target.value }))} maxLength={40} placeholder="e.g. Topspin forehand, kick serve, backhand slice" />
               </div>
 
               {/* Instructor */}
