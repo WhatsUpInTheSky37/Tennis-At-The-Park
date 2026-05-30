@@ -40,7 +40,8 @@ export default function ChallengeEventTV() {
   const teamLabel = (ids: string[]) => ids.map(nameFor).join(' & ')
   const standings: any[] = event?.standings || []
   const round = event?.round as { round: number; games: Game[]; byes: string[] } | null
-  const qrData = encodeURIComponent(`${window.location.origin}/challenge-events/${id}`)
+  // Point at the public TV view so players can follow live without logging in.
+  const qrData = encodeURIComponent(`${window.location.origin}/challenge-events/${id}/tv`)
   const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=8&data=${qrData}`
 
   const C = {
@@ -178,7 +179,7 @@ export default function ChallengeEventTV() {
             <div>
               <div style={{ fontSize: '1.3vw', fontWeight: 800, color: C.text }}>📱 Scan to follow live</div>
               <div style={{ fontSize: '1vw', color: C.dim, marginTop: 6 }}>
-                See matchups, enter your scores, and check standings from your phone.
+                Live matchups & standings on your phone — no login needed.
               </div>
             </div>
           </div>
