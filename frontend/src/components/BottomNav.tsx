@@ -6,6 +6,7 @@ import { useAuth } from '../store/auth'
 const items = [
   { to: '/dashboard', label: 'Home', icon: '⌂' },
   { to: '/activity', label: 'Activity', icon: '🎾' },
+  { to: '/challenge-events', label: 'Events', icon: '🏆' },
   { to: '/messages', label: 'Messages', icon: '✉', badgeKey: 'messages' as const },
   { to: '/forum', label: 'Forum', icon: '💬' },
   { to: '/players', label: 'Players', icon: '👥' },

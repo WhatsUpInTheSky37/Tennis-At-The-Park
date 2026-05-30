@@ -257,7 +257,7 @@ export async function challengeEventRoutes(server: FastifyInstance) {
 
     const pairs = buildPairs(event.participants)
     const round = event.mode === 'king_of_hill'
-      ? generateKothInitial(active, event.format as Format, event.courts)
+      ? generateKothInitial(active, event.format as Format, event.courts, pairs)
       : generateRotatingRound(active, event.format as Format, event.courts, event.rotation as Rotation, 1, {}, {}, pairs)
 
     await applySitOuts(id, round.byes, event.mode)
@@ -338,8 +338,11 @@ export async function challengeEventRoutes(server: FastifyInstance) {
 
     let byes = round.byes
     if (event.mode === 'king_of_hill') {
+      const parts = await prisma.challengeParticipant.findMany({
+        where: { eventId: id }, select: { userId: true, partnerId: true, status: true }
+      })
       const { game: nextGame, queue } = advanceKoth(
-        newGames[gameIdx], byes, event.format as Format, winnerSide, event.maxHillWins
+        newGames[gameIdx], byes, event.format as Format, winnerSide, event.maxHillWins, buildPairs(parts)
       )
       newGames[gameIdx] = nextGame
       byes = queue

@@ -180,69 +180,113 @@ function generateDoublesRound(
   return { round: roundNum, games, byes }
 }
 
+// Pull the next team off the front of the king-of-hill queue.
+// Locked partners are always pulled together (wherever they sit in the queue);
+// free agents are paired with the next free agent so no locked pair is split.
+function pullTeam(queue: string[], pairs: Record<string, string>, teamSize: number): { team: string[]; queue: string[] } {
+  const q = [...queue]
+  if (teamSize === 1) {
+    const first = q.shift()
+    return { team: first != null ? [first] : [], queue: q }
+  }
+  const first = q.shift()
+  if (first == null) return { team: [], queue: q }
+
+  const partner = pairs[first]
+  if (partner && q.includes(partner)) {
+    q.splice(q.indexOf(partner), 1)
+    return { team: [first, partner], queue: q }
+  }
+  // first is a free agent → grab the next player who isn't locked to someone still waiting.
+  let idx = q.findIndex(x => !(pairs[x] && q.includes(pairs[x])))
+  if (idx === -1) idx = 0 // only locked pairs remain — unavoidable split (very rare)
+  const second = q.splice(idx, 1)[0]
+  return { team: second != null ? [first, second] : [first], queue: q }
+}
+
+// Seed the king-of-hill queue. For doubles, locked pairs enter as atomic units;
+// free agents enter as singles. Shuffled at the team level.
+function seedKothQueue(activeIds: string[], format: Format, pairs: Record<string, string>): string[] {
+  if (format === 'singles') return shuffle(activeIds)
+  const processed = new Set<string>()
+  const teams: string[][] = []
+  for (const id of activeIds) {
+    if (processed.has(id)) continue
+    const partner = pairs[id]
+    if (partner && activeIds.includes(partner) && !processed.has(partner)) {
+      teams.push([id, partner]); processed.add(id); processed.add(partner)
+    } else {
+      teams.push([id]); processed.add(id)
+    }
+  }
+  return shuffle(teams).flat()
+}
+
 // King of the hill: seed each court with a game, the rest wait in `byes` (the queue).
 export function generateKothInitial(
   activeIds: string[],
   format: Format,
-  courts: number
+  courts: number,
+  pairs: Record<string, string> = {}
 ): RoundPlan {
-  const per = playersPerGame(format)
-  const pool = shuffle(activeIds)
+  const teamSize = format === 'singles' ? 1 : 2
+  let q = seedKothQueue(activeIds, format, pairs)
   const games: Game[] = []
-  let idx = 0
-  for (let c = 0; c < courts && idx + per <= pool.length; c++) {
-    const slice = pool.slice(idx, idx + per)
-    idx += per
-    if (format === 'singles') {
-      games.push({ court: c + 1, teamA: [slice[0]], teamB: [slice[1]], scored: false, holdStreak: 0 })
-    } else {
-      games.push({ court: c + 1, teamA: [slice[0], slice[1]], teamB: [slice[2], slice[3]], scored: false, holdStreak: 0 })
-    }
+  for (let c = 0; c < courts; c++) {
+    const a = pullTeam(q, pairs, teamSize)
+    if (a.team.length < teamSize) break
+    const b = pullTeam(a.queue, pairs, teamSize)
+    if (b.team.length < teamSize) { q = a.queue; break } // not enough for a full game
+    q = b.queue
+    games.push({ court: c + 1, teamA: a.team, teamB: b.team, scored: false, holdStreak: 0, holderTeam: 'A' })
   }
-  const byes = pool.slice(idx)
-  return { round: 1, games, byes }
+  return { round: 1, games, byes: q }
 }
 
 // Advance one court after a king-of-hill game is decided.
-// Winners stay (subject to maxHillWins); losers go to the back of the queue; the
-// next waiting player(s) come on. Returns the replacement game + updated queue.
+// Winners stay together (subject to maxHillWins); the losing team rotates to the
+// back of the queue; the next team comes on. Locked pairs stay intact throughout.
 export function advanceKoth(
   game: Game,
   queue: string[],
   format: Format,
   winnerTeam: 'A' | 'B',
-  maxHillWins?: number | null
+  maxHillWins?: number | null,
+  pairs: Record<string, string> = {}
 ): { game: Game; queue: string[] } {
   const teamSize = format === 'singles' ? 1 : 2
   const winners = winnerTeam === 'A' ? game.teamA : game.teamB
   const losers = winnerTeam === 'A' ? game.teamB : game.teamA
-  const q = [...queue]
+  let q = [...queue]
 
   // Track the king's win streak.
   const prevHolder = game.holderTeam
   const prevStreak = game.holdStreak || 0
-  const kingStillStreaking = prevHolder && winners.every((w, i) => {
+  const kingStillStreaking = prevHolder && winners.every(w => {
     const held = prevHolder === 'A' ? game.teamA : game.teamB
     return held.includes(w)
   })
   let streak = kingStillStreaking ? prevStreak + 1 : 1
 
-  // Losers always rotate to the back of the queue.
+  // Losing team rotates to the back of the queue.
   q.push(...losers)
 
-  // If the winners hit the cap, they rotate off too and a fresh challenger faces the queue.
+  // If the winners hit the cap, they rotate off too and a fresh team faces the queue.
   let stayers = winners
   if (maxHillWins && streak >= maxHillWins) {
     q.push(...winners)
-    stayers = q.splice(0, teamSize)
+    const pulled = pullTeam(q, pairs, teamSize)
+    stayers = pulled.team
+    q = pulled.queue
     streak = 0
   }
 
-  const challengers = q.splice(0, teamSize)
-  // If not enough players to field a challenger, the court idles until the queue refills.
-  if (challengers.length < teamSize) {
+  const ch = pullTeam(q, pairs, teamSize)
+  q = ch.queue
+  // If not enough players to field a full challenger team, the court idles until the queue refills.
+  if (ch.team.length < teamSize) {
     return {
-      game: { ...game, teamA: stayers, teamB: challengers, scored: false, matchId: undefined, scoreA: undefined, scoreB: undefined, holdStreak: streak, holderTeam: 'A' },
+      game: { ...game, teamA: stayers, teamB: ch.team, scored: false, matchId: undefined, scoreA: undefined, scoreB: undefined, holdStreak: streak, holderTeam: 'A' },
       queue: q
     }
   }
@@ -251,7 +295,7 @@ export function advanceKoth(
     game: {
       court: game.court,
       teamA: stayers,
-      teamB: challengers,
+      teamB: ch.team,
       scored: false,
       holdStreak: streak,
       holderTeam: 'A'

@@ -76,7 +76,7 @@ export default function ChallengeEventDetail() {
   const statusBadge: Record<string, string> = { setup: 'badge-orange', active: 'badge-green', completed: 'badge-gray' }
 
   // Locked doubles teams (each pair listed once); free agents get shuffled each round.
-  const showPairing = isOrganizer && event.format === 'doubles' && event.mode === 'rotating' && event.status !== 'completed'
+  const showPairing = isOrganizer && event.format === 'doubles' && event.status !== 'completed'
   const lockedPairs: [any, any][] = []
   const pairSeen = new Set<string>()
   for (const s of standings) {
@@ -159,7 +159,7 @@ export default function ChallengeEventDetail() {
         <div className="card mb-4">
           <h3 className="mb-1">🔒 Locked Teams</h3>
           <p className="text-sm text-muted mb-3">
-            Lock partners who always play together (e.g. you &amp; your spouse). Everyone else is a free agent and gets shuffled into teams each round.
+            Lock partners who always play together (e.g. you &amp; your spouse) — they stay a team all day. Everyone else is a free agent and gets mixed into teams.
           </p>
 
           {lockedPairs.length > 0 && (
