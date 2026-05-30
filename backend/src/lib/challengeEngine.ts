@@ -90,33 +90,94 @@ export function generateRotatingRound(
   rotation: Rotation,
   roundNum: number,
   points: Record<string, number>,
-  sitCount: Record<string, number>
+  sitCount: Record<string, number>,
+  pairs: Record<string, string> = {}
 ): RoundPlan {
-  const { playing, byes } = pickByes(activeIds, format, courts, sitCount)
+  if (format === 'doubles') {
+    return generateDoublesRound(activeIds, courts, rotation, roundNum, points, sitCount, pairs)
+  }
 
+  // ── Singles ──
+  const { playing, byes } = pickByes(activeIds, format, courts, sitCount)
   let ordered: string[]
   if (rotation === 'mexicano' && roundNum > 1) {
-    // Pair by standings: strongest with/against nearest rivals to keep games close.
+    // Adjacent ranks play (0v1, 2v3, ...) to keep games close.
     ordered = [...playing].sort((a, b) => {
       const d = (points[b] || 0) - (points[a] || 0)
       return d !== 0 ? d : Math.random() - 0.5
     })
-    if (format === 'doubles') {
-      // Within each group of 4 ranked players, pair (1st+4th) vs (2nd+3rd).
-      const games: Game[] = []
-      const groups = chunk(ordered, 4)
-      groups.forEach((g, i) => {
-        if (g.length === 4) games.push({ court: i + 1, teamA: [g[0], g[3]], teamB: [g[1], g[2]], scored: false })
-      })
-      return { round: roundNum, games, byes }
-    }
-    // singles mexicano: adjacent ranks play (0v1, 2v3, ...)
     return { round: roundNum, games: buildGames(ordered, format), byes }
   }
-
-  // Americano (and round 1 of any rotation): random pairing.
   ordered = shuffle(playing)
   return { round: roundNum, games: buildGames(ordered, format), byes }
+}
+
+type Team = [string, string]
+
+// Pair up the free agents (everyone not in a locked team) into ad-hoc teams.
+function pairFreePlayers(
+  freeIds: string[], rotation: Rotation, roundNum: number, points: Record<string, number>
+): { teams: Team[]; leftover: string[] } {
+  const order = (rotation === 'mexicano' && roundNum > 1)
+    ? [...freeIds].sort((a, b) => (points[b] || 0) - (points[a] || 0) || Math.random() - 0.5)
+    : shuffle(freeIds)
+  const teams: Team[] = []
+  let i = 0
+  for (; i + 2 <= order.length; i += 2) teams.push([order[i], order[i + 1]])
+  return { teams, leftover: order.slice(i) }
+}
+
+// Doubles round generation. Locked partners stay together as an atomic team;
+// free agents are paired up fresh each round. Teams (locked or free) are then
+// matched against each other, two per court, with fair sit-outs.
+function generateDoublesRound(
+  activeIds: string[],
+  courts: number,
+  rotation: Rotation,
+  roundNum: number,
+  points: Record<string, number>,
+  sitCount: Record<string, number>,
+  pairs: Record<string, string>
+): RoundPlan {
+  // 1. Locked teams (mutual partners who are both active).
+  const processed = new Set<string>()
+  const fixedTeams: Team[] = []
+  for (const id of activeIds) {
+    if (processed.has(id)) continue
+    const partner = pairs[id]
+    if (partner && activeIds.includes(partner) && !processed.has(partner)) {
+      fixedTeams.push([id, partner])
+      processed.add(id); processed.add(partner)
+    }
+  }
+
+  // 2. Free agents → ad-hoc teams (odd one out sits this round).
+  const freeIds = activeIds.filter(id => !processed.has(id))
+  const { teams: freeTeams, leftover } = pairFreePlayers(freeIds, rotation, roundNum, points)
+
+  let allTeams: Team[] = [...fixedTeams, ...freeTeams]
+  const byes: string[] = [...leftover]
+
+  // 3. Fit to courts (2 teams per court); bench whole teams that have sat least.
+  const maxTeams = Math.floor(Math.min(allTeams.length, courts * 2) / 2) * 2
+  if (allTeams.length > maxTeams) {
+    const teamSit = (t: Team) => (sitCount[t[0]] || 0) + (sitCount[t[1]] || 0)
+    allTeams = shuffle(allTeams).sort((a, b) => teamSit(a) - teamSit(b))
+    for (const t of allTeams.slice(0, allTeams.length - maxTeams)) byes.push(...t)
+    allTeams = allTeams.slice(allTeams.length - maxTeams)
+  }
+
+  // 4. Order teams (random, or by standings for Mexicano) and pair into games.
+  const playTeams = (rotation === 'mexicano' && roundNum > 1)
+    ? [...allTeams].sort((a, b) =>
+        ((points[b[0]] || 0) + (points[b[1]] || 0)) - ((points[a[0]] || 0) + (points[a[1]] || 0)) || Math.random() - 0.5)
+    : shuffle(allTeams)
+
+  const games: Game[] = []
+  for (let c = 0; c * 2 + 1 < playTeams.length; c++) {
+    games.push({ court: c + 1, teamA: playTeams[c * 2], teamB: playTeams[c * 2 + 1], scored: false })
+  }
+  return { round: roundNum, games, byes }
 }
 
 // King of the hill: seed each court with a game, the rest wait in `byes` (the queue).

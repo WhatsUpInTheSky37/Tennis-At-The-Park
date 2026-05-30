@@ -25,6 +25,8 @@ export default function ChallengeEventDetail() {
   const [error, setError] = useState('')
   const [players, setPlayers] = useState<any[]>([])
   const [addId, setAddId] = useState('')
+  const [pairA, setPairA] = useState('')
+  const [pairB, setPairB] = useState('')
   const [scores, setScores] = useState<Record<number, { a: string; b: string }>>({})
 
   const load = () => {
@@ -72,6 +74,18 @@ export default function ChallengeEventDetail() {
   const openGames = round?.games.filter(g => !g.scored) || []
   const allScored = round != null && openGames.length === 0
   const statusBadge: Record<string, string> = { setup: 'badge-orange', active: 'badge-green', completed: 'badge-gray' }
+
+  // Locked doubles teams (each pair listed once); free agents get shuffled each round.
+  const showPairing = isOrganizer && event.format === 'doubles' && event.mode === 'rotating' && event.status !== 'completed'
+  const lockedPairs: [any, any][] = []
+  const pairSeen = new Set<string>()
+  for (const s of standings) {
+    if (s.partnerId && !pairSeen.has(s.userId)) {
+      const partner = standings.find(x => x.userId === s.partnerId)
+      if (partner) { lockedPairs.push([s, partner]); pairSeen.add(s.userId); pairSeen.add(s.partnerId) }
+    }
+  }
+  const freeAgents = standings.filter(s => !s.partnerId && s.status !== 'withdrawn')
 
   return (
     <div className="page">
@@ -136,6 +150,45 @@ export default function ChallengeEventDetail() {
                 🎲 Randomize & Start Round 1
               </button>
             </>
+          )}
+        </div>
+      )}
+
+      {/* Locked doubles teams */}
+      {showPairing && (
+        <div className="card mb-4">
+          <h3 className="mb-1">🔒 Locked Teams</h3>
+          <p className="text-sm text-muted mb-3">
+            Lock partners who always play together (e.g. you &amp; your spouse). Everyone else is a free agent and gets shuffled into teams each round.
+          </p>
+
+          {lockedPairs.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+              {lockedPairs.map(([a, b]) => (
+                <div key={a.userId} className="flex items-center justify-between" style={{ background: 'var(--bg3)', borderRadius: 8, padding: '8px 12px' }}>
+                  <span className="font-bold">🔒 {a.displayName} &amp; {b.displayName}</span>
+                  <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => act(() => api.clearChallengePair(id!, a.userId))}>Unlock</button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex gap-2" style={{ flexWrap: 'wrap' }}>
+            <select value={pairA} onChange={e => setPairA(e.target.value)} style={{ flex: 1, minWidth: 130 }}>
+              <option value="">Player…</option>
+              {freeAgents.map(s => <option key={s.userId} value={s.userId}>{s.displayName}</option>)}
+            </select>
+            <select value={pairB} onChange={e => setPairB(e.target.value)} style={{ flex: 1, minWidth: 130 }}>
+              <option value="">Partner…</option>
+              {freeAgents.filter(s => s.userId !== pairA).map(s => <option key={s.userId} value={s.userId}>{s.displayName}</option>)}
+            </select>
+            <button className="btn btn-secondary btn-sm" disabled={!pairA || !pairB || busy}
+              onClick={() => act(async () => { await api.setChallengePair(id!, pairA, pairB); setPairA(''); setPairB('') })}>
+              Lock team
+            </button>
+          </div>
+          {freeAgents.length > 0 && (
+            <p className="text-xs text-muted mt-2">Free agents (shuffled): {freeAgents.map(s => s.displayName).join(', ')}</p>
           )}
         </div>
       )}
@@ -226,6 +279,7 @@ export default function ChallengeEventDetail() {
                   <td style={{ padding: '6px' }}>{i + 1}</td>
                   <td style={{ padding: '6px' }}>
                     <span className="clickable" style={{ cursor: 'pointer' }} onClick={() => navigate(`/profile/${s.userId}`)}>{s.displayName}</span>
+                    {s.partnerId && <span className="text-xs text-muted" title={`Locked team with ${nameFor(s.partnerId)}`}> 🔒 {nameFor(s.partnerId)}</span>}
                     {s.status === 'withdrawn' && <span className="text-xs text-muted"> (out)</span>}
                   </td>
                   <td style={{ padding: '6px', textAlign: 'center', fontWeight: 700 }}>{s.points}</td>

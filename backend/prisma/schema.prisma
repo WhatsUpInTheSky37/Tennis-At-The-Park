@@ -217,6 +217,7 @@ model ChallengeParticipant {
   eventId  String   @map("event_id")
   userId   String   @map("user_id")
   status   String   @default("active") // active | sitting | withdrawn
+  partnerId String? @map("partner_id") // doubles: locked fixed-team partner
   points   Int      @default(0)
   wins     Int      @default(0)
   losses   Int      @default(0)

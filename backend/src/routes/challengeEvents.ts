@@ -123,6 +123,7 @@ export async function challengeEventRoutes(server: FastifyInstance) {
         userId: p.userId,
         displayName: names[p.userId] || 'Unknown',
         status: p.status,
+        partnerId: p.partnerId,
         points: p.points,
         wins: p.wins,
         losses: p.losses,
@@ -204,6 +205,44 @@ export async function challengeEventRoutes(server: FastifyInstance) {
     return { ok: true }
   })
 
+  // Lock two players as a fixed doubles team (organizer)
+  server.post('/:id/pairs', { preHandler: [(server as any).authenticate] }, async (req, reply) => {
+    const user = (req as any).user
+    const { id } = req.params as { id: string }
+    const { userIdA, userIdB } = req.body as { userIdA: string; userIdB: string }
+    const event = await prisma.challengeEvent.findUnique({ where: { id } })
+    if (!event) return reply.status(404).send({ error: 'Not found' })
+    if (!isOrganizer(event, user)) return reply.status(403).send({ error: 'Organizer only' })
+    if (event.format !== 'doubles') return reply.status(400).send({ error: 'Fixed teams are for doubles events' })
+    if (!userIdA || !userIdB || userIdA === userIdB) return reply.status(400).send({ error: 'Pick two different players' })
+
+    const both = await prisma.challengeParticipant.findMany({ where: { eventId: id, userId: { in: [userIdA, userIdB] } } })
+    if (both.length !== 2) return reply.status(400).send({ error: 'Both players must be in the event' })
+
+    // Break any existing partnerships for these two (and their old partners), then link them.
+    const oldPartners = both.map(p => p.partnerId).filter(Boolean) as string[]
+    await prisma.challengeParticipant.updateMany({
+      where: { eventId: id, userId: { in: [userIdA, userIdB, ...oldPartners] } },
+      data: { partnerId: null }
+    })
+    await prisma.challengeParticipant.update({ where: { eventId_userId: { eventId: id, userId: userIdA } }, data: { partnerId: userIdB } })
+    await prisma.challengeParticipant.update({ where: { eventId_userId: { eventId: id, userId: userIdB } }, data: { partnerId: userIdA } })
+    return { ok: true }
+  })
+
+  // Unlock a fixed team (organizer)
+  server.delete('/:id/pairs/:userId', { preHandler: [(server as any).authenticate] }, async (req, reply) => {
+    const user = (req as any).user
+    const { id, userId: uid } = req.params as { id: string; userId: string }
+    const event = await prisma.challengeEvent.findUnique({ where: { id } })
+    if (!event) return reply.status(404).send({ error: 'Not found' })
+    if (!isOrganizer(event, user)) return reply.status(403).send({ error: 'Organizer only' })
+    const me = await prisma.challengeParticipant.findUnique({ where: { eventId_userId: { eventId: id, userId: uid } } })
+    const ids = [uid, ...(me?.partnerId ? [me.partnerId] : [])]
+    await prisma.challengeParticipant.updateMany({ where: { eventId: id, userId: { in: ids } }, data: { partnerId: null } })
+    return { ok: true }
+  })
+
   // Start the event / generate round 1 (organizer)
   server.post('/:id/start', { preHandler: [(server as any).authenticate] }, async (req, reply) => {
     const user = (req as any).user
@@ -216,9 +255,10 @@ export async function challengeEventRoutes(server: FastifyInstance) {
     const per = event.format === 'singles' ? 2 : 4
     if (active.length < per) return reply.status(400).send({ error: `Need at least ${per} players to start` })
 
+    const pairs = buildPairs(event.participants)
     const round = event.mode === 'king_of_hill'
       ? generateKothInitial(active, event.format as Format, event.courts)
-      : generateRotatingRound(active, event.format as Format, event.courts, event.rotation as Rotation, 1, {}, {})
+      : generateRotatingRound(active, event.format as Format, event.courts, event.rotation as Rotation, 1, {}, {}, pairs)
 
     await applySitOuts(id, round.byes, event.mode)
     const updated = await prisma.challengeEvent.update({
@@ -339,7 +379,7 @@ export async function challengeEventRoutes(server: FastifyInstance) {
 
     const nextRoundNum = event.currentRound + 1
     const round = generateRotatingRound(
-      active, event.format as Format, event.courts, event.rotation as Rotation, nextRoundNum, points, sitCount
+      active, event.format as Format, event.courts, event.rotation as Rotation, nextRoundNum, points, sitCount, buildPairs(event.participants)
     )
 
     await applySitOuts(id, round.byes, event.mode)
@@ -374,6 +414,15 @@ export async function challengeEventRoutes(server: FastifyInstance) {
     await prisma.challengeEvent.delete({ where: { id } })
     return reply.status(204).send()
   })
+}
+
+// Build a map of locked doubles partners from active participants.
+function buildPairs(participants: { userId: string; partnerId: string | null; status: string }[]): Record<string, string> {
+  const pairs: Record<string, string> = {}
+  for (const p of participants) {
+    if (p.partnerId && p.status === 'active') pairs[p.userId] = p.partnerId
+  }
+  return pairs
 }
 
 // Increment sit-count for players who sat out this round (fair bye rotation).
