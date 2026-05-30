@@ -60,8 +60,10 @@ const apiRoutes = [
   { plugin: uploadRoutes, prefix: '/uploads' },
 ]
 
+// API routes are served under /api/* only. (Serving them at the bare path too
+// would shadow front-end deep links like /challenge-events/:id and /sessions/:id,
+// causing a direct page load to return raw JSON instead of the React app.)
 for (const route of apiRoutes) {
-  server.register(route.plugin, { prefix: route.prefix })
   server.register(route.plugin, { prefix: `/api${route.prefix}` })
 }
 
