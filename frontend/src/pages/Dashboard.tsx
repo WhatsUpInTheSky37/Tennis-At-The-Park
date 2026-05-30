@@ -124,21 +124,22 @@ export default function Dashboard() {
                 onClick={() => navigate(`/challenge-events/${e.id}`)}
                 style={{
                   cursor: 'pointer',
-                  background: 'linear-gradient(135deg, var(--green-700), var(--accent))',
-                  color: 'white', borderColor: 'transparent'
+                  background: 'linear-gradient(135deg, #1b3a24, #141821)',
+                  border: '1px solid rgba(127,254,74,0.22)',
+                  color: 'var(--text)'
                 }}
               >
                 <div className="flex items-center justify-between" style={{ flexWrap: 'wrap', gap: 8 }}>
                   <div>
-                    <div className="font-bold" style={{ fontSize: 18, color: 'white' }}>{e.name}</div>
-                    <div style={{ fontSize: 13, opacity: 0.95, marginTop: 4 }}>
+                    <div className="font-bold" style={{ fontSize: 18, color: 'var(--accent)' }}>{e.name}</div>
+                    <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 4 }}>
                       📍 {e.location?.name} · 📅 {format(new Date(e.date), 'EEE MMM d')} · 🕐 {formatTime(e.date)}{e.endTime ? ` – ${formatTime(e.endTime)}` : ''}
                     </div>
-                    <div style={{ fontSize: 13, opacity: 0.95, marginTop: 2 }}>
+                    <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 2 }}>
                       {e.format} · {e.mode === 'king_of_hill' ? 'King of the Hill' : e.rotation} · {e._count?.participants ?? 0} signed up
                     </div>
                   </div>
-                  <span className="btn btn-sm" style={{ background: 'white', color: 'var(--green-700)', fontWeight: 700 }}>
+                  <span className="btn btn-primary btn-sm">
                     {e.status === 'active' ? 'View Live →' : 'Join →'}
                   </span>
                 </div>

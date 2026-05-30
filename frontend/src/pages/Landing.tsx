@@ -78,17 +78,17 @@ export default function Landing() {
               className="card"
               style={{
                 padding: 24,
-                background: 'linear-gradient(135deg, var(--green-700), var(--accent))',
-                borderColor: 'transparent',
-                color: '#fff',
+                background: 'linear-gradient(135deg, #1b3a24, #141821)',
+                border: '1px solid rgba(127,254,74,0.22)',
+                color: 'var(--text)',
                 textAlign: 'center'
               }}
             >
               <div style={{ fontSize: 30, marginBottom: 6 }}>🏆</div>
-              <h3 style={{ margin: 0, fontFamily: 'var(--font-display)', letterSpacing: 2, color: '#fff', fontSize: 'clamp(20px, 5vw, 28px)' }}>
+              <h3 style={{ margin: 0, fontFamily: 'var(--font-display)', letterSpacing: 2, color: 'var(--accent)', fontSize: 'clamp(20px, 5vw, 28px)' }}>
                 SATURDAY SUMMER CHALLENGE
               </h3>
-              <p style={{ margin: '8px auto 16px', maxWidth: 520, color: 'rgba(255,255,255,0.95)' }}>
+              <p style={{ margin: '8px auto 16px', maxWidth: 520, color: 'var(--text2)' }}>
                 Fast singles &amp; doubles matches with live standings — come rotate through the courts with the neighborhood. Free to play.
               </p>
 
@@ -97,18 +97,19 @@ export default function Landing() {
                   <div
                     key={e.id}
                     style={{
-                      background: 'rgba(255,255,255,0.15)',
+                      background: 'rgba(255,255,255,0.04)',
+                      border: '1px solid var(--border)',
                       borderRadius: 12,
                       padding: '12px 16px',
                       textAlign: 'left'
                     }}
                   >
-                    <div style={{ fontWeight: 800, fontSize: 16 }}>{e.name}</div>
-                    <div style={{ fontSize: 13, opacity: 0.95, marginTop: 4 }}>
+                    <div style={{ fontWeight: 800, fontSize: 16, color: 'var(--text)' }}>{e.name}</div>
+                    <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 4 }}>
                       📍 {e.location?.name} · 📅 {format(new Date(e.date), 'EEE, MMM d')} · 🕐 {format(new Date(e.date), 'h:mm a')}
                       {e.endTime ? ` – ${format(new Date(e.endTime), 'h:mm a')}` : ''}
                     </div>
-                    <div style={{ fontSize: 13, opacity: 0.95, marginTop: 2 }}>
+                    <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 2 }}>
                       {e.format} · {e._count?.participants ?? 0} player{(e._count?.participants ?? 0) === 1 ? '' : 's'} signed up
                     </div>
                   </div>
@@ -116,15 +117,14 @@ export default function Landing() {
               </div>
 
               <button
-                className="btn btn-lg"
-                style={{ background: '#fff', color: 'var(--green-700)', fontWeight: 800 }}
+                className="btn btn-primary btn-lg"
                 onClick={() => navigate('/auth?mode=register')}
               >
                 Create an Account &amp; Sign Up →
               </button>
-              <div style={{ marginTop: 10, fontSize: 13 }}>
+              <div style={{ marginTop: 10, fontSize: 13, color: 'var(--text2)' }}>
                 Already have an account?{' '}
-                <span style={{ textDecoration: 'underline', cursor: 'pointer', fontWeight: 700 }} onClick={() => navigate('/auth')}>
+                <span style={{ textDecoration: 'underline', cursor: 'pointer', fontWeight: 700, color: 'var(--accent)' }} onClick={() => navigate('/auth')}>
                   Sign in to join
                 </span>
               </div>
