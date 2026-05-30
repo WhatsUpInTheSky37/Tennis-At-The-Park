@@ -78,8 +78,9 @@ export default function Landing() {
               className="card"
               style={{
                 padding: 24,
-                background: 'linear-gradient(135deg, #1b3a24, #141821)',
-                border: '1px solid rgba(127,254,74,0.22)',
+                background: '#000',
+                border: '1px solid var(--accent)',
+                boxShadow: '0 0 22px rgba(127,254,74,0.18)',
                 color: 'var(--text)',
                 textAlign: 'center'
               }}
@@ -97,8 +98,8 @@ export default function Landing() {
                   <div
                     key={e.id}
                     style={{
-                      background: 'rgba(255,255,255,0.04)',
-                      border: '1px solid var(--border)',
+                      background: '#0e1116',
+                      border: '1px solid rgba(127,254,74,0.18)',
                       borderRadius: 12,
                       padding: '12px 16px',
                       textAlign: 'left'
