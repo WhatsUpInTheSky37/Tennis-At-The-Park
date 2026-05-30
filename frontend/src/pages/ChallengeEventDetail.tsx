@@ -76,7 +76,10 @@ export default function ChallengeEventDetail() {
   return (
     <div className="page">
       <div className="page-header">
-        <button className="btn btn-ghost btn-sm" onClick={() => navigate('/challenge-events')}>← All events</button>
+        <div className="flex items-center justify-between">
+          <button className="btn btn-ghost btn-sm" onClick={() => navigate('/challenge-events')}>← All events</button>
+          <a className="btn btn-ghost btn-sm" href={`/challenge-events/${id}/tv`} target="_blank" rel="noreferrer">📺 TV Mode</a>
+        </div>
         <div className="flex items-center justify-between mt-2">
           <h1 className="page-title" style={{ marginBottom: 4 }}>{event.name}</h1>
           <span className={`badge ${statusBadge[event.status] || 'badge-gray'}`}>{event.status}</span>

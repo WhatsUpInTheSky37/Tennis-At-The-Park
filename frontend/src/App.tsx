@@ -19,6 +19,7 @@ import AuthPage from './pages/Auth'
 import Challenges from './pages/Challenges'
 import ChallengeEvents from './pages/ChallengeEvents'
 import ChallengeEventDetail from './pages/ChallengeEventDetail'
+import ChallengeEventTV from './pages/ChallengeEventTV'
 import Calendar from './pages/Calendar'
 import Forum from './pages/Forum'
 import ForumPost from './pages/ForumPost'
@@ -41,6 +42,7 @@ function AppShell() {
   const location = useLocation()
   const isLanding = location.pathname === '/'
   const isAuth = location.pathname === '/auth'
+  const isTv = /^\/challenge-events\/[^/]+\/tv$/.test(location.pathname)
 
   useEffect(() => { refresh() }, [])
 
@@ -49,6 +51,15 @@ function AppShell() {
     const interval = setInterval(() => { api.me().catch(() => {}) }, 3 * 60 * 1000)
     return () => clearInterval(interval)
   }, [user])
+
+  // Full-screen TV scoreboard — rendered standalone (no nav/shell, no auth required).
+  if (isTv) {
+    return (
+      <Routes>
+        <Route path="/challenge-events/:id/tv" element={<ChallengeEventTV />} />
+      </Routes>
+    )
+  }
 
   if (!initialized) {
     return (
