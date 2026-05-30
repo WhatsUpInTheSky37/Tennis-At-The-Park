@@ -365,7 +365,7 @@ export default function ChallengeEventDetail() {
 
       {isOrganizer && (
         <button className="btn btn-ghost btn-sm mt-4" disabled={busy}
-          onClick={() => { if (confirm('Delete this event permanently?')) act(async () => { await api.deleteChallengeEvent(id!); navigate('/challenge-events') }) }}>
+          onClick={() => { if (confirm('Delete this event permanently? This removes the event, all of its games, and any champion trophies from profiles.')) act(async () => { await api.deleteChallengeEvent(id!); navigate('/challenge-events') }) }}>
           Delete event
         </button>
       )}

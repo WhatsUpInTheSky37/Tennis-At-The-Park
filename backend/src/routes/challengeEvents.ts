@@ -465,8 +465,14 @@ export async function challengeEventRoutes(server: FastifyInstance) {
     const event = await prisma.challengeEvent.findUnique({ where: { id } })
     if (!event) return reply.status(404).send({ error: 'Not found' })
     if (!isOrganizer(event, user)) return reply.status(403).send({ error: 'Organizer only' })
-    // Detach any recorded matches, then remove participants + the event.
-    await prisma.match.updateMany({ where: { eventId: id }, data: { eventId: null } })
+    // Fully remove the event: its games (so nothing lingers in match history),
+    // its participants (which clears any champion trophy from profiles), then the event.
+    const matchIds = (await prisma.match.findMany({ where: { eventId: id }, select: { id: true } })).map(m => m.id)
+    if (matchIds.length) {
+      await prisma.dispute.deleteMany({ where: { matchId: { in: matchIds } } })
+      await prisma.report.deleteMany({ where: { matchId: { in: matchIds } } })
+      await prisma.match.deleteMany({ where: { id: { in: matchIds } } })
+    }
     await prisma.challengeParticipant.deleteMany({ where: { eventId: id } })
     await prisma.challengeEvent.delete({ where: { id } })
     return reply.status(204).send()
