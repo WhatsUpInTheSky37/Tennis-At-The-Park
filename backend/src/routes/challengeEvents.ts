@@ -124,6 +124,7 @@ export async function challengeEventRoutes(server: FastifyInstance) {
         displayName: names[p.userId] || 'Unknown',
         status: p.status,
         partnerId: p.partnerId,
+        finalRank: p.finalRank,
         points: p.points,
         wins: p.wins,
         losses: p.losses,
@@ -400,8 +401,40 @@ export async function challengeEventRoutes(server: FastifyInstance) {
     const event = await prisma.challengeEvent.findUnique({ where: { id } })
     if (!event) return reply.status(404).send({ error: 'Not found' })
     if (!isOrganizer(event, user)) return reply.status(403).send({ error: 'Organizer only' })
+
+    // Crown the champion(s): the top of the standings. In doubles, a locked pair wins together.
+    const parts = await prisma.challengeParticipant.findMany({ where: { eventId: id } })
+    const ranked = parts
+      .filter(p => p.status !== 'withdrawn')
+      .sort((a, b) => b.points - a.points || b.gamesWon - a.gamesWon)
+    const winners: string[] = []
+    if (ranked.length > 0) {
+      const champ = ranked[0]
+      winners.push(champ.userId)
+      if (event.format === 'doubles' && champ.partnerId && ranked.some(p => p.userId === champ.partnerId)) {
+        winners.push(champ.partnerId)
+      }
+    }
+    // Reset any prior ranks, then mark the winners as rank 1.
+    await prisma.challengeParticipant.updateMany({ where: { eventId: id }, data: { finalRank: null } })
+    if (winners.length > 0) {
+      await prisma.challengeParticipant.updateMany({ where: { eventId: id, userId: { in: winners } }, data: { finalRank: 1 } })
+    }
+
     const updated = await prisma.challengeEvent.update({ where: { id }, data: { status: 'completed' } })
-    return updated
+    return { ...updated, champions: winners }
+  })
+
+  // A player's challenge wins (for the profile trophy case)
+  server.get('/wins/:userId', async (req) => {
+    const { userId } = req.params as { userId: string }
+    const wins = await prisma.challengeParticipant.findMany({
+      where: { userId, finalRank: 1, event: { status: 'completed' } },
+      include: { event: { select: { id: true, name: true, date: true, format: true } } }
+    })
+    return wins
+      .map(w => ({ eventId: w.event.id, name: w.event.name, date: w.event.date, format: w.event.format }))
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
   })
 
   // Delete the event (organizer)

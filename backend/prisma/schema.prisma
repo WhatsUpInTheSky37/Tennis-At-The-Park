@@ -223,6 +223,7 @@ model ChallengeParticipant {
   losses   Int      @default(0)
   gamesWon Int      @default(0) @map("games_won")
   sitCount Int      @default(0) @map("sit_count")
+  finalRank Int?    @map("final_rank") // set when event completes; 1 = champion
   joinedAt DateTime @default(now()) @map("joined_at")
 
   event ChallengeEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)

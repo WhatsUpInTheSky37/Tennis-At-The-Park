@@ -257,6 +257,29 @@ export default function ChallengeEventDetail() {
         </div>
       )}
 
+      {/* CHAMPION banner */}
+      {event.status === 'completed' && (() => {
+        const champ = standings.find(s => s.status !== 'withdrawn')
+        if (!champ) return null
+        const championName = event.format === 'doubles' && champ.partnerId
+          ? `${champ.displayName} & ${nameFor(champ.partnerId)}`
+          : champ.displayName
+        return (
+          <div className="card mb-4" style={{
+            textAlign: 'center', padding: 24,
+            background: 'linear-gradient(135deg, #1b3a24, #141821)',
+            border: '1px solid var(--accent)', boxShadow: '0 0 22px rgba(127,254,74,0.18)'
+          }}>
+            <div style={{ fontSize: 44, lineHeight: 1 }}>🏆</div>
+            <div className="text-xs" style={{ letterSpacing: 2, color: 'var(--text2)', marginTop: 8 }}>CHAMPION</div>
+            <div style={{ fontSize: 24, fontWeight: 900, color: 'var(--accent)', marginTop: 2 }}>{championName}</div>
+            <div className="text-sm text-muted" style={{ marginTop: 4 }}>
+              {champ.points} pts · {champ.wins}–{champ.losses} · {event.name}
+            </div>
+          </div>
+        )
+      })()}
+
       {/* STANDINGS */}
       <div className="card">
         <h3 className="mb-2">{event.status === 'completed' ? '🏆 Final Standings' : 'Standings'}</h3>

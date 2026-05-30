@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useAuth } from '../store/auth'
-import { skillLabel, getInitials } from '../lib/utils'
+import { skillLabel, getInitials, formatDate } from '../lib/utils'
 import SkillDisplay from '../components/SkillDisplay'
 import ChallengeModal from '../components/ChallengeModal'
 
@@ -33,6 +33,7 @@ export default function Profile() {
 
   const [profile, setProfile] = useState<any>(null)
   const [rating, setRating] = useState<any>(null)
+  const [wins, setWins] = useState<any[]>([])
   const [editing, setEditing] = useState(isOwnProfile && searchParams.get('edit') === '1')
   const [showChallenge, setShowChallenge] = useState(false)
   const [notifPrefs, setNotifPrefs] = useState<NotificationPrefs | null>(null)
@@ -84,6 +85,7 @@ export default function Profile() {
       })
     })
     api.getStats(targetId).then(s => setRating(s?.rating))
+    api.getChallengeWins(targetId).then(setWins).catch(() => {})
   }, [targetId])
 
   // Load notification prefs for own profile
@@ -379,6 +381,39 @@ export default function Profile() {
                 <button className="btn btn-ghost btn-sm mt-3" style={{ width: '100%' }} onClick={() => navigate('/leaderboards')}>
                   View Community Rankings →
                 </button>
+              </div>
+            </div>
+          )}
+
+          {/* Challenge trophy case */}
+          {wins.length > 0 && (
+            <div className="card mb-4">
+              <div className="card-body">
+                <h3 style={{ fontFamily: 'var(--font-display)', letterSpacing: 1, marginBottom: 16, fontSize: 18 }}>
+                  🏆 CHALLENGES WON ({wins.length})
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {wins.map(w => (
+                    <div
+                      key={w.eventId}
+                      className="clickable"
+                      onClick={() => navigate(`/challenge-events/${w.eventId}`)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',
+                        background: 'var(--bg3)', borderRadius: 10, padding: '10px 14px',
+                        borderLeft: '3px solid var(--accent)'
+                      }}
+                    >
+                      <span style={{ fontSize: 26 }}>🏆</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div className="font-bold" style={{ lineHeight: 1.3 }}>{w.name}</div>
+                        <div className="text-xs text-muted">
+                          Champion · {w.format} · {formatDate(w.date)}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}
