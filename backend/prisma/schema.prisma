@@ -189,6 +189,7 @@ model ChallengeEvent {
   createdBy       String   @map("created_by")
   locationId      String   @map("location_id")
   date            DateTime
+  endTime         DateTime? @map("end_time")
   format          String   // "singles" | "doubles"
   mode            String   @default("rotating") // "rotating" | "king_of_hill"
   rotation        String   @default("americano") // "americano" | "mexicano"

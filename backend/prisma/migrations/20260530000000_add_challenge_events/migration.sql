@@ -9,6 +9,7 @@ CREATE TABLE "challenge_events" (
     "created_by" TEXT NOT NULL,
     "location_id" TEXT NOT NULL,
     "date" TIMESTAMP(3) NOT NULL,
+    "end_time" TIMESTAMP(3),
     "format" TEXT NOT NULL,
     "mode" TEXT NOT NULL DEFAULT 'rotating',
     "rotation" TEXT NOT NULL DEFAULT 'americano',

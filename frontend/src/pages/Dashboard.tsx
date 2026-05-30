@@ -25,11 +25,19 @@ export default function Dashboard() {
   const [latestArticles, setLatestArticles] = useState<any[]>([])
   const [pendingInvites, setPendingInvites] = useState<any[]>([])
   const [inviteActionLoading, setInviteActionLoading] = useState<string | null>(null)
+  const [upcomingEvents, setUpcomingEvents] = useState<any[]>([])
 
   useEffect(() => {
     const today = format(new Date(), 'yyyy-MM-dd')
     const endOfWeek = format(addDays(new Date(), 6), 'yyyy-MM-dd')
     api.getSessions({ date: today, dateTo: endOfWeek }).then(s => { setSessions(s); setLoading(false) })
+    api.getChallengeEvents().then(evs => {
+      const now = Date.now()
+      const upcoming = (evs || [])
+        .filter((e: any) => e.status !== 'completed' && new Date(e.endTime || e.date).getTime() > now - 12 * 3600 * 1000)
+        .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      setUpcomingEvents(upcoming)
+    }).catch(() => {})
     api.getChallenges({ direction: 'received', status: 'pending' })
       .then(setPendingChallenges)
       .catch(() => {})
@@ -103,6 +111,42 @@ export default function Dashboard() {
       </div>
 
       <DisclaimerBox showRotation />
+
+      {/* Upcoming Challenge Events advertisement */}
+      {upcomingEvents.length > 0 && (
+        <div className="section mb-4">
+          <h2 className="section-title">🏆 SATURDAY SUMMER CHALLENGE</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {upcomingEvents.slice(0, 2).map(e => (
+              <div
+                key={e.id}
+                className="card clickable"
+                onClick={() => navigate(`/challenge-events/${e.id}`)}
+                style={{
+                  cursor: 'pointer',
+                  background: 'linear-gradient(135deg, var(--green-700), var(--accent))',
+                  color: 'white', borderColor: 'transparent'
+                }}
+              >
+                <div className="flex items-center justify-between" style={{ flexWrap: 'wrap', gap: 8 }}>
+                  <div>
+                    <div className="font-bold" style={{ fontSize: 18, color: 'white' }}>{e.name}</div>
+                    <div style={{ fontSize: 13, opacity: 0.95, marginTop: 4 }}>
+                      📍 {e.location?.name} · 📅 {format(new Date(e.date), 'EEE MMM d')} · 🕐 {formatTime(e.date)}{e.endTime ? ` – ${formatTime(e.endTime)}` : ''}
+                    </div>
+                    <div style={{ fontSize: 13, opacity: 0.95, marginTop: 2 }}>
+                      {e.format} · {e.mode === 'king_of_hill' ? 'King of the Hill' : e.rotation} · {e._count?.participants ?? 0} signed up
+                    </div>
+                  </div>
+                  <span className="btn btn-sm" style={{ background: 'white', color: 'var(--green-700)', fontWeight: 700 }}>
+                    {e.status === 'active' ? 'View Live →' : 'Join →'}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Quick Actions */}
       <div className="grid-3 mb-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))' }}>

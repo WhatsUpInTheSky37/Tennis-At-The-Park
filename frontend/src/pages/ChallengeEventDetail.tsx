@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useAuth } from '../store/auth'
-import { formatDateTime } from '../lib/utils'
+import { formatDateTime, formatTime } from '../lib/utils'
 
 type Game = {
   court: number
@@ -83,7 +83,7 @@ export default function ChallengeEventDetail() {
         </div>
         <div className="session-meta">
           <span>📍 {event.location?.name}</span>
-          <span>🕐 {formatDateTime(event.date)}</span>
+          <span>🕐 {formatDateTime(event.date)}{event.endTime ? ` – ${formatTime(event.endTime)}` : ''}</span>
           <span>🎾 {event.format} · {event.courts} court{event.courts > 1 ? 's' : ''}</span>
           <span>🏆 {event.mode === 'king_of_hill' ? `King of the Hill (max ${event.maxHillWins} wins)` : event.rotation}</span>
           {event.affectsElo && <span>📈 Counts toward Elo</span>}

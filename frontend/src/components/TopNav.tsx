@@ -25,7 +25,7 @@ export default function TopNav() {
   const links = [
     { to: '/dashboard', label: 'Dashboard' },
     { to: '/activity', label: 'Activity' },
-    { to: '/challenge-events', label: 'Challenges' },
+    { to: '/challenge-events', label: 'Events' },
     { to: '/players', label: 'Find Players' },
     { to: '/messages', label: 'Messages', badge: unreadDms },
     { to: '/forum', label: 'Forum' },

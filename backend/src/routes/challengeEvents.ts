@@ -17,10 +17,11 @@ const createSchema = z.object({
   name: z.string().min(1).max(120),
   locationId: z.string(),
   date: z.string().datetime(),
+  endTime: z.string().datetime().nullable().optional(),
   format: z.enum(['singles', 'doubles']),
   mode: z.enum(['rotating', 'king_of_hill']).default('rotating'),
   rotation: z.enum(['americano', 'mexicano']).default('americano'),
-  courts: z.number().int().min(1).max(12).default(2),
+  courts: z.number().int().min(1).max(16).default(2),
   scoring: z.enum(['first_to_4', 'pro_set_8', 'tb_7', 'tb_10']).default('first_to_4'),
   pointsPerWin: z.number().int().min(1).max(10).default(1),
   affectsElo: z.boolean().default(true),
@@ -69,9 +70,10 @@ export async function challengeEventRoutes(server: FastifyInstance) {
     return events
   })
 
-  // Create event
+  // Create event (admins only)
   server.post('/', { preHandler: [(server as any).authenticate] }, async (req, reply) => {
-    const { userId } = (req as any).user
+    const { userId, isAdmin } = (req as any).user
+    if (!isAdmin) return reply.status(403).send({ error: 'Only admins can create challenge events' })
     if (!await checkEnforcement(userId, reply)) return
     const body = createSchema.safeParse(req.body)
     if (!body.success) return reply.status(400).send({ error: body.error.flatten() })
@@ -86,6 +88,7 @@ export async function challengeEventRoutes(server: FastifyInstance) {
         createdBy: userId,
         locationId: data.locationId,
         date: new Date(data.date),
+        endTime: data.endTime ? new Date(data.endTime) : null,
         format: data.format,
         mode: data.mode,
         rotation: data.rotation,

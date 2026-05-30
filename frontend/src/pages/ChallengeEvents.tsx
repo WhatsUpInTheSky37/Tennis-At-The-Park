@@ -2,13 +2,27 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useAuth } from '../store/auth'
-import { formatDateTime } from '../lib/utils'
+import { formatDate, formatTime } from '../lib/utils'
 
 const SCORING_LABELS: Record<string, string> = {
   first_to_4: 'First to 4 games',
   pro_set_8: '8-game pro set',
   tb_7: '7-point tiebreak',
   tb_10: '10-point tiebreak'
+}
+
+// Local <input type="datetime-local"> value for a date at a given hour.
+function localInput(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+function nextSaturdayAt(hour: number): string {
+  const d = new Date()
+  const day = d.getDay() // 0 Sun ... 6 Sat
+  const add = (6 - day + 7) % 7 || 7 // always the upcoming Saturday
+  d.setDate(d.getDate() + add)
+  d.setHours(hour, 0, 0, 0)
+  return localInput(d)
 }
 
 export default function ChallengeEvents() {
@@ -24,16 +38,19 @@ export default function ChallengeEvents() {
   const [form, setForm] = useState({
     name: 'Saturday Summer Challenge',
     locationId: '',
-    date: '',
+    date: nextSaturdayAt(10),
+    endTime: nextSaturdayAt(20),
     format: 'doubles',
     mode: 'rotating',
     rotation: 'americano',
-    courts: 2,
+    courts: 4,
     scoring: 'first_to_4',
     pointsPerWin: 1,
     affectsElo: true,
     maxHillWins: 3
   })
+
+  const isAdmin = !!user?.isAdmin
 
   const load = () => {
     setLoading(true)
@@ -42,8 +59,17 @@ export default function ChallengeEvents() {
 
   useEffect(() => {
     load()
-    api.getLocations().then(setLocations).catch(() => {})
+    api.getLocations().then(locs => {
+      setLocations(locs)
+      // Default to City Park when available.
+      const cityPark = locs.find((l: any) => /city park/i.test(l.name)) || locs[0]
+      if (cityPark) setForm(f => ({ ...f, locationId: f.locationId || cityPark.id }))
+    }).catch(() => {})
   }, [])
+
+  const timeWindow = (e: any) => e.endTime
+    ? `${formatTime(e.date)} – ${formatTime(e.endTime)}`
+    : formatTime(e.date)
 
   const create = async () => {
     setError('')
@@ -56,6 +82,7 @@ export default function ChallengeEvents() {
         name: form.name.trim(),
         locationId: form.locationId,
         date: new Date(form.date).toISOString(),
+        endTime: form.endTime ? new Date(form.endTime).toISOString() : null,
         format: form.format,
         mode: form.mode,
         rotation: form.rotation,
@@ -87,7 +114,7 @@ export default function ChallengeEvents() {
           <h1 className="page-title">CHALLENGE EVENTS</h1>
           <p className="page-subtitle">Saturday round-robins & king-of-the-hill challenges</p>
         </div>
-        {user && <button className="btn btn-primary" onClick={() => setShowCreate(true)}>+ New Event</button>}
+        {isAdmin && <button className="btn btn-primary" onClick={() => setShowCreate(true)}>+ New Event</button>}
       </div>
 
       {loading ? (
@@ -96,8 +123,10 @@ export default function ChallengeEvents() {
         <div className="empty-state">
           <div className="icon" style={{ fontSize: 48 }}>🎾</div>
           <h3>No challenge events yet</h3>
-          <p>Create a Saturday Challenge and invite players to a fast, rotating format.</p>
-          {user && <button className="btn btn-primary mt-4" onClick={() => setShowCreate(true)}>Create Event</button>}
+          <p>{isAdmin
+            ? 'Create a Saturday Challenge and invite players to a fast, rotating format.'
+            : 'Check back soon — organizers post upcoming Saturday Challenges here.'}</p>
+          {isAdmin && <button className="btn btn-primary mt-4" onClick={() => setShowCreate(true)}>Create Event</button>}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -114,7 +143,8 @@ export default function ChallengeEvents() {
               <div className="font-bold" style={{ fontSize: 17 }}>{e.name}</div>
               <div className="session-meta mt-2">
                 <span>📍 {e.location?.name}</span>
-                <span>🕐 {formatDateTime(e.date)}</span>
+                <span>📅 {formatDate(e.date)}</span>
+                <span>🕐 {timeWindow(e)}</span>
                 <span>🎾 {e.courts} court{e.courts > 1 ? 's' : ''}</span>
               </div>
             </div>
@@ -143,9 +173,15 @@ export default function ChallengeEvents() {
               </select>
             </div>
 
-            <div className="form-group">
-              <label>Date & time</label>
-              <input type="datetime-local" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} />
+            <div className="flex gap-2">
+              <div className="form-group" style={{ flex: 1 }}>
+                <label>Starts</label>
+                <input type="datetime-local" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} />
+              </div>
+              <div className="form-group" style={{ flex: 1 }}>
+                <label>Ends</label>
+                <input type="datetime-local" value={form.endTime} onChange={e => setForm({ ...form, endTime: e.target.value })} />
+              </div>
             </div>
 
             <div className="flex gap-2">
@@ -158,7 +194,7 @@ export default function ChallengeEvents() {
               </div>
               <div className="form-group" style={{ flex: 1 }}>
                 <label>Courts</label>
-                <input type="number" min={1} max={12} value={form.courts} onChange={e => setForm({ ...form, courts: Number(e.target.value) })} />
+                <input type="number" min={1} max={16} value={form.courts} onChange={e => setForm({ ...form, courts: Number(e.target.value) })} />
               </div>
             </div>
 
