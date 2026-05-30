@@ -321,6 +321,11 @@ export default function Landing() {
             Court Etiquette Rules
           </button>
         </div>
+
+        <div style={{ marginTop: 28, paddingTop: 16, borderTop: '1px solid var(--border)', textAlign: 'center', fontSize: '0.8rem', color: 'var(--text3)' }}>
+          Copyright 2026 · Will Farrar · Find me at{' '}
+          <a href="https://www.willfarrar.net" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>www.willfarrar.net</a>
+        </div>
       </div>
     </div>
   )

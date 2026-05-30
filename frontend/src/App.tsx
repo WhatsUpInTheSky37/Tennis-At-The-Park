@@ -119,6 +119,10 @@ function AppShell() {
       <footer className="app-footer">
         <img src="/tennis-at-the-park.png" alt="Tennis at the Park" style={{ width: '55%', maxWidth: 320, borderRadius: '50%', objectFit: 'cover', marginBottom: 8 }} />
         <div>Tennis at the Park created by Will Farrar</div>
+        <div style={{ marginTop: 6, fontSize: '0.75rem' }}>
+          Copyright 2026 · Will Farrar · Find me at{' '}
+          <a href="https://www.willfarrar.net" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>www.willfarrar.net</a>
+        </div>
       </footer>
       <BottomNav />
     </div>
