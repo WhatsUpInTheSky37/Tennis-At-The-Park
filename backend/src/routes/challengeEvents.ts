@@ -169,9 +169,10 @@ export async function challengeEventRoutes(server: FastifyInstance) {
     if (event.status === 'completed') return reply.status(400).send({ error: 'Event is over' })
     await prisma.challengeParticipant.upsert({
       where: { eventId_userId: { eventId: id, userId } },
-      create: { eventId: id, userId },
+      create: { eventId: id, userId, sitCount: await fairSitCount(id, event.status) },
       update: { status: 'active' }
     })
+    await syncKothQueueAdd(event, userId)
     return { ok: true }
   })
 
@@ -186,11 +187,12 @@ export async function challengeEventRoutes(server: FastifyInstance) {
     } else {
       // Mid-event: mark withdrawn so they're excluded from future rounds but keep their record.
       await prisma.challengeParticipant.updateMany({ where: { eventId: id, userId }, data: { status: 'withdrawn' } })
+      await syncKothQueueRemove(event, userId)
     }
     return { ok: true }
   })
 
-  // Add a player (organizer)
+  // Add a player (organizer) — works during setup AND mid-event
   server.post('/:id/participants', { preHandler: [(server as any).authenticate] }, async (req, reply) => {
     const user = (req as any).user
     const { id } = req.params as { id: string }
@@ -198,12 +200,14 @@ export async function challengeEventRoutes(server: FastifyInstance) {
     const event = await prisma.challengeEvent.findUnique({ where: { id } })
     if (!event) return reply.status(404).send({ error: 'Not found' })
     if (!isOrganizer(event, user)) return reply.status(403).send({ error: 'Organizer only' })
+    if (event.status === 'completed') return reply.status(400).send({ error: 'Event is over' })
     if (!addId) return reply.status(400).send({ error: 'userId required' })
     await prisma.challengeParticipant.upsert({
       where: { eventId_userId: { eventId: id, userId: addId } },
-      create: { eventId: id, userId: addId },
+      create: { eventId: id, userId: addId, sitCount: await fairSitCount(id, event.status) },
       update: { status: 'active' }
     })
+    await syncKothQueueAdd(event, addId)
     return { ok: true }
   })
 
@@ -218,6 +222,7 @@ export async function challengeEventRoutes(server: FastifyInstance) {
       await prisma.challengeParticipant.deleteMany({ where: { eventId: id, userId: removeId } })
     } else {
       await prisma.challengeParticipant.updateMany({ where: { eventId: id, userId: removeId }, data: { status: 'withdrawn' } })
+      await syncKothQueueRemove(event, removeId)
     }
     return { ok: true }
   })
@@ -466,6 +471,35 @@ export async function challengeEventRoutes(server: FastifyInstance) {
     await prisma.challengeEvent.delete({ where: { id } })
     return reply.status(204).send()
   })
+}
+
+// A walk-in joining mid-event shouldn't be benched first: seed their sit-count to
+// the current max among active players so they get into the rotation right away.
+async function fairSitCount(eventId: string, status: string): Promise<number> {
+  if (status !== 'active') return 0
+  const parts = await prisma.challengeParticipant.findMany({
+    where: { eventId, status: 'active' }, select: { sitCount: true }
+  })
+  return parts.reduce((m, p) => Math.max(m, p.sitCount), 0)
+}
+
+// King of the hill: keep the live queue in sync when players come and go mid-event.
+async function syncKothQueueAdd(event: { id: string; mode: string; status: string; currentRoundJson: any }, userId: string) {
+  if (event.mode !== 'king_of_hill' || event.status !== 'active') return
+  const round = event.currentRoundJson as RoundPlan | null
+  if (!round) return
+  const onCourt = round.games.some(g => [...g.teamA, ...g.teamB].includes(userId))
+  if (onCourt || round.byes.includes(userId)) return
+  round.byes = [...round.byes, userId]
+  await prisma.challengeEvent.update({ where: { id: event.id }, data: { currentRoundJson: round as any } })
+}
+
+async function syncKothQueueRemove(event: { id: string; mode: string; status: string; currentRoundJson: any }, userId: string) {
+  if (event.mode !== 'king_of_hill' || event.status !== 'active') return
+  const round = event.currentRoundJson as RoundPlan | null
+  if (!round || !round.byes.includes(userId)) return
+  round.byes = round.byes.filter(u => u !== userId)
+  await prisma.challengeEvent.update({ where: { id: event.id }, data: { currentRoundJson: round as any } })
 }
 
 // Build a map of locked doubles partners from active participants.

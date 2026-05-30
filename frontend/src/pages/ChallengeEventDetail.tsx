@@ -49,7 +49,7 @@ export default function ChallengeEventDetail() {
   const standings: any[] = event.standings || []
   const round = event.round as { round: number; games: Game[]; byes: string[] } | null
   const inEvent = standings.some(s => s.userId === user?.id && s.status !== 'withdrawn')
-  const participantIds = new Set(standings.map(s => s.userId))
+  const participantIds = new Set(standings.filter(s => s.status !== 'withdrawn').map(s => s.userId))
   const addable = players.filter(p => !participantIds.has(p.userId))
 
   const act = async (fn: () => Promise<any>) => {
@@ -118,16 +118,16 @@ export default function ChallengeEventDetail() {
         </div>
       )}
 
-      {/* SETUP: roster management */}
-      {event.status === 'setup' && (
+      {/* Roster management — during setup (everyone) and mid-event (organizer, for walk-ins / early leavers) */}
+      {(event.status === 'setup' || (event.status === 'active' && isOrganizer)) && (
         <div className="card mb-4">
-          <h3 className="mb-2">Roster ({standings.length})</h3>
+          <h3 className="mb-2">{event.status === 'active' ? 'Manage Players' : 'Roster'} ({standings.filter(s => s.status !== 'withdrawn').length})</h3>
           {standings.length === 0 && <p className="text-sm text-muted">No players yet.</p>}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {standings.map(s => (
-              <span key={s.userId} className="badge badge-blue" style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
-                {s.displayName}
-                {isOrganizer && (
+              <span key={s.userId} className={`badge ${s.status === 'withdrawn' ? 'badge-gray' : 'badge-blue'}`} style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+                {s.displayName}{s.status === 'withdrawn' ? ' (out)' : ''}
+                {isOrganizer && s.status !== 'withdrawn' && (
                   <button onClick={() => act(() => api.removeChallengeEventPlayer(id!, s.userId))}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', padding: 0 }}>✕</button>
                 )}
@@ -145,10 +145,18 @@ export default function ChallengeEventDetail() {
                 <button className="btn btn-secondary btn-sm" disabled={!addId || busy}
                   onClick={() => act(async () => { await api.addChallengeEventPlayer(id!, addId); setAddId('') })}>Add</button>
               </div>
-              <button className="btn btn-primary mt-3" disabled={busy}
-                onClick={() => act(() => api.startChallengeEvent(id!))}>
-                🎲 Randomize & Start Round 1
-              </button>
+              {event.status === 'setup' ? (
+                <button className="btn btn-primary mt-3" disabled={busy}
+                  onClick={() => act(() => api.startChallengeEvent(id!))}>
+                  🎲 Randomize & Start Round 1
+                </button>
+              ) : (
+                <p className="text-xs text-muted mt-2">
+                  {event.mode === 'king_of_hill'
+                    ? 'Walk-ins join the queue right away; removed players drop out after their current game.'
+                    : 'Walk-ins join the next round; removed players drop out after the current round.'}
+                </p>
+              )}
             </>
           )}
         </div>
