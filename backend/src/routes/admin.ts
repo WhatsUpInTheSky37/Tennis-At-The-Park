@@ -257,4 +257,30 @@ export async function adminRoutes(server: FastifyInstance) {
       orderBy: { createdAt: 'asc' }
     })
   })
+
+  // Reset all player stats to a clean slate (test-phase tool, admin only).
+  // Body: { deleteMatches?: boolean } — also wipes recorded matches if true.
+  server.post('/reset-stats', { preHandler }, async (req) => {
+    const { deleteMatches } = (req.body || {}) as { deleteMatches?: boolean }
+
+    // Zero out every rating: Elo back to 1200, counters to 0.
+    const resetRatings = await prisma.rating.updateMany({
+      data: { elo: 1200, matchesPlayed: 0, wins: 0, losses: 0, currentStreak: 0 }
+    })
+
+    let deletedMatches = 0
+    if (deleteMatches) {
+      const ids = (await prisma.match.findMany({ select: { id: true } })).map(m => m.id)
+      if (ids.length) {
+        await prisma.dispute.deleteMany({ where: { matchId: { in: ids } } })
+        await prisma.report.deleteMany({ where: { matchId: { in: ids } } })
+        // Unlink any challenges that pointed at these matches.
+        await prisma.challenge.updateMany({ where: { matchId: { in: ids } }, data: { matchId: null } })
+        const del = await prisma.match.deleteMany({})
+        deletedMatches = del.count
+      }
+    }
+
+    return { ok: true, ratingsReset: resetRatings.count, matchesDeleted: deletedMatches }
+  })
 }

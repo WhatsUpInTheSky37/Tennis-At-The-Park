@@ -197,6 +197,8 @@ export default function Admin() {
   const [loading, setLoading] = useState(true)
   const [usersLoading, setUsersLoading] = useState(false)
   const [openUserId, setOpenUserId] = useState<string | null>(null)
+  const [resetting, setResetting] = useState(false)
+  const [resetMsg, setResetMsg] = useState('')
 
   useEffect(() => {
     Promise.all([api.adminGetReports(), api.adminGetDisputes()])
@@ -424,6 +426,37 @@ export default function Admin() {
           )}
         </div>
       )}
+
+      {/* Danger zone — reset all player stats (test phase) */}
+      <div className="card mt-4" style={{ borderColor: 'var(--red)' }}>
+        <div className="card-body">
+          <h3 style={{ fontFamily: 'var(--font-display)', letterSpacing: 1, fontSize: 18, color: 'var(--red)', marginBottom: 6 }}>
+            ⚠️ RESET PLAYER STATS
+          </h3>
+          <p className="text-sm text-muted" style={{ marginBottom: 12 }}>
+            Sets <strong>every player's</strong> Elo back to 1200 and zeroes out wins, losses, streaks, and match count —
+            and deletes all recorded matches. Use this to wipe accidental/test results. <strong>This cannot be undone.</strong>
+          </p>
+          {resetMsg && <p className="text-sm" style={{ color: 'var(--accent)', marginBottom: 12 }}>{resetMsg}</p>}
+          <button
+            className="btn btn-danger btn-sm"
+            disabled={resetting}
+            onClick={async () => {
+              if (!confirm('Reset ALL player stats (Elo, W-L, streaks, match count) and delete all recorded matches? This cannot be undone.')) return
+              if (prompt('Type RESET to confirm:') !== 'RESET') { setResetMsg('Cancelled — confirmation text did not match.'); return }
+              setResetting(true); setResetMsg('')
+              try {
+                const r = await api.adminResetStats(true)
+                setResetMsg(`Done — reset ${r.ratingsReset} player records and deleted ${r.matchesDeleted} matches.`)
+              } catch (e: any) {
+                setResetMsg('Error: ' + (e.message || 'failed'))
+              } finally { setResetting(false) }
+            }}
+          >
+            {resetting ? 'Resetting…' : 'Reset all player stats'}
+          </button>
+        </div>
+      </div>
 
       {openUserId && (
         <UserDetailModal
