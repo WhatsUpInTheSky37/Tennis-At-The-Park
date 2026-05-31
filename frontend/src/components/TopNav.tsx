@@ -30,6 +30,7 @@ export default function TopNav() {
     { to: '/messages', label: 'Messages', badge: unreadDms },
     { to: '/forum', label: 'Forum' },
     { to: '/articles', label: 'Articles' },
+    ...(user?.isAdmin ? [{ to: '/admin', label: '🛠️ Admin' }] : []),
     { to: '/notifications', label: '🔔', badge: unreadNotifs },
   ]
 
