@@ -16,6 +16,26 @@ export function formatRelative(d: string | Date) {
   return formatDistanceToNow(new Date(d), { addSuffix: true })
 }
 
+// Profile cover-banner gradient presets, shared by Profile + Find Players.
+export const BANNER_PRESETS: Record<string, string> = {
+  court: 'linear-gradient(135deg, #0b3d2e 0%, #0a0c0f 100%)',
+  night: 'linear-gradient(135deg, #0c1a3a 0%, #05060a 100%)',
+  sunset: 'linear-gradient(135deg, #ff7e3f 0%, #7a1f4b 100%)',
+  clay: 'linear-gradient(135deg, #c1572e 0%, #2a1611 100%)',
+  grass: 'linear-gradient(135deg, #2f7d32 0%, #0c2a14 100%)',
+  hardcourt: 'linear-gradient(135deg, #1d6fb8 0%, #0a1a2a 100%)',
+}
+export const DEFAULT_BANNER = 'court'
+export function bannerStyle(key?: string | null): string {
+  return BANNER_PRESETS[key || DEFAULT_BANNER] || BANNER_PRESETS[DEFAULT_BANNER]
+}
+
+// A player is "online" if active within the last 5 minutes.
+export function isOnline(lastActive?: string | Date | null): boolean {
+  if (!lastActive) return false
+  return Date.now() - new Date(lastActive).getTime() < 5 * 60 * 1000
+}
+
 export function isAfterDark(d: string | Date, afterDarkHour = 20): boolean {
   const dt = new Date(d)
   return dt.getHours() >= afterDarkHour

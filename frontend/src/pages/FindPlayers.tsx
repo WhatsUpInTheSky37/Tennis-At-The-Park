@@ -2,15 +2,11 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useAuth } from '../store/auth'
-import { getInitials, formatSkill, skillLabel } from '../lib/utils'
+import { getInitials, formatSkill, skillLabel, bannerStyle, isOnline as isOnlineTs } from '../lib/utils'
 import SkillDisplay from '../components/SkillDisplay'
 import ChallengeModal from '../components/ChallengeModal'
 
-const isOnline = (p: any) => {
-  const lastActive = p.user?.lastActive
-  if (!lastActive) return false
-  return Date.now() - new Date(lastActive).getTime() < 5 * 60 * 1000
-}
+const isOnline = (p: any) => isOnlineTs(p.user?.lastActive)
 
 export default function FindPlayers() {
   const navigate = useNavigate()
@@ -56,15 +52,25 @@ export default function FindPlayers() {
             if (sortBy === 'rank') return (b.user?.rating?.elo || 0) - (a.user?.rating?.elo || 0)
             return (a.displayName || '').localeCompare(b.displayName || '')
           }).map(p => (
-            <div key={p.userId} className="card" style={{ cursor: 'pointer' }} onClick={() => navigate(`/profile/${p.userId}`)}>
+            <div key={p.userId} className="card" style={{ cursor: 'pointer', padding: 0, overflow: 'hidden' }} onClick={() => navigate(`/profile/${p.userId}`)}>
+              <div style={{ height: 32, background: bannerStyle(p.bannerColor) }} />
+              <div style={{ padding: 16 }}>
               <div className="flex gap-3" style={{ alignItems: 'flex-start' }}>
-                <div className="avatar" style={{
-                  width: 56, height: 56, minWidth: 56, fontSize: 18,
-                  background: 'var(--accent-dim)', borderRadius: '50%',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  overflow: 'hidden', border: '2px solid var(--accent)', flexShrink: 0,
-                }}>
-                  {p.photoUrl ? <img src={p.photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : getInitials(p.displayName || '?')}
+                <div style={{ position: 'relative', flexShrink: 0 }}>
+                  <div className="avatar" style={{
+                    width: 56, height: 56, minWidth: 56, fontSize: 18,
+                    background: 'var(--accent-dim)', borderRadius: '50%',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    overflow: 'hidden', border: '2px solid var(--accent)',
+                  }}>
+                    {p.photoUrl ? <img src={p.photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : getInitials(p.displayName || '?')}
+                  </div>
+                  {isOnline(p) && (
+                    <span title="Online now" style={{
+                      position: 'absolute', bottom: 0, right: 0, width: 14, height: 14, borderRadius: '50%',
+                      background: 'var(--accent)', border: '2px solid var(--bg2)', boxShadow: '0 0 6px var(--accent)'
+                    }} />
+                  )}
                 </div>
                 <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
                   <div className="flex items-center gap-2 mb-1" style={{ flexWrap: 'wrap' }}>
@@ -129,6 +135,7 @@ export default function FindPlayers() {
                     </div>
                   )}
                 </div>
+              </div>
               </div>
             </div>
           ))}

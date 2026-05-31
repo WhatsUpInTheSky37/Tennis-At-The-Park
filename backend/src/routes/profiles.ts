@@ -68,7 +68,7 @@ export async function profileRoutes(server: FastifyInstance) {
     const { userId } = req.params as { userId: string }
     return prisma.profile.findUnique({
       where: { userId },
-      include: { user: { select: { id: true, createdAt: true } } }
+      include: { user: { select: { id: true, createdAt: true, lastActive: true } } }
     })
   })
 }

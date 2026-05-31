@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useAuth } from '../store/auth'
-import { skillLabel, getInitials, formatDate } from '../lib/utils'
+import { skillLabel, getInitials, formatDate, formatRelative, BANNER_PRESETS, DEFAULT_BANNER, bannerStyle, isOnline } from '../lib/utils'
 import SkillDisplay from '../components/SkillDisplay'
 import ChallengeModal from '../components/ChallengeModal'
 
@@ -21,17 +21,6 @@ const AVAILABILITY_OPTIONS = [
   'Weekend Afternoons',
   'Weekend Evenings',
 ]
-
-const BANNER_PRESETS: Record<string, string> = {
-  court: 'linear-gradient(135deg, #0b3d2e 0%, #0a0c0f 100%)',
-  night: 'linear-gradient(135deg, #0c1a3a 0%, #05060a 100%)',
-  sunset: 'linear-gradient(135deg, #ff7e3f 0%, #7a1f4b 100%)',
-  clay: 'linear-gradient(135deg, #c1572e 0%, #2a1611 100%)',
-  grass: 'linear-gradient(135deg, #2f7d32 0%, #0c2a14 100%)',
-  hardcourt: 'linear-gradient(135deg, #1d6fb8 0%, #0a1a2a 100%)',
-}
-const DEFAULT_BANNER = 'court'
-const bannerStyle = (key?: string | null) => BANNER_PRESETS[key || DEFAULT_BANNER] || BANNER_PRESETS[DEFAULT_BANNER]
 
 const HOME_COURTS = ['City Park Courts', 'Winterplace Park Courts']
 const PLAY_STYLES = ['Baseliner', 'Serve & Volley', 'All-Court', 'Counterpuncher', 'Aggressive']
@@ -309,7 +298,17 @@ export default function Profile() {
                 </span>
                 {profile?.homeCourt && <span className="badge badge-blue">📍 {profile.homeCourt.replace(' Courts', '')}</span>}
               </div>
-              <div className="text-xs text-muted mt-2">
+              <div className="flex items-center gap-2 mt-2" style={{ flexWrap: 'wrap' }}>
+                {isOnline(profile?.user?.lastActive) ? (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 700, color: 'var(--accent)' }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent)', boxShadow: '0 0 6px var(--accent)' }} />
+                    Online now
+                  </span>
+                ) : profile?.user?.lastActive ? (
+                  <span className="text-xs text-muted">Active {formatRelative(profile.user.lastActive)}</span>
+                ) : null}
+              </div>
+              <div className="text-xs text-muted mt-1">
                 {stats?.rank ? `Rank #${stats.rank} of ${stats.totalRanked} · ` : ''}
                 {profile?.user?.createdAt ? `Member since ${formatDate(profile.user.createdAt)}` : ''}
               </div>
