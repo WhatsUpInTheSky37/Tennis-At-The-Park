@@ -434,20 +434,21 @@ export default function Admin() {
             ⚠️ RESET PLAYER STATS
           </h3>
           <p className="text-sm text-muted" style={{ marginBottom: 12 }}>
-            Sets <strong>every player's</strong> Elo back to 1200 and zeroes out wins, losses, streaks, and match count —
-            and deletes all recorded matches. Use this to wipe accidental/test results. <strong>This cannot be undone.</strong>
+            Sets <strong>every player's</strong> Elo back to 1200 and zeroes out wins, losses, streaks, and match count;
+            deletes all recorded matches; and removes all Challenge Events (and their champion trophies).
+            Use this to wipe accidental/test results for a clean slate. <strong>This cannot be undone.</strong>
           </p>
           {resetMsg && <p className="text-sm" style={{ color: 'var(--accent)', marginBottom: 12 }}>{resetMsg}</p>}
           <button
             className="btn btn-danger btn-sm"
             disabled={resetting}
             onClick={async () => {
-              if (!confirm('Reset ALL player stats (Elo, W-L, streaks, match count) and delete all recorded matches? This cannot be undone.')) return
+              if (!confirm('Reset ALL player stats (Elo, W-L, streaks, match count), delete all recorded matches, AND remove all Challenge Events? This cannot be undone.')) return
               if (prompt('Type RESET to confirm:') !== 'RESET') { setResetMsg('Cancelled — confirmation text did not match.'); return }
               setResetting(true); setResetMsg('')
               try {
-                const r = await api.adminResetStats(true)
-                setResetMsg(`Done — reset ${r.ratingsReset} player records and deleted ${r.matchesDeleted} matches.`)
+                const r = await api.adminResetStats(true, true)
+                setResetMsg(`Done — reset ${r.ratingsReset} player records, deleted ${r.matchesDeleted} matches and ${r.eventsDeleted} events.`)
               } catch (e: any) {
                 setResetMsg('Error: ' + (e.message || 'failed'))
               } finally { setResetting(false) }

@@ -227,8 +227,8 @@ export const api = {
   adminWarnUser: (id: string, notes: string) => request<any>(`/admin/users/${id}/warn`, { method: 'POST', body: JSON.stringify({ notes }) }),
   adminSuspendUser: (id: string, suspended: boolean) => request<any>(`/admin/users/${id}/suspend`, { method: 'POST', body: JSON.stringify({ suspended }) }),
   adminGetDisputes: () => request<any[]>('/admin/disputes'),
-  adminResetStats: (deleteMatches: boolean) =>
-    request<{ ok: boolean; ratingsReset: number; matchesDeleted: number }>('/admin/reset-stats', { method: 'POST', body: JSON.stringify({ deleteMatches }) }),
+  adminResetStats: (deleteMatches: boolean, deleteEvents: boolean) =>
+    request<{ ok: boolean; ratingsReset: number; matchesDeleted: number; eventsDeleted: number }>('/admin/reset-stats', { method: 'POST', body: JSON.stringify({ deleteMatches, deleteEvents }) }),
   adminResolveDispute: (id: string, status: string) => request<any>(`/admin/disputes/${id}/resolve`, { method: 'POST', body: JSON.stringify({ status }) }),
   adminGetUsers: (search?: string) => {
     const q = search ? '?search=' + encodeURIComponent(search) : ''
