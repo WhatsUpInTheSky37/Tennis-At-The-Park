@@ -122,14 +122,11 @@ export default function ChallengeEventDetail() {
       courts: Number(edit.courts),
       scoring: edit.scoring,
       pointsPerWin: Number(edit.pointsPerWin),
-      affectsElo: edit.affectsElo
-    }
-    // Structural settings can only change before the event starts.
-    if (event.status === 'setup') {
-      payload.format = edit.format
-      payload.mode = edit.mode
-      payload.rotation = edit.rotation
-      payload.maxHillWins = edit.mode === 'king_of_hill' ? Number(edit.maxHillWins) : null
+      affectsElo: edit.affectsElo,
+      format: edit.format,
+      mode: edit.mode,
+      rotation: edit.rotation,
+      maxHillWins: edit.mode === 'king_of_hill' ? Number(edit.maxHillWins) : null
     }
     await act(async () => { await api.updateChallengeEvent(id!, payload); setEditing(false) })
   }
@@ -229,47 +226,41 @@ export default function ChallengeEventDetail() {
               </div>
             </div>
 
+            <div className="flex gap-2" style={{ flexWrap: 'wrap' }}>
+              <div className="form-group" style={{ margin: 0, flex: 1, minWidth: 130 }}>
+                <label>Format</label>
+                <select value={edit.format} onChange={e => setEdit({ ...edit, format: e.target.value })}>
+                  <option value="singles">Singles</option>
+                  <option value="doubles">Doubles</option>
+                </select>
+              </div>
+              <div className="form-group" style={{ margin: 0, flex: 1, minWidth: 130 }}>
+                <label>Mode</label>
+                <select value={edit.mode} onChange={e => setEdit({ ...edit, mode: e.target.value })}>
+                  <option value="rotating">Rotating</option>
+                  <option value="king_of_hill">King of the Hill</option>
+                </select>
+              </div>
+              {edit.mode === 'king_of_hill' ? (
+                <div className="form-group" style={{ margin: 0, flex: 1, minWidth: 130 }}>
+                  <label>Max hill wins</label>
+                  <input type="number" min={1} max={20} value={edit.maxHillWins}
+                    onChange={e => setEdit({ ...edit, maxHillWins: Number(e.target.value) })} />
+                </div>
+              ) : (
+                <div className="form-group" style={{ margin: 0, flex: 1, minWidth: 130 }}>
+                  <label>Rotation</label>
+                  <select value={edit.rotation} onChange={e => setEdit({ ...edit, rotation: e.target.value })}>
+                    <option value="americano">Americano</option>
+                    <option value="mexicano">Mexicano</option>
+                  </select>
+                </div>
+              )}
+            </div>
+
             {event.status === 'active' && (
               <p className="text-xs text-muted" style={{ margin: 0 }}>
-                Changing the court count takes effect from the <strong>next round</strong> — the current round keeps its games.
-              </p>
-            )}
-
-            {event.status === 'setup' ? (
-              <div className="flex gap-2" style={{ flexWrap: 'wrap' }}>
-                <div className="form-group" style={{ margin: 0, flex: 1, minWidth: 130 }}>
-                  <label>Format</label>
-                  <select value={edit.format} onChange={e => setEdit({ ...edit, format: e.target.value })}>
-                    <option value="singles">Singles</option>
-                    <option value="doubles">Doubles</option>
-                  </select>
-                </div>
-                <div className="form-group" style={{ margin: 0, flex: 1, minWidth: 130 }}>
-                  <label>Mode</label>
-                  <select value={edit.mode} onChange={e => setEdit({ ...edit, mode: e.target.value })}>
-                    <option value="rotating">Rotating</option>
-                    <option value="king_of_hill">King of the Hill</option>
-                  </select>
-                </div>
-                {edit.mode === 'king_of_hill' ? (
-                  <div className="form-group" style={{ margin: 0, flex: 1, minWidth: 130 }}>
-                    <label>Max hill wins</label>
-                    <input type="number" min={1} max={20} value={edit.maxHillWins}
-                      onChange={e => setEdit({ ...edit, maxHillWins: Number(e.target.value) })} />
-                  </div>
-                ) : (
-                  <div className="form-group" style={{ margin: 0, flex: 1, minWidth: 130 }}>
-                    <label>Rotation</label>
-                    <select value={edit.rotation} onChange={e => setEdit({ ...edit, rotation: e.target.value })}>
-                      <option value="americano">Americano</option>
-                      <option value="mexicano">Mexicano</option>
-                    </select>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <p className="text-xs text-muted" style={{ margin: 0 }}>
-                Format, mode, and rotation are locked once the event has started.
+                Structural changes (courts, format, mode, rotation) take effect from the <strong>next round</strong> — the current round keeps its games. To apply them now, finish or skip to the next round.
               </p>
             )}
 
