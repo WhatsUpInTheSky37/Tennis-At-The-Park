@@ -35,6 +35,24 @@ const scoreSchema = z.object({
   scoreB: z.number().int().min(0).max(99)
 })
 
+// Editing an existing event. All fields optional (partial update). Structural
+// fields (format/mode/rotation) can only change before the event starts — see
+// the handler — because rounds/pairs are already built around them once active.
+const updateSchema = z.object({
+  name: z.string().min(1).max(120).optional(),
+  locationId: z.string().optional(),
+  date: z.string().datetime().optional(),
+  endTime: z.string().datetime().nullable().optional(),
+  format: z.enum(['singles', 'doubles']).optional(),
+  mode: z.enum(['rotating', 'king_of_hill']).optional(),
+  rotation: z.enum(['americano', 'mexicano']).optional(),
+  courts: z.number().int().min(1).max(16).optional(),
+  scoring: z.enum(['first_to_4', 'pro_set_8', 'tb_7', 'tb_10']).optional(),
+  pointsPerWin: z.number().int().min(1).max(10).optional(),
+  affectsElo: z.boolean().optional(),
+  maxHillWins: z.number().int().min(1).max(20).nullable().optional()
+})
+
 type RoundJson = RoundPlan | null
 
 function isOrganizer(event: { createdBy: string }, user: any): boolean {
@@ -103,6 +121,53 @@ export async function challengeEventRoutes(server: FastifyInstance) {
       }
     })
     return reply.status(201).send(event)
+  })
+
+  // Edit event settings (organizer or admin). Useful for fixing details like
+  // the number of available courts. Completed events are locked.
+  server.put('/:id', { preHandler: [(server as any).authenticate] }, async (req, reply) => {
+    const { id } = req.params as { id: string }
+    const user = (req as any).user
+    const event = await prisma.challengeEvent.findUnique({ where: { id } })
+    if (!event) return reply.status(404).send({ error: 'Not found' })
+    if (!isOrganizer(event, user)) {
+      return reply.status(403).send({ error: 'Only the organizer can edit this event' })
+    }
+    if (event.status === 'completed') {
+      return reply.status(400).send({ error: 'Completed events cannot be edited' })
+    }
+
+    const body = updateSchema.safeParse(req.body)
+    if (!body.success) return reply.status(400).send({ error: body.error.flatten() })
+    const d = body.data
+
+    // Structural settings are baked into the bracket/pairings once started.
+    if (event.status !== 'setup') {
+      for (const f of ['format', 'mode', 'rotation'] as const) {
+        if (d[f] !== undefined && d[f] !== (event as any)[f]) {
+          return reply.status(400).send({
+            error: `Can't change ${f} after the event has started. Reducing or adding courts is fine — it applies from the next round.`
+          })
+        }
+      }
+    }
+
+    const data: any = {}
+    if (d.name !== undefined) data.name = d.name
+    if (d.locationId !== undefined) data.locationId = d.locationId
+    if (d.date !== undefined) data.date = new Date(d.date)
+    if (d.endTime !== undefined) data.endTime = d.endTime ? new Date(d.endTime) : null
+    if (d.format !== undefined) data.format = d.format
+    if (d.mode !== undefined) data.mode = d.mode
+    if (d.rotation !== undefined) data.rotation = d.rotation
+    if (d.courts !== undefined) data.courts = d.courts
+    if (d.scoring !== undefined) data.scoring = d.scoring
+    if (d.pointsPerWin !== undefined) data.pointsPerWin = d.pointsPerWin
+    if (d.affectsElo !== undefined) data.affectsElo = d.affectsElo
+    if (d.maxHillWins !== undefined) data.maxHillWins = d.maxHillWins
+
+    const updated = await prisma.challengeEvent.update({ where: { id }, data })
+    return updated
   })
 
   // Event detail with standings + current round

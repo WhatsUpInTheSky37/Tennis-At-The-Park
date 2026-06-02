@@ -135,6 +135,7 @@ export const api = {
   getChallengeEvent: (id: string) => request<any>(`/challenge-events/${id}`),
   getChallengeWins: (userId: string) => request<any[]>(`/challenge-events/wins/${userId}`),
   createChallengeEvent: (data: any) => request<any>('/challenge-events', { method: 'POST', body: JSON.stringify(data) }),
+  updateChallengeEvent: (id: string, data: any) => request<any>(`/challenge-events/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   joinChallengeEvent: (id: string) => request<any>(`/challenge-events/${id}/join`, { method: 'POST', body: JSON.stringify({}) }),
   leaveChallengeEvent: (id: string) => request<any>(`/challenge-events/${id}/leave`, { method: 'POST', body: JSON.stringify({}) }),
   addChallengeEventPlayer: (id: string, userId: string) => request<any>(`/challenge-events/${id}/participants`, { method: 'POST', body: JSON.stringify({ userId }) }),
