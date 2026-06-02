@@ -141,17 +141,9 @@ export async function challengeEventRoutes(server: FastifyInstance) {
     if (!body.success) return reply.status(400).send({ error: body.error.flatten() })
     const d = body.data
 
-    // Structural settings are baked into the bracket/pairings once started.
-    if (event.status !== 'setup') {
-      for (const f of ['format', 'mode', 'rotation'] as const) {
-        if (d[f] !== undefined && d[f] !== (event as any)[f]) {
-          return reply.status(400).send({
-            error: `Can't change ${f} after the event has started. Reducing or adding courts is fine — it applies from the next round.`
-          })
-        }
-      }
-    }
-
+    // Everything is editable until the event is completed. Structural changes
+    // (format/mode/rotation/courts) on an active event take effect when the next
+    // round is generated; the current round keeps its already-built games.
     const data: any = {}
     if (d.name !== undefined) data.name = d.name
     if (d.locationId !== undefined) data.locationId = d.locationId
