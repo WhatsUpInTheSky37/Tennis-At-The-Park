@@ -110,6 +110,8 @@ export default function ChallengeEvents() {
   const upcoming = events.filter(e => e.status !== 'completed')
   const past = events.filter(e => e.status === 'completed')
 
+  const canEdit = (e: any) => !!user && (e.createdBy === user.id || user.isAdmin) && e.status !== 'completed'
+
   const renderCard = (e: any) => (
     <div key={e.id} className="card clickable" style={{ cursor: 'pointer' }} onClick={() => navigate(`/challenge-events/${e.id}`)}>
       <div className="flex items-center justify-between mb-2">
@@ -118,7 +120,17 @@ export default function ChallengeEvents() {
           <span className={`badge ${e.format === 'singles' ? 'badge-blue' : 'badge-orange'}`}>{e.format}</span>
           <span className="badge badge-gray">{e.mode === 'king_of_hill' ? 'King of the Hill' : e.rotation}</span>
         </div>
-        <span className="text-xs text-muted">{e._count?.participants ?? 0} players</span>
+        <div className="flex gap-2 items-center">
+          {canEdit(e) && (
+            <button
+              className="btn btn-ghost btn-sm"
+              onClick={ev => { ev.stopPropagation(); navigate(`/challenge-events/${e.id}?edit=1`) }}
+            >
+              ✎ Edit
+            </button>
+          )}
+          <span className="text-xs text-muted">{e._count?.participants ?? 0} players</span>
+        </div>
       </div>
       <div className="font-bold" style={{ fontSize: 17 }}>{e.name}</div>
       <div className="session-meta mt-2">
