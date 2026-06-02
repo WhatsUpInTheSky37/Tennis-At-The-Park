@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api } from '../lib/api'
 import { format } from 'date-fns'
-import { getInitials } from '../lib/utils'
+import { copyText, getInitials } from '../lib/utils'
 
 const PAGE_SIZE = 10
 
@@ -11,6 +11,7 @@ export default function Articles() {
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [shareStatus, setShareStatus] = useState<Record<string, 'idle' | 'copied' | 'error'>>({})
 
   useEffect(() => {
     setLoading(true)
@@ -18,6 +19,25 @@ export default function Articles() {
       .then(r => { setArticles(r.articles); setTotal(r.total) })
       .finally(() => setLoading(false))
   }, [page])
+
+  // Share an article from the list without navigating into it.
+  const handleShare = async (e: React.MouseEvent, a: any) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const url = `${window.location.origin}/articles/${a.slug}`
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: a.title, text: a.excerpt || a.title, url })
+        return
+      }
+      await copyText(url)
+      setShareStatus(s => ({ ...s, [a.id]: 'copied' }))
+      setTimeout(() => setShareStatus(s => ({ ...s, [a.id]: 'idle' })), 2000)
+    } catch {
+      setShareStatus(s => ({ ...s, [a.id]: 'error' }))
+      setTimeout(() => setShareStatus(s => ({ ...s, [a.id]: 'idle' })), 2000)
+    }
+  }
 
   const totalPages = Math.ceil(total / PAGE_SIZE)
 
@@ -65,6 +85,15 @@ export default function Articles() {
                     <span>{a.author?.profile?.displayName}</span>
                     <span>·</span>
                     <span>{format(new Date(a.publishedAt || a.createdAt), 'MMM d, yyyy')}</span>
+                    <button
+                      type="button"
+                      onClick={(e) => handleShare(e, a)}
+                      className="btn btn-secondary btn-sm"
+                      style={{ marginLeft: 'auto', borderRadius: 999, padding: '4px 12px', fontSize: 13 }}
+                      title="Share article"
+                    >
+                      🔗 {shareStatus[a.id] === 'copied' ? 'Link copied!' : shareStatus[a.id] === 'error' ? 'Copy failed' : 'Share'}
+                    </button>
                   </div>
                 </div>
               </article>
