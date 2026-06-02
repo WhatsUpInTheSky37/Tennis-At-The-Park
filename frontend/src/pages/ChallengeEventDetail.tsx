@@ -4,6 +4,22 @@ import { api } from '../lib/api'
 import { useAuth } from '../store/auth'
 import { formatDateTime, formatTime } from '../lib/utils'
 
+const SCORING_LABELS: Record<string, string> = {
+  first_to_4: 'First to 4 games',
+  pro_set_8: '8-game pro set',
+  tb_7: '7-point tiebreak',
+  tb_10: '10-point tiebreak'
+}
+
+// ISO timestamp -> value for <input type="datetime-local"> (local time).
+function localInput(iso?: string | null): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return ''
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
 type Game = {
   court: number
   teamA: string[]
@@ -24,10 +40,13 @@ export default function ChallengeEventDetail() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [players, setPlayers] = useState<any[]>([])
+  const [locations, setLocations] = useState<any[]>([])
   const [addId, setAddId] = useState('')
   const [pairA, setPairA] = useState('')
   const [pairB, setPairB] = useState('')
   const [scores, setScores] = useState<Record<number, { a: string; b: string }>>({})
+  const [editing, setEditing] = useState(false)
+  const [edit, setEdit] = useState<any>(null)
 
   const load = () => {
     if (!id) return
@@ -38,6 +57,7 @@ export default function ChallengeEventDetail() {
 
   useEffect(() => { load() }, [id])
   useEffect(() => { api.getPlayers().then(setPlayers).catch(() => {}) }, [])
+  useEffect(() => { api.getLocations().then(setLocations).catch(() => {}) }, [])
 
   if (loading) return <div className="loading-screen"><div className="spinner" /></div>
   if (!event) return <div className="page"><div className="empty-state"><h3>Event not found</h3></div></div>
@@ -69,6 +89,49 @@ export default function ChallengeEventDetail() {
       await api.scoreChallengeGame(id!, court, a, b)
       setScores(prev => { const n = { ...prev }; delete n[court]; return n })
     })
+  }
+
+  const openEdit = () => {
+    setEdit({
+      name: event.name,
+      locationId: event.locationId || event.location?.id || '',
+      date: localInput(event.date),
+      endTime: localInput(event.endTime),
+      format: event.format,
+      mode: event.mode,
+      rotation: event.rotation,
+      courts: event.courts,
+      scoring: event.scoring,
+      pointsPerWin: event.pointsPerWin,
+      affectsElo: event.affectsElo,
+      maxHillWins: event.maxHillWins ?? 3
+    })
+    setError('')
+    setEditing(true)
+  }
+
+  const saveEdit = async () => {
+    if (!edit.name?.trim()) { setError('Name is required'); return }
+    if (!edit.locationId) { setError('Pick a location'); return }
+    if (!edit.date) { setError('Pick a date & time'); return }
+    const payload: any = {
+      name: edit.name.trim(),
+      locationId: edit.locationId,
+      date: new Date(edit.date).toISOString(),
+      endTime: edit.endTime ? new Date(edit.endTime).toISOString() : null,
+      courts: Number(edit.courts),
+      scoring: edit.scoring,
+      pointsPerWin: Number(edit.pointsPerWin),
+      affectsElo: edit.affectsElo
+    }
+    // Structural settings can only change before the event starts.
+    if (event.status === 'setup') {
+      payload.format = edit.format
+      payload.mode = edit.mode
+      payload.rotation = edit.rotation
+      payload.maxHillWins = edit.mode === 'king_of_hill' ? Number(edit.maxHillWins) : null
+    }
+    await act(async () => { await api.updateChallengeEvent(id!, payload); setEditing(false) })
   }
 
   const openGames = round?.games.filter(g => !g.scored) || []
@@ -108,6 +171,125 @@ export default function ChallengeEventDetail() {
       </div>
 
       {error && <div className="card mb-3" style={{ borderColor: 'var(--red)', color: 'var(--red)' }}>{error}</div>}
+
+      {/* EDIT settings (organizer / admin, before the event is completed) */}
+      {isOrganizer && event.status !== 'completed' && !editing && (
+        <div className="mb-4">
+          <button className="btn btn-ghost btn-sm" onClick={openEdit}>✎ Edit settings</button>
+        </div>
+      )}
+
+      {isOrganizer && event.status !== 'completed' && editing && edit && (
+        <div className="card mb-4">
+          <h3 className="mb-3">Edit event</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div className="form-group" style={{ margin: 0 }}>
+              <label>Name</label>
+              <input value={edit.name} maxLength={120}
+                onChange={e => setEdit({ ...edit, name: e.target.value })} />
+            </div>
+
+            <div className="form-group" style={{ margin: 0 }}>
+              <label>Location</label>
+              <select value={edit.locationId} onChange={e => setEdit({ ...edit, locationId: e.target.value })}>
+                <option value="">Pick a location…</option>
+                {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+              </select>
+            </div>
+
+            <div className="flex gap-2" style={{ flexWrap: 'wrap' }}>
+              <div className="form-group" style={{ margin: 0, flex: 1, minWidth: 160 }}>
+                <label>Start</label>
+                <input type="datetime-local" value={edit.date}
+                  onChange={e => setEdit({ ...edit, date: e.target.value })} />
+              </div>
+              <div className="form-group" style={{ margin: 0, flex: 1, minWidth: 160 }}>
+                <label>End (optional)</label>
+                <input type="datetime-local" value={edit.endTime}
+                  onChange={e => setEdit({ ...edit, endTime: e.target.value })} />
+              </div>
+            </div>
+
+            <div className="flex gap-2" style={{ flexWrap: 'wrap' }}>
+              <div className="form-group" style={{ margin: 0, flex: 1, minWidth: 110 }}>
+                <label>Courts</label>
+                <input type="number" min={1} max={16} value={edit.courts}
+                  onChange={e => setEdit({ ...edit, courts: Number(e.target.value) })} />
+              </div>
+              <div className="form-group" style={{ margin: 0, flex: 1, minWidth: 160 }}>
+                <label>Scoring</label>
+                <select value={edit.scoring} onChange={e => setEdit({ ...edit, scoring: e.target.value })}>
+                  {Object.entries(SCORING_LABELS).map(([v, label]) => <option key={v} value={v}>{label}</option>)}
+                </select>
+              </div>
+              <div className="form-group" style={{ margin: 0, flex: 1, minWidth: 110 }}>
+                <label>Points / win</label>
+                <input type="number" min={1} max={10} value={edit.pointsPerWin}
+                  onChange={e => setEdit({ ...edit, pointsPerWin: Number(e.target.value) })} />
+              </div>
+            </div>
+
+            {event.status === 'active' && (
+              <p className="text-xs text-muted" style={{ margin: 0 }}>
+                Changing the court count takes effect from the <strong>next round</strong> — the current round keeps its games.
+              </p>
+            )}
+
+            {event.status === 'setup' ? (
+              <div className="flex gap-2" style={{ flexWrap: 'wrap' }}>
+                <div className="form-group" style={{ margin: 0, flex: 1, minWidth: 130 }}>
+                  <label>Format</label>
+                  <select value={edit.format} onChange={e => setEdit({ ...edit, format: e.target.value })}>
+                    <option value="singles">Singles</option>
+                    <option value="doubles">Doubles</option>
+                  </select>
+                </div>
+                <div className="form-group" style={{ margin: 0, flex: 1, minWidth: 130 }}>
+                  <label>Mode</label>
+                  <select value={edit.mode} onChange={e => setEdit({ ...edit, mode: e.target.value })}>
+                    <option value="rotating">Rotating</option>
+                    <option value="king_of_hill">King of the Hill</option>
+                  </select>
+                </div>
+                {edit.mode === 'king_of_hill' ? (
+                  <div className="form-group" style={{ margin: 0, flex: 1, minWidth: 130 }}>
+                    <label>Max hill wins</label>
+                    <input type="number" min={1} max={20} value={edit.maxHillWins}
+                      onChange={e => setEdit({ ...edit, maxHillWins: Number(e.target.value) })} />
+                  </div>
+                ) : (
+                  <div className="form-group" style={{ margin: 0, flex: 1, minWidth: 130 }}>
+                    <label>Rotation</label>
+                    <select value={edit.rotation} onChange={e => setEdit({ ...edit, rotation: e.target.value })}>
+                      <option value="americano">Americano</option>
+                      <option value="mexicano">Mexicano</option>
+                    </select>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-xs text-muted" style={{ margin: 0 }}>
+                Format, mode, and rotation are locked once the event has started.
+              </p>
+            )}
+
+            <label style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
+              <input type="checkbox" checked={edit.affectsElo} style={{ width: 'auto' }}
+                onChange={e => setEdit({ ...edit, affectsElo: e.target.checked })} />
+              <span>Counts toward Elo ratings</span>
+            </label>
+
+            <div className="flex gap-2">
+              <button className="btn btn-primary btn-sm" disabled={busy} onClick={saveEdit}>
+                {busy ? 'Saving…' : 'Save changes'}
+              </button>
+              <button className="btn btn-ghost btn-sm" disabled={busy} onClick={() => { setEditing(false); setError('') }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* SELF join/leave */}
       {user && event.status !== 'completed' && (
