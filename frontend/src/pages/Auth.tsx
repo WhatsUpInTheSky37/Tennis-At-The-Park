@@ -155,6 +155,16 @@ export default function AuthPage() {
         <div style={{ textAlign: 'center', marginTop: 16 }}>
           <button className="btn btn-ghost text-sm" onClick={() => navigate('/')}>← Back to home</button>
         </div>
+
+        <p className="text-muted" style={{ marginTop: 20, fontSize: '0.7rem', lineHeight: 1.5, textAlign: 'center' }}>
+          <strong>Disclaimer:</strong> Tennis at the Park is an independent community group and is
+          not affiliated with, endorsed by, sponsored by, or otherwise associated with the City of
+          Salisbury, Wicomico County, their respective Departments of Parks and Recreation, or any
+          other governmental entity. All play takes place on public tennis courts on a first-come,
+          first-served basis in accordance with the posted rules and policies of the applicable park.
+          This platform is provided solely to help players coordinate informal meetups and does not
+          reserve, control, manage, or guarantee access to any court or facility.
+        </p>
       </div>
     </div>
   )
