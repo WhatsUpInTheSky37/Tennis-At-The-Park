@@ -7,7 +7,15 @@ const articleSchema = z.object({
   slug: z.string().min(1).max(120).optional(),
   excerpt: z.string().max(500).optional(),
   body: z.string().min(1),
-  coverImage: z.string().url().nullable().optional(),
+  // Accept either a full URL (pasted) or a relative path like
+  // /uploads/articles/... returned by the image upload endpoint.
+  coverImage: z.string()
+    .max(2000)
+    .refine(v => /^https?:\/\//i.test(v) || v.startsWith('/'), {
+      message: 'Cover image must be a valid URL or an uploaded image path',
+    })
+    .nullable()
+    .optional(),
   published: z.boolean().optional(),
 })
 

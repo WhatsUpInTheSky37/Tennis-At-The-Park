@@ -23,8 +23,27 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   
   if (res.status === 204) return undefined as T
   const data = await res.json()
-  if (!res.ok) throw new Error(data.error || 'Request failed')
+  if (!res.ok) throw new Error(extractErrorMessage(data))
   return data
+}
+
+// Build a human-readable message from an error response. The backend may send
+// a string (`{ error: 'message' }`) or a Zod `flatten()` object
+// (`{ error: { formErrors, fieldErrors } }`); the latter must not be rendered
+// as "[object Object]".
+function extractErrorMessage(data: any): string {
+  const err = data?.error
+  if (typeof err === 'string' && err) return err
+  if (err && typeof err === 'object') {
+    const form: string[] = Array.isArray(err.formErrors) ? err.formErrors : []
+    const fields: string[] = err.fieldErrors && typeof err.fieldErrors === 'object'
+      ? Object.entries(err.fieldErrors).flatMap(([field, msgs]) =>
+          (Array.isArray(msgs) ? msgs : []).map(m => `${field}: ${m}`))
+      : []
+    const msg = [...form, ...fields].join('; ')
+    if (msg) return msg
+  }
+  return data?.message || 'Request failed'
 }
 
 export const api = {
