@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useState, useEffect, useRef } from 'react'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useAuth } from '../store/auth'
 import { formatDateTime, formatTime } from '../lib/utils'
@@ -20,6 +20,24 @@ function localInput(iso?: string | null): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
+// Seed the edit form from an event record.
+function buildEditForm(event: any) {
+  return {
+    name: event.name,
+    locationId: event.locationId || event.location?.id || '',
+    date: localInput(event.date),
+    endTime: localInput(event.endTime),
+    format: event.format,
+    mode: event.mode,
+    rotation: event.rotation,
+    courts: event.courts,
+    scoring: event.scoring,
+    pointsPerWin: event.pointsPerWin,
+    affectsElo: event.affectsElo,
+    maxHillWins: event.maxHillWins ?? 3
+  }
+}
+
 type Game = {
   court: number
   teamA: string[]
@@ -35,6 +53,8 @@ export default function ChallengeEventDetail() {
   const { id } = useParams<{ id: string }>()
   const { user } = useAuth()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const autoEditDone = useRef(false)
   const [event, setEvent] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
@@ -58,6 +78,21 @@ export default function ChallengeEventDetail() {
   useEffect(() => { load() }, [id])
   useEffect(() => { api.getPlayers().then(setPlayers).catch(() => {}) }, [])
   useEffect(() => { api.getLocations().then(setLocations).catch(() => {}) }, [])
+
+  // Open the edit panel automatically when linked with ?edit=1 (e.g. from the
+  // events list), then strip the param so a refresh/back doesn't reopen it.
+  useEffect(() => {
+    if (autoEditDone.current || searchParams.get('edit') !== '1') return
+    if (!event || !user) return
+    const organizer = event.createdBy === user.id || user.isAdmin
+    if (organizer && event.status !== 'completed') {
+      autoEditDone.current = true
+      setEdit(buildEditForm(event))
+      setEditing(true)
+    }
+    searchParams.delete('edit')
+    setSearchParams(searchParams, { replace: true })
+  }, [event, user, searchParams])
 
   if (loading) return <div className="loading-screen"><div className="spinner" /></div>
   if (!event) return <div className="page"><div className="empty-state"><h3>Event not found</h3></div></div>
@@ -92,20 +127,7 @@ export default function ChallengeEventDetail() {
   }
 
   const openEdit = () => {
-    setEdit({
-      name: event.name,
-      locationId: event.locationId || event.location?.id || '',
-      date: localInput(event.date),
-      endTime: localInput(event.endTime),
-      format: event.format,
-      mode: event.mode,
-      rotation: event.rotation,
-      courts: event.courts,
-      scoring: event.scoring,
-      pointsPerWin: event.pointsPerWin,
-      affectsElo: event.affectsElo,
-      maxHillWins: event.maxHillWins ?? 3
-    })
+    setEdit(buildEditForm(event))
     setError('')
     setEditing(true)
   }
