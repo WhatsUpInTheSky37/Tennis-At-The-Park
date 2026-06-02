@@ -123,6 +123,15 @@ function AppShell() {
           Copyright 2026 · Will Farrar · Find me at{' '}
           <a href="https://www.willfarrar.net" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>www.willfarrar.net</a>
         </div>
+        <p style={{ marginTop: 12, fontSize: '0.7rem', lineHeight: 1.5, maxWidth: 640, color: 'var(--text3)' }}>
+          <strong>Disclaimer:</strong> Tennis at the Park is an independent community group and is
+          not affiliated with, endorsed by, sponsored by, or otherwise associated with the City of
+          Salisbury, Wicomico County, their respective Departments of Parks and Recreation, or any
+          other governmental entity. All play takes place on public tennis courts on a first-come,
+          first-served basis in accordance with the posted rules and policies of the applicable park.
+          This platform is provided solely to help players coordinate informal meetups and does not
+          reserve, control, manage, or guarantee access to any court or facility.
+        </p>
       </footer>
       <BottomNav />
     </div>
