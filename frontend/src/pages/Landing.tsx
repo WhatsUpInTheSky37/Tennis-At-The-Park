@@ -56,7 +56,24 @@ export default function Landing() {
           Find a tennis game in Salisbury this week.
         </p>
 
-        <div style={{ textAlign: 'center', margin: '12px auto 24px', maxWidth: 640 }}>
+        {/* Our courts */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, marginTop: 16 }}>
+          {[
+            { img: '/city-park.jpg', title: 'City Park', address: '127 N Park Dr, Salisbury, MD', sub: '4 courts · Lighted' },
+            { img: '/winterplace-park.jpg', title: 'Winterplace Park', address: '737 Blue Ribbon Rd, Salisbury, MD', sub: '2 courts · Daylight only' },
+          ].map(loc => (
+            <div key={loc.title} className="card" style={{ padding: 0, overflow: 'hidden' }}>
+              <img src={loc.img} alt={loc.title} style={{ width: '100%', height: 240, objectFit: 'cover', display: 'block' }} />
+              <div style={{ padding: '16px 18px 20px' }}>
+                <div className="font-bold" style={{ fontSize: '1.1rem', marginBottom: 4 }}>{loc.title}</div>
+                <div className="text-sm text-muted">{loc.address}</div>
+                <div className="text-sm" style={{ marginTop: 6 }}>{loc.sub}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ textAlign: 'center', margin: '20px auto 24px', maxWidth: 640 }}>
           <div style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(28px, 7vw, 44px)', letterSpacing: 3, color: '#fff', textShadow: '0 0 18px rgba(74,222,128,0.45)' }}>
             Game on, neighbors.
           </div>
@@ -246,22 +263,6 @@ export default function Landing() {
             </div>
           </div>
         )}
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, marginTop: 24 }}>
-          {[
-            { img: '/city-park.jpg', title: 'City Park', address: '127 N Park Dr, Salisbury, MD', sub: '4 courts · Lighted' },
-            { img: '/winterplace-park.jpg', title: 'Winterplace Park', address: '737 Blue Ribbon Rd, Salisbury, MD', sub: '2 courts · Daylight only' },
-          ].map(loc => (
-            <div key={loc.title} className="card" style={{ padding: 0, overflow: 'hidden' }}>
-              <img src={loc.img} alt={loc.title} style={{ width: '100%', height: 240, objectFit: 'cover', display: 'block' }} />
-              <div style={{ padding: '16px 18px 20px' }}>
-                <div className="font-bold" style={{ fontSize: '1.1rem', marginBottom: 4 }}>{loc.title}</div>
-                <div className="text-sm text-muted">{loc.address}</div>
-                <div className="text-sm" style={{ marginTop: 6 }}>{loc.sub}</div>
-              </div>
-            </div>
-          ))}
-        </div>
 
         <div className="card" style={{ marginTop: 24, padding: 24, textAlign: 'center', cursor: 'pointer' }} onClick={() => navigate('/auth?mode=register')}>
           <h3 style={{ marginBottom: 8, fontFamily: 'var(--font-display)', letterSpacing: 2, color: '#fff' }}>
