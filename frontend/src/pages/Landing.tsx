@@ -84,7 +84,7 @@ export default function Landing() {
           </div>
         </div>
 
-        <div className="hero-actions">
+        <div className="hero-actions" style={{ marginTop: 28 }}>
           <button className="btn btn-primary btn-lg" onClick={() => navigate('/auth?mode=register')}>
             Free Signup
           </button>
