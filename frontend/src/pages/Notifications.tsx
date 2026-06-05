@@ -9,11 +9,13 @@ function describe(n: any): string {
     case 'forum_reply':   return 'replied to your post'
     case 'forum_mention': return 'mentioned you in the forum'
     case 'forum_reaction': return 'reacted to your post'
+    case 'admin_message': return 'sent you a message'
     default: return 'sent you a notification'
   }
 }
 
 function targetLink(n: any): string {
+  if (n.type === 'admin_message') return n.link || '/dashboard'
   if (n.post?.id) return `/forum/${n.post.id}`
   if (n.reply?.postId) return `/forum/${n.reply.postId}`
   return '/forum'
@@ -48,7 +50,7 @@ export default function Notifications() {
       <div className="page-header flex items-center justify-between" style={{ flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h1 className="page-title">NOTIFICATIONS</h1>
-          <p className="page-subtitle">Replies, mentions, and reactions on your posts</p>
+          <p className="page-subtitle">Replies, mentions, reactions, and messages</p>
         </div>
         {items.some(i => !i.read) && (
           <button className="btn btn-secondary btn-sm" onClick={markAllRead}>Mark all read</button>
@@ -89,13 +91,21 @@ export default function Notifications() {
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ marginBottom: 2 }}>
-                    <span style={{ fontWeight: 700 }}>{n.fromUser?.profile?.displayName || 'Someone'}</span>
+                    <span style={{ fontWeight: 700 }}>{n.fromUser?.profile?.displayName || 'Tennis at the Park'}</span>
                     {' '}
                     <span className="text-sm">{describe(n)}</span>
+                    {n.type === 'admin_message' && n.title && (
+                      <span className="text-sm text-muted"> · "{n.title}"</span>
+                    )}
                     {n.post?.subject && (
                       <span className="text-sm text-muted"> · "{n.post.subject}"</span>
                     )}
                   </div>
+                  {n.type === 'admin_message' && n.message && (
+                    <div className="text-sm text-muted" style={{ whiteSpace: 'pre-wrap' }}>
+                      {n.message}
+                    </div>
+                  )}
                   {n.reply?.body && (
                     <div className="text-sm text-muted" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {n.reply.body}
