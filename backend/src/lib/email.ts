@@ -49,6 +49,30 @@ async function send(to: string, subject: string, html: string) {
   }
 }
 
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+// Admin-composed announcement / direct message. The body is plain text written
+// in the admin panel; we escape it and preserve line breaks so admins don't
+// need to write HTML. Sent from the same no-reply address as every other email.
+export async function sendAdminMessageEmail(email: string, displayName: string, subject: string, message: string) {
+  const safeBody = escapeHtml(message).replace(/\r?\n/g, '<br>')
+  await send(email, subject, `
+    <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 24px;">
+      <h2 style="color: #7ffe4a;">${escapeHtml(subject)}</h2>
+      <p>Hi ${escapeHtml(displayName)},</p>
+      <div style="color: #333; line-height: 1.6;">${safeBody}</div>
+      <p style="margin-top: 20px;"><a href="${SITE_URL}/dashboard" style="color: #7ffe4a;">Visit Tennis at the Park</a></p>
+      <p style="color: #888; font-size: 12px;">Tennis at the Park — Salisbury, MD. You're receiving this because you have an account on the site.</p>
+    </div>
+  `)
+}
+
 export async function sendWelcomeEmail(email: string, displayName: string) {
   await send(email, 'Welcome to Tennis at the Park!', `
     <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 24px;">
@@ -59,6 +83,7 @@ export async function sendWelcomeEmail(email: string, displayName: string) {
         <li>Find and message other players</li>
         <li>Plan sessions at local courts</li>
         <li>Challenge players to matches</li>
+        <li>Join Challenge Events and ladders</li>
         <li>Track your wins and climb the leaderboard</li>
       </ul>
       <p><a href="${SITE_URL}/dashboard" style="color: #7ffe4a;">Go to your dashboard</a></p>

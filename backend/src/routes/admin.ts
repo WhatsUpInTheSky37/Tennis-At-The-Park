@@ -1,5 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import { prisma } from '../lib/prisma'
+import { sendAdminMessageEmail, sendWelcomeEmail, shouldEmailUser } from '../lib/email'
 
 async function requireAdmin(req: any, reply: any) {
   if (!req.user?.isAdmin) return reply.status(403).send({ error: 'Admin only' })
@@ -291,5 +292,92 @@ export async function adminRoutes(server: FastifyInstance) {
     }
 
     return { ok: true, ratingsReset: resetRatings.count, matchesDeleted: deletedMatches, eventsDeleted: deletedEvents }
+  })
+
+  // Compose & send a message from the admin panel. Goes out as an email from the
+  // no-reply address and/or as an in-app inbox notification. Recipients can be a
+  // single user or everyone.
+  //
+  // Body: {
+  //   recipientType: 'all' | 'user',
+  //   userId?: string,            // required when recipientType === 'user'
+  //   subject: string,
+  //   message: string,
+  //   sendEmail?: boolean,        // default true
+  //   createNotification?: boolean, // default true (in-app inbox)
+  //   respectOptOut?: boolean,    // default true — skip email for users who opted out
+  // }
+  server.post('/send-message', { preHandler }, async (req, reply) => {
+    const me = (req as any).user
+    const b = (req.body || {}) as any
+    const recipientType = b.recipientType === 'user' ? 'user' : 'all'
+    const subject = (b.subject || '').trim()
+    const message = (b.message || '').trim()
+    const sendEmail = b.sendEmail !== false
+    const createNotification = b.createNotification !== false
+    const respectOptOut = b.respectOptOut !== false
+
+    if (!subject) return reply.status(400).send({ error: 'Subject is required' })
+    if (!message) return reply.status(400).send({ error: 'Message is required' })
+    if (!sendEmail && !createNotification) {
+      return reply.status(400).send({ error: 'Choose at least one delivery method (email or in-app)' })
+    }
+
+    let recipients: { id: string; email: string; displayName: string }[]
+    if (recipientType === 'user') {
+      if (!b.userId) return reply.status(400).send({ error: 'userId is required for a single recipient' })
+      const u = await prisma.user.findUnique({
+        where: { id: b.userId },
+        select: { id: true, email: true, profile: { select: { displayName: true } } },
+      })
+      if (!u) return reply.status(404).send({ error: 'User not found' })
+      recipients = [{ id: u.id, email: u.email, displayName: u.profile?.displayName || 'there' }]
+    } else {
+      const all = await prisma.user.findMany({
+        select: { id: true, email: true, profile: { select: { displayName: true } } },
+      })
+      recipients = all.map(u => ({ id: u.id, email: u.email, displayName: u.profile?.displayName || 'there' }))
+    }
+
+    let emailsSent = 0
+    let emailsSkipped = 0
+    let notificationsCreated = 0
+
+    for (const r of recipients) {
+      if (createNotification) {
+        await prisma.notification.create({
+          data: {
+            userId: r.id,
+            fromUserId: me.userId,
+            type: 'admin_message',
+            title: subject,
+            message,
+          },
+        })
+        notificationsCreated++
+      }
+      if (sendEmail) {
+        if (respectOptOut && !(await shouldEmailUser(r.id))) {
+          emailsSkipped++
+          continue
+        }
+        await sendAdminMessageEmail(r.email, r.displayName, subject, message)
+        emailsSent++
+      }
+    }
+
+    return { ok: true, recipients: recipients.length, emailsSent, emailsSkipped, notificationsCreated }
+  })
+
+  // Re-send the welcome / invite letter to an existing user.
+  server.post('/users/:id/resend-welcome', { preHandler }, async (req, reply) => {
+    const { id } = req.params as { id: string }
+    const u = await prisma.user.findUnique({
+      where: { id },
+      select: { email: true, profile: { select: { displayName: true } } },
+    })
+    if (!u) return reply.status(404).send({ error: 'User not found' })
+    await sendWelcomeEmail(u.email, u.profile?.displayName || 'there')
+    return { ok: true }
   })
 }

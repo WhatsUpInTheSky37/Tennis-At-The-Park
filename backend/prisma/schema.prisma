@@ -415,6 +415,9 @@ model Notification {
   type       String
   postId     String?  @map("post_id")
   replyId    String?  @map("reply_id")
+  title      String?
+  message    String?
+  link       String?
   read       Boolean  @default(false)
   createdAt  DateTime @default(now()) @map("created_at")
 

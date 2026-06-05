@@ -257,6 +257,12 @@ export const api = {
   adminGetUser: (id: string) => request<any>(`/admin/users/${id}`),
   adminToggleAdmin: (id: string) => request<any>(`/admin/users/${id}/toggle-admin`, { method: 'POST', body: JSON.stringify({}) }),
   adminDeleteUser: (id: string) => request<any>(`/admin/users/${id}`, { method: 'DELETE' }),
+  adminSendMessage: (data: {
+    recipientType: 'all' | 'user'; userId?: string; subject: string; message: string;
+    sendEmail: boolean; createNotification: boolean; respectOptOut: boolean;
+  }) => request<{ ok: boolean; recipients: number; emailsSent: number; emailsSkipped: number; notificationsCreated: number }>(
+    '/admin/send-message', { method: 'POST', body: JSON.stringify(data) }),
+  adminResendWelcome: (id: string) => request<{ ok: boolean }>(`/admin/users/${id}/resend-welcome`, { method: 'POST', body: JSON.stringify({}) }),
 
   // Generic HTTP methods for direct path access
   get: <T = any>(path: string) => request<T>(path),

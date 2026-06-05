@@ -124,6 +124,19 @@ function UserDetailModal({ userId, onClose, onChanged }: { userId: string; onClo
 
             <div className="flex gap-2 flex-wrap" style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
               <Link to={`/profile/${user.id}`} className="btn btn-secondary btn-sm">View Public Profile</Link>
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={async () => {
+                  try {
+                    await api.adminResendWelcome(user.id)
+                    alert(`Welcome email re-sent to ${user.email}.`)
+                  } catch (e: any) {
+                    alert('Failed: ' + (e.message || 'error'))
+                  }
+                }}
+              >
+                ✉️ Resend Welcome
+              </button>
               {!isSelf && (
                 <>
                   <button
@@ -187,8 +200,157 @@ function Stat({ label, value }: { label: string; value: number }) {
   )
 }
 
+function MessagingPanel() {
+  const [recipientType, setRecipientType] = useState<'all' | 'user'>('all')
+  const [search, setSearch] = useState('')
+  const [results, setResults] = useState<any[]>([])
+  const [picked, setPicked] = useState<any>(null)
+  const [subject, setSubject] = useState('')
+  const [message, setMessage] = useState('')
+  const [sendEmail, setSendEmail] = useState(true)
+  const [createNotification, setCreateNotification] = useState(true)
+  const [respectOptOut, setRespectOptOut] = useState(true)
+  const [sending, setSending] = useState(false)
+  const [result, setResult] = useState('')
+
+  const doSearch = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!search.trim()) return
+    const u = await api.adminGetUsers(search.trim())
+    setResults(u)
+  }
+
+  const canSend = subject.trim() && message.trim() && (sendEmail || createNotification) &&
+    (recipientType === 'all' || picked)
+
+  const send = async () => {
+    if (recipientType === 'all') {
+      if (!confirm('Send this message to EVERY user on the site?')) return
+    }
+    setSending(true); setResult('')
+    try {
+      const r = await api.adminSendMessage({
+        recipientType,
+        userId: recipientType === 'user' ? picked.id : undefined,
+        subject: subject.trim(),
+        message: message.trim(),
+        sendEmail, createNotification, respectOptOut,
+      })
+      const parts = [`Reached ${r.recipients} ${r.recipients === 1 ? 'user' : 'users'}`]
+      if (sendEmail) parts.push(`${r.emailsSent} email(s) sent${r.emailsSkipped ? `, ${r.emailsSkipped} skipped (opted out)` : ''}`)
+      if (createNotification) parts.push(`${r.notificationsCreated} in-app message(s)`)
+      setResult('✓ ' + parts.join(' · '))
+      setSubject(''); setMessage('')
+    } catch (e: any) {
+      setResult('Error: ' + (e.message || 'failed to send'))
+    } finally { setSending(false) }
+  }
+
+  return (
+    <div className="card">
+      <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div>
+          <h3 style={{ marginBottom: 4 }}>Compose a message</h3>
+          <p className="text-sm text-muted">
+            Sends from <strong>noreply@salisburytennis.com</strong> and/or lands in the player's on-site inbox.
+          </p>
+        </div>
+
+        <div>
+          <label className="text-sm" style={{ fontWeight: 700, display: 'block', marginBottom: 6 }}>Recipients</label>
+          <div className="flex gap-2" style={{ flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className={`btn btn-sm ${recipientType === 'all' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setRecipientType('all')}
+            >Everyone</button>
+            <button
+              type="button"
+              className={`btn btn-sm ${recipientType === 'user' ? 'btn-primary' : 'btn-secondary'}`}
+              onClick={() => setRecipientType('user')}
+            >One user</button>
+          </div>
+        </div>
+
+        {recipientType === 'user' && (
+          <div>
+            {picked ? (
+              <div className="flex items-center gap-2" style={{ flexWrap: 'wrap' }}>
+                <span className="badge badge-orange">{picked.profile?.displayName || picked.email}</span>
+                <span className="text-sm text-muted">{picked.email}</span>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setPicked(null)}>Change</button>
+              </div>
+            ) : (
+              <>
+                <form onSubmit={doSearch} style={{ display: 'flex', gap: 8 }}>
+                  <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name or email..." style={{ flex: 1 }} />
+                  <button type="submit" className="btn btn-secondary btn-sm">Search</button>
+                </form>
+                {results.length > 0 && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 8 }}>
+                    {results.map(u => (
+                      <button
+                        key={u.id}
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        style={{ justifyContent: 'flex-start', textAlign: 'left' }}
+                        onClick={() => { setPicked(u); setResults([]); setSearch('') }}
+                      >
+                        {u.profile?.displayName || '(no name)'} · <span className="text-muted">{u.email}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+
+        <div>
+          <label className="text-sm" style={{ fontWeight: 700, display: 'block', marginBottom: 6 }}>Subject</label>
+          <input value={subject} onChange={e => setSubject(e.target.value)} placeholder="e.g. New Challenge Event this weekend!" style={{ width: '100%' }} />
+        </div>
+
+        <div>
+          <label className="text-sm" style={{ fontWeight: 700, display: 'block', marginBottom: 6 }}>Message</label>
+          <textarea
+            value={message}
+            onChange={e => setMessage(e.target.value)}
+            rows={6}
+            placeholder="Write your message. Line breaks are preserved."
+            style={{ width: '100%', resize: 'vertical' }}
+          />
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <label className="text-sm flex items-center gap-2" style={{ cursor: 'pointer' }}>
+            <input type="checkbox" checked={sendEmail} onChange={e => setSendEmail(e.target.checked)} />
+            Send as email (from the no-reply address)
+          </label>
+          <label className="text-sm flex items-center gap-2" style={{ cursor: 'pointer' }}>
+            <input type="checkbox" checked={createNotification} onChange={e => setCreateNotification(e.target.checked)} />
+            Also drop it in their on-site inbox (notification)
+          </label>
+          <label className="text-sm flex items-center gap-2" style={{ cursor: 'pointer', opacity: sendEmail ? 1 : 0.5 }}>
+            <input type="checkbox" checked={respectOptOut} disabled={!sendEmail} onChange={e => setRespectOptOut(e.target.checked)} />
+            Respect each user's email opt-out preference
+          </label>
+        </div>
+
+        {result && <p className="text-sm" style={{ color: result.startsWith('Error') ? 'var(--red)' : 'var(--accent)' }}>{result}</p>}
+
+        <div>
+          <button className="btn btn-primary btn-sm" disabled={!canSend || sending} onClick={send}>
+            {sending ? 'Sending…' : recipientType === 'all' ? 'Send to everyone' : 'Send message'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function Admin() {
-  const [tab, setTab] = useState<'reports' | 'disputes' | 'users'>('reports')
+  const [tab, setTab] = useState<'reports' | 'disputes' | 'users' | 'messaging'>('reports')
   const [reports, setReports] = useState<any[]>([])
   const [disputes, setDisputes] = useState<any[]>([])
   const [users, setUsers] = useState<any[]>([])
@@ -256,6 +418,9 @@ export default function Admin() {
         </button>
         <button className={`tab ${tab === 'users' ? 'active' : ''}`} onClick={() => setTab('users')}>
           Users
+        </button>
+        <button className={`tab ${tab === 'messaging' ? 'active' : ''}`} onClick={() => setTab('messaging')}>
+          Messaging
         </button>
       </div>
 
@@ -361,6 +526,8 @@ export default function Admin() {
             ))}
           </div>
         )
+      ) : tab === 'messaging' ? (
+        <MessagingPanel />
       ) : (
         <div>
           <form
