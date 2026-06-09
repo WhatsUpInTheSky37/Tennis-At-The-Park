@@ -62,8 +62,17 @@ export default function Landing() {
           </div>
         </div>
 
-        {/* Saturday Summer Challenge flyer — full width, right above sign in */}
-        <div style={{ marginTop: 8 }}>
+        <div className="hero-actions" style={{ marginTop: 8 }}>
+          <button className="btn btn-primary btn-lg" onClick={() => navigate('/auth?mode=register')}>
+            Free Signup
+          </button>
+          <button className="btn btn-secondary btn-lg" onClick={() => navigate('/auth')}>
+            Sign In
+          </button>
+        </div>
+
+        {/* Saturday Summer Challenge flyer */}
+        <div style={{ marginTop: 24 }}>
           <img
             src="/summer-challenge-flyer.jpg"
             alt="Saturday Summer Challenge — Saturday June 13 at City Park Courts, Salisbury MD. Singles in the morning (Americano), Doubles in the afternoon (Mexicano)."
@@ -75,15 +84,6 @@ export default function Landing() {
               boxShadow: '0 8px 30px rgba(0,0,0,0.45)', cursor: 'pointer'
             }}
           />
-        </div>
-
-        <div className="hero-actions" style={{ marginTop: 28 }}>
-          <button className="btn btn-primary btn-lg" onClick={() => navigate('/auth?mode=register')}>
-            Free Signup
-          </button>
-          <button className="btn btn-secondary btn-lg" onClick={() => navigate('/auth')}>
-            Sign In
-          </button>
         </div>
 
         {/* Saturday Summer Challenge — advertisement for logged-out visitors */}
@@ -260,25 +260,6 @@ export default function Landing() {
 
         <div className="disclaimer" style={{ marginTop: 24, textAlign: 'center' }}>
           <strong>⚠️ Public Courts:</strong> This app coordinates meetups only. Courts are first-come/rotation-based. No reservations.
-        </div>
-
-        <div style={{ marginTop: 32 }}>
-          <div className="card" style={{ textAlign: 'left', padding: 24 }}>
-            <h3 style={{ marginBottom: 16, textAlign: 'center', fontFamily: 'var(--font-display)', letterSpacing: 2 }}>
-              Court Etiquette
-            </h3>
-            <ul style={{ listStyle: 'disc', paddingLeft: 24, display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <li>Arrive on time for matches</li>
-              <li>Use warm-ups to rally, not compete</li>
-              <li>Make fair and honest line calls</li>
-              <li>Respect nearby courts and players</li>
-              <li>Return balls that roll onto your court</li>
-              <li>Follow court time limits if others are waiting</li>
-              <li>Show good sportsmanship</li>
-              <li>Clean up after your match</li>
-              <li>Record match scores honestly</li>
-            </ul>
-          </div>
         </div>
 
         {recentPosts.length > 0 && (
