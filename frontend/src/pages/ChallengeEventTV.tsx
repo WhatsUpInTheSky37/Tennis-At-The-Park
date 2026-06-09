@@ -14,6 +14,7 @@ type Game = {
 }
 
 const REFRESH_MS = 5000
+const MEDAL_ICON: Record<number, string> = { 1: '🥇', 2: '🥈', 3: '🥉' }
 
 export default function ChallengeEventTV() {
   const { id } = useParams<{ id: string }>()
@@ -150,7 +151,9 @@ export default function ChallengeEventTV() {
                     opacity: s.status === 'withdrawn' ? 0.45 : 1
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-                      <span style={{ fontSize: '1.2vw', fontWeight: 900, color: i < 3 ? C.gold : C.dim, width: '2vw' }}>{i + 1}</span>
+                      <span style={{ fontSize: '1.2vw', fontWeight: 900, color: i < 3 ? C.gold : C.dim, width: '2vw' }}>
+                        {event.status === 'completed' && MEDAL_ICON[s.finalRank] ? MEDAL_ICON[s.finalRank] : i + 1}
+                      </span>
                       <span style={{ fontSize: '1.3vw', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s.displayName}</span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
