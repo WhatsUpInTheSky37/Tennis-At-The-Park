@@ -25,10 +25,20 @@ const AVAILABILITY_OPTIONS = [
 const HOME_COURTS = ['City Park Courts', 'Winterplace Park Courts']
 const PLAY_STYLES = ['Baseliner', 'Serve & Volley', 'All-Court', 'Counterpuncher', 'Aggressive']
 
-// Auto-earned achievement badges from a player's record.
-function computeBadges(rating: any, trophyCount: number, isInstructor: boolean): { icon: string; label: string }[] {
+// Podium medal styling per finishing rank (1=gold, 2=silver, 3=bronze).
+const MEDALS: Record<number, { icon: string; label: string; color: string }> = {
+  1: { icon: '🥇', label: 'Gold · Champion', color: '#f5c542' },
+  2: { icon: '🥈', label: 'Silver · Runner-up', color: '#c0c6cc' },
+  3: { icon: '🥉', label: 'Bronze · 3rd place', color: '#cd7f32' },
+}
+
+// Auto-earned achievement badges from a player's record. `goldCount` is the
+// number of challenge events the player has WON outright (gold finishes).
+function computeBadges(rating: any, goldCount: number, isInstructor: boolean): { icon: string; label: string }[] {
   const out: { icon: string; label: string }[] = []
-  if (trophyCount > 0) out.push({ icon: '🏆', label: trophyCount > 1 ? `${trophyCount}× Champion` : 'Champion' })
+  // Win more than 3 challenges to earn the special Platinum trophy.
+  if (goldCount > 3) out.push({ icon: '💎', label: `Platinum Champion · ${goldCount}× gold` })
+  if (goldCount > 0) out.push({ icon: '🏆', label: goldCount > 1 ? `${goldCount}× Champion` : 'Champion' })
   const w = rating?.wins || 0
   const winMilestone = [50, 25, 10, 1].find(m => w >= m)
   if (winMilestone) out.push({ icon: winMilestone >= 25 ? '🌟' : winMilestone >= 10 ? '⭐' : '🥇', label: winMilestone === 1 ? 'First Win' : `${winMilestone} Wins` })
@@ -445,7 +455,8 @@ export default function Profile() {
 
           {/* Achievements */}
           {(() => {
-            const badges = computeBadges(rating, wins.length, profile?.isInstructor)
+            const goldCount = wins.filter((w: any) => w.rank === 1).length
+            const badges = computeBadges(rating, goldCount, profile?.isInstructor)
             if (badges.length === 0) return null
             return (
               <div className="card mb-4">
@@ -503,29 +514,32 @@ export default function Profile() {
             <div className="card mb-4">
               <div className="card-body">
                 <h3 style={{ fontFamily: 'var(--font-display)', letterSpacing: 1, marginBottom: 16, fontSize: 18 }}>
-                  🏆 CHALLENGES WON ({wins.length})
+                  🏆 TROPHY CASE ({wins.length})
                 </h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {wins.map(w => (
-                    <div
-                      key={w.eventId}
-                      className="clickable"
-                      onClick={() => navigate(`/challenge-events/${w.eventId}`)}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',
-                        background: 'var(--bg3)', borderRadius: 10, padding: '10px 14px',
-                        borderLeft: '3px solid var(--accent)'
-                      }}
-                    >
-                      <span style={{ fontSize: 26 }}>🏆</span>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div className="font-bold" style={{ lineHeight: 1.3 }}>{w.name}</div>
-                        <div className="text-xs text-muted">
-                          Champion · {w.format} · {formatDate(w.date)}
+                  {wins.map(w => {
+                    const medal = MEDALS[w.rank] || MEDALS[1]
+                    return (
+                      <div
+                        key={w.eventId}
+                        className="clickable"
+                        onClick={() => navigate(`/challenge-events/${w.eventId}`)}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',
+                          background: 'var(--bg3)', borderRadius: 10, padding: '10px 14px',
+                          borderLeft: `3px solid ${medal.color}`
+                        }}
+                      >
+                        <span style={{ fontSize: 26 }}>{medal.icon}</span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div className="font-bold" style={{ lineHeight: 1.3 }}>{w.name}</div>
+                          <div className="text-xs text-muted">
+                            {medal.label} · {w.format} · {formatDate(w.date)}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
             </div>

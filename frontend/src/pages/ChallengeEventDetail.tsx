@@ -20,6 +20,13 @@ function localInput(iso?: string | null): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
+// Podium medal styling per finishing rank (1=gold, 2=silver, 3=bronze).
+const MEDALS: Record<number, { icon: string; color: string; tier: string }> = {
+  1: { icon: '🥇', color: '#f5c542', tier: 'Gold — Champion' },
+  2: { icon: '🥈', color: '#c0c6cc', tier: 'Silver — Runner-up' },
+  3: { icon: '🥉', color: '#cd7f32', tier: 'Bronze — 3rd place' },
+}
+
 // Seed the edit form from an event record.
 function buildEditForm(event: any) {
   return {
@@ -460,24 +467,49 @@ export default function ChallengeEventDetail() {
         </div>
       )}
 
-      {/* CHAMPION banner */}
+      {/* PODIUM — Gold / Silver / Bronze */}
       {event.status === 'completed' && (() => {
-        const champ = standings.find(s => s.status !== 'withdrawn')
-        if (!champ) return null
-        const championName = event.format === 'doubles' && champ.partnerId
-          ? `${champ.displayName} & ${nameFor(champ.partnerId)}`
-          : champ.displayName
+        const podium = [1, 2, 3]
+          .map(rank => {
+            const members = standings.filter(s => s.finalRank === rank)
+            if (members.length === 0) return null
+            const top = members[0]
+            return {
+              rank,
+              name: members.map(m => m.displayName).join(' & '),
+              points: top.points, wins: top.wins, losses: top.losses,
+            }
+          })
+          .filter(Boolean) as { rank: number; name: string; points: number; wins: number; losses: number }[]
+        if (podium.length === 0) return null
         return (
           <div className="card mb-4" style={{
-            textAlign: 'center', padding: 24,
+            padding: 20,
             background: 'linear-gradient(135deg, #1b3a24, #141821)',
             border: '1px solid var(--accent)', boxShadow: '0 0 22px rgba(127,254,74,0.18)'
           }}>
-            <div style={{ fontSize: 44, lineHeight: 1 }}>🏆</div>
-            <div className="text-xs" style={{ letterSpacing: 2, color: 'var(--text2)', marginTop: 8 }}>CHAMPION</div>
-            <div style={{ fontSize: 24, fontWeight: 900, color: 'var(--accent)', marginTop: 2 }}>{championName}</div>
-            <div className="text-sm text-muted" style={{ marginTop: 4 }}>
-              {champ.points} pts · {champ.wins}–{champ.losses} · {event.name}
+            <div className="text-xs" style={{ letterSpacing: 2, color: 'var(--text2)', textAlign: 'center', marginBottom: 14 }}>
+              🏆 FINAL PODIUM
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {podium.map(p => {
+                const medal = MEDALS[p.rank]
+                return (
+                  <div key={p.rank} style={{
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    background: 'rgba(255,255,255,0.03)', border: `1px solid ${medal.color}40`,
+                    borderRadius: 12, padding: '10px 14px'
+                  }}>
+                    <span style={{ fontSize: p.rank === 1 ? 34 : 26, lineHeight: 1 }}>{medal.icon}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 900, fontSize: p.rank === 1 ? 20 : 16, color: p.rank === 1 ? 'var(--accent)' : 'var(--text)' }}>
+                        {p.name}
+                      </div>
+                      <div className="text-xs text-muted">{medal.tier} · {p.points} pts · {p.wins}–{p.losses}</div>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           </div>
         )
@@ -502,7 +534,7 @@ export default function ChallengeEventDetail() {
             <tbody>
               {standings.map((s, i) => (
                 <tr key={s.userId} style={{ borderTop: '1px solid var(--border)', opacity: s.status === 'withdrawn' ? 0.5 : 1 }}>
-                  <td style={{ padding: '6px' }}>{i + 1}</td>
+                  <td style={{ padding: '6px' }}>{MEDALS[s.finalRank] ? MEDALS[s.finalRank].icon : i + 1}</td>
                   <td style={{ padding: '6px' }}>
                     <span className="clickable" style={{ cursor: 'pointer' }} onClick={() => navigate(`/profile/${s.userId}`)}>{s.displayName}</span>
                     {s.partnerId && <span className="text-xs text-muted" title={`Locked team with ${nameFor(s.partnerId)}`}> 🔒 {nameFor(s.partnerId)}</span>}

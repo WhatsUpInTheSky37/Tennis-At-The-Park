@@ -480,38 +480,51 @@ export async function challengeEventRoutes(server: FastifyInstance) {
     if (!event) return reply.status(404).send({ error: 'Not found' })
     if (!isOrganizer(event, user)) return reply.status(403).send({ error: 'Organizer only' })
 
-    // Crown the champion(s): the top of the standings. In doubles, a locked pair wins together.
+    // Award the podium: Gold (1st), Silver (2nd), Bronze (3rd) by points, then
+    // games won as a tiebreak. In doubles, a locked pair shares a single place.
     const parts = await prisma.challengeParticipant.findMany({ where: { eventId: id } })
     const ranked = parts
       .filter(p => p.status !== 'withdrawn')
       .sort((a, b) => b.points - a.points || b.gamesWon - a.gamesWon)
-    const winners: string[] = []
-    if (ranked.length > 0) {
-      const champ = ranked[0]
-      winners.push(champ.userId)
-      if (event.format === 'doubles' && champ.partnerId && ranked.some(p => p.userId === champ.partnerId)) {
-        winners.push(champ.partnerId)
+
+    const placed = new Set<string>()
+    const podium: { rank: number; userIds: string[] }[] = []
+    for (const p of ranked) {
+      if (placed.has(p.userId)) continue
+      const place = podium.length + 1
+      if (place > 3) break
+      const teamIds = [p.userId]
+      if (event.format === 'doubles' && p.partnerId && ranked.some(x => x.userId === p.partnerId)) {
+        teamIds.push(p.partnerId)
       }
+      for (const uid of teamIds) placed.add(uid)
+      podium.push({ rank: place, userIds: teamIds })
     }
-    // Reset any prior ranks, then mark the winners as rank 1.
+
+    // Reset any prior ranks, then stamp the new podium ranks.
     await prisma.challengeParticipant.updateMany({ where: { eventId: id }, data: { finalRank: null } })
-    if (winners.length > 0) {
-      await prisma.challengeParticipant.updateMany({ where: { eventId: id, userId: { in: winners } }, data: { finalRank: 1 } })
+    for (const { rank, userIds } of podium) {
+      await prisma.challengeParticipant.updateMany({
+        where: { eventId: id, userId: { in: userIds } },
+        data: { finalRank: rank }
+      })
     }
+    const champions = podium[0]?.userIds ?? []
 
     const updated = await prisma.challengeEvent.update({ where: { id }, data: { status: 'completed' } })
-    return { ...updated, champions: winners }
+    return { ...updated, champions, podium }
   })
 
-  // A player's challenge wins (for the profile trophy case)
+  // A player's challenge podium finishes (for the profile trophy case): gold,
+  // silver, and bronze from completed events, newest first.
   server.get('/wins/:userId', async (req) => {
     const { userId } = req.params as { userId: string }
-    const wins = await prisma.challengeParticipant.findMany({
-      where: { userId, finalRank: 1, event: { status: 'completed' } },
+    const finishes = await prisma.challengeParticipant.findMany({
+      where: { userId, finalRank: { in: [1, 2, 3] }, event: { status: 'completed' } },
       include: { event: { select: { id: true, name: true, date: true, format: true } } }
     })
-    return wins
-      .map(w => ({ eventId: w.event.id, name: w.event.name, date: w.event.date, format: w.event.format }))
+    return finishes
+      .map(w => ({ eventId: w.event.id, name: w.event.name, date: w.event.date, format: w.event.format, rank: w.finalRank }))
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
   })
 
