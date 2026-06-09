@@ -62,26 +62,19 @@ export default function Landing() {
           </div>
         </div>
 
-        {/* Where we play — surfaced up top so visitors see the locations first */}
+        {/* Saturday Summer Challenge flyer — full width, right above sign in */}
         <div style={{ marginTop: 8 }}>
-          <h3 style={{ fontFamily: 'var(--font-display)', letterSpacing: 2, fontSize: 20, textAlign: 'center', marginBottom: 12 }}>
-            WHERE WE PLAY
-          </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
-            {[
-              { img: '/city-park.jpg', title: 'City Park', address: '127 N Park Dr, Salisbury, MD', sub: '4 courts · Lighted' },
-              { img: '/winterplace-park.jpg', title: 'Winterplace Park', address: '737 Blue Ribbon Rd, Salisbury, MD', sub: '2 courts · Daylight only' },
-            ].map(loc => (
-              <div key={loc.title} className="card" style={{ padding: 0, overflow: 'hidden' }}>
-                <img src={loc.img} alt={loc.title} style={{ width: '100%', height: 240, objectFit: 'cover', display: 'block' }} />
-                <div style={{ padding: '16px 18px 20px' }}>
-                  <div className="font-bold" style={{ fontSize: '1.1rem', marginBottom: 4 }}>{loc.title}</div>
-                  <div className="text-sm text-muted">{loc.address}</div>
-                  <div className="text-sm" style={{ marginTop: 6 }}>{loc.sub}</div>
-                </div>
-              </div>
-            ))}
-          </div>
+          <img
+            src="/summer-challenge-flyer.jpg"
+            alt="Saturday Summer Challenge — Saturday June 13 at City Park Courts, Salisbury MD. Singles in the morning (Americano), Doubles in the afternoon (Mexicano)."
+            onClick={() => navigate('/auth?mode=register')}
+            onError={e => { (e.currentTarget.parentElement as HTMLElement).style.display = 'none' }}
+            style={{
+              width: '100%', height: 'auto', display: 'block',
+              borderRadius: 14, border: '1px solid var(--border2)',
+              boxShadow: '0 8px 30px rgba(0,0,0,0.45)', cursor: 'pointer'
+            }}
+          />
         </div>
 
         <div className="hero-actions" style={{ marginTop: 28 }}>
@@ -91,21 +84,6 @@ export default function Landing() {
           <button className="btn btn-secondary btn-lg" onClick={() => navigate('/auth')}>
             Sign In
           </button>
-        </div>
-
-        {/* Saturday Summer Challenge flyer */}
-        <div style={{ marginTop: 24, textAlign: 'center' }}>
-          <img
-            src="/summer-challenge-flyer.jpg"
-            alt="Saturday Summer Challenge — Saturday June 13 at City Park Courts, Salisbury MD. Singles in the morning (Americano), Doubles in the afternoon (Mexicano)."
-            onClick={() => navigate('/auth?mode=register')}
-            onError={e => { (e.currentTarget.parentElement as HTMLElement).style.display = 'none' }}
-            style={{
-              width: '100%', maxWidth: 560, height: 'auto', display: 'inline-block',
-              borderRadius: 14, border: '1px solid var(--border2)',
-              boxShadow: '0 8px 30px rgba(0,0,0,0.45)', cursor: 'pointer'
-            }}
-          />
         </div>
 
         {/* Saturday Summer Challenge — advertisement for logged-out visitors */}
@@ -326,6 +304,28 @@ export default function Landing() {
           <button className="btn btn-ghost" onClick={() => navigate('/rules')}>
             Court Etiquette Rules
           </button>
+        </div>
+
+        {/* Where we play — court locations near the bottom */}
+        <div style={{ marginTop: 28 }}>
+          <h3 style={{ fontFamily: 'var(--font-display)', letterSpacing: 2, fontSize: 20, textAlign: 'center', marginBottom: 12 }}>
+            WHERE WE PLAY
+          </h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+            {[
+              { img: '/city-park.jpg', title: 'City Park', address: '127 N Park Dr, Salisbury, MD', sub: '4 courts · Lighted' },
+              { img: '/winterplace-park.jpg', title: 'Winterplace Park', address: '737 Blue Ribbon Rd, Salisbury, MD', sub: '2 courts · Daylight only' },
+            ].map(loc => (
+              <div key={loc.title} className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                <img src={loc.img} alt={loc.title} style={{ width: '100%', height: 240, objectFit: 'cover', display: 'block' }} />
+                <div style={{ padding: '16px 18px 20px' }}>
+                  <div className="font-bold" style={{ fontSize: '1.1rem', marginBottom: 4 }}>{loc.title}</div>
+                  <div className="text-sm text-muted">{loc.address}</div>
+                  <div className="text-sm" style={{ marginTop: 6 }}>{loc.sub}</div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div style={{ marginTop: 28, paddingTop: 16, borderTop: '1px solid var(--border)', textAlign: 'center', fontSize: '0.8rem', color: 'var(--text3)' }}>
