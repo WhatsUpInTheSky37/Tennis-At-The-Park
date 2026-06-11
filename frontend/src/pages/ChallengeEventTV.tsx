@@ -101,23 +101,32 @@ export default function ChallengeEventTV() {
             </div>
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: round.games.length > 2 ? '1fr 1fr' : '1fr', gap: 18 }}>
-              {round.games.map(g => {
-                const decided = !!g.scored
-                return (
-                  <div key={g.court} style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 16, padding: 20 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                      <span style={{ fontSize: '1.3vw', fontWeight: 800, color: C.gold }}>COURT {g.court}</span>
-                      {isKoth && (g.holdStreak ?? 0) > 0 && !decided && (
-                        <span style={{ fontSize: '1vw', color: C.accent }}>🔥 {g.holdStreak} win streak</span>
-                      )}
-                      {decided && <span style={{ fontSize: '1vw', color: C.dim }}>FINAL</span>}
+              {(() => {
+                // First unscored game on a court is live; later ones are "up next".
+                const activeIdxByCourt: Record<number, number> = {}
+                round.games.forEach((g, idx) => {
+                  if (!g.scored && activeIdxByCourt[g.court] === undefined) activeIdxByCourt[g.court] = idx
+                })
+                return round.games.map((g, idx) => {
+                  const decided = !!g.scored
+                  const queued = !decided && activeIdxByCourt[g.court] !== idx
+                  return (
+                    <div key={idx} style={{ background: C.panel, border: `1px solid ${C.line}`, borderRadius: 16, padding: 20, opacity: queued ? 0.6 : 1 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                        <span style={{ fontSize: '1.3vw', fontWeight: 800, color: C.gold }}>COURT {g.court}</span>
+                        {isKoth && (g.holdStreak ?? 0) > 0 && !decided && (
+                          <span style={{ fontSize: '1vw', color: C.accent }}>🔥 {g.holdStreak} win streak</span>
+                        )}
+                        {decided && <span style={{ fontSize: '1vw', color: C.dim }}>FINAL</span>}
+                        {queued && <span style={{ fontSize: '1vw', color: C.dim }}>UP NEXT</span>}
+                      </div>
+                      <Side name={teamLabel(g.teamA)} score={g.scoreA} won={decided && (g.scoreA ?? 0) > (g.scoreB ?? 0)} C={C} />
+                      <div style={{ textAlign: 'center', color: C.dim, fontSize: '1vw', margin: '6px 0' }}>vs</div>
+                      <Side name={teamLabel(g.teamB)} score={g.scoreB} won={decided && (g.scoreB ?? 0) > (g.scoreA ?? 0)} C={C} />
                     </div>
-                    <Side name={teamLabel(g.teamA)} score={g.scoreA} won={decided && (g.scoreA ?? 0) > (g.scoreB ?? 0)} C={C} />
-                    <div style={{ textAlign: 'center', color: C.dim, fontSize: '1vw', margin: '6px 0' }}>vs</div>
-                    <Side name={teamLabel(g.teamB)} score={g.scoreB} won={decided && (g.scoreB ?? 0) > (g.scoreA ?? 0)} C={C} />
-                  </div>
-                )
-              })}
+                  )
+                })
+              })()}
             </div>
           )}
 
