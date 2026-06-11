@@ -261,7 +261,7 @@ export default function ChallengeEvents() {
                 </select>
               </div>
               <div className="form-group" style={{ flex: 1 }}>
-                <label>Points per win</label>
+                <label>Points per game won</label>
                 <input type="number" min={1} max={10} value={form.pointsPerWin} onChange={e => setForm({ ...form, pointsPerWin: Number(e.target.value) })} />
               </div>
             </div>
