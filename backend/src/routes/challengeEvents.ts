@@ -189,7 +189,9 @@ export async function challengeEventRoutes(server: FastifyInstance) {
         sitCount: p.sitCount,
         elo: p.user.rating?.elo ?? 1200
       }))
-      .sort((a, b) => b.points - a.points || b.gamesWon - a.gamesWon || a.displayName.localeCompare(b.displayName))
+      // Points (games won) first, then more match wins, then fewer losses, then
+      // name. gamesWon can't be a tiebreak now that points are derived from it.
+      .sort((a, b) => b.points - a.points || b.wins - a.wins || a.losses - b.losses || a.displayName.localeCompare(b.displayName))
 
     // Full match history (every game played), so completed events show how it went down.
     const matchRows = await prisma.match.findMany({
@@ -482,12 +484,13 @@ export async function challengeEventRoutes(server: FastifyInstance) {
     if (!event) return reply.status(404).send({ error: 'Not found' })
     if (!isOrganizer(event, user)) return reply.status(403).send({ error: 'Organizer only' })
 
-    // Award the podium: Gold (1st), Silver (2nd), Bronze (3rd) by points, then
-    // games won as a tiebreak. In doubles, a locked pair shares a single place.
+    // Award the podium: Gold (1st), Silver (2nd), Bronze (3rd) by points (games
+    // won), then more match wins, then fewer losses as tiebreaks. In doubles, a
+    // locked pair shares a single place.
     const parts = await prisma.challengeParticipant.findMany({ where: { eventId: id } })
     const ranked = parts
       .filter(p => p.status !== 'withdrawn')
-      .sort((a, b) => b.points - a.points || b.gamesWon - a.gamesWon)
+      .sort((a, b) => b.points - a.points || b.wins - a.wins || a.losses - b.losses)
 
     const placed = new Set<string>()
     const podium: { rank: number; userIds: string[] }[] = []

@@ -539,9 +539,8 @@ export default function ChallengeEventDetail() {
               <tr style={{ textAlign: 'left', color: 'var(--text2)' }}>
                 <th style={{ padding: '4px 6px' }}>#</th>
                 <th style={{ padding: '4px 6px' }}>Player</th>
-                <th style={{ padding: '4px 6px', textAlign: 'center' }}>Pts</th>
+                <th style={{ padding: '4px 6px', textAlign: 'center' }} title="Points from games won">Pts</th>
                 <th style={{ padding: '4px 6px', textAlign: 'center' }}>W–L</th>
-                <th style={{ padding: '4px 6px', textAlign: 'center' }}>Games</th>
               </tr>
             </thead>
             <tbody>
@@ -555,7 +554,6 @@ export default function ChallengeEventDetail() {
                   </td>
                   <td style={{ padding: '6px', textAlign: 'center', fontWeight: 700 }}>{s.points}</td>
                   <td style={{ padding: '6px', textAlign: 'center' }}>{s.wins}–{s.losses}</td>
-                  <td style={{ padding: '6px', textAlign: 'center' }}>{s.gamesWon}</td>
                 </tr>
               ))}
             </tbody>
