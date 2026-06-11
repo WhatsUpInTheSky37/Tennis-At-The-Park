@@ -251,7 +251,7 @@ export default function ChallengeEventDetail() {
                 </select>
               </div>
               <div className="form-group" style={{ margin: 0, flex: 1, minWidth: 110 }}>
-                <label>Points / win</label>
+                <label>Points per game won</label>
                 <input type="number" min={1} max={10} value={edit.pointsPerWin}
                   onChange={e => setEdit({ ...edit, pointsPerWin: Number(e.target.value) })} />
               </div>

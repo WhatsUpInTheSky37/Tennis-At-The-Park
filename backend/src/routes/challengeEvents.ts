@@ -393,15 +393,17 @@ export async function challengeEventRoutes(server: FastifyInstance) {
       }
     })
 
-    // Update event standings for every player involved.
+    // Update event standings for every player involved. Americano-style scoring:
+    // every GAME won is worth points (× pointsPerWin) for both sides — you don't
+    // get a single point for the match win, you get a point per game you won.
     await Promise.all([
       ...winners.map(uid => prisma.challengeParticipant.updateMany({
         where: { eventId: id, userId: uid },
-        data: { points: { increment: event.pointsPerWin }, wins: { increment: 1 }, gamesWon: { increment: winnerGames } }
+        data: { points: { increment: winnerGames * event.pointsPerWin }, wins: { increment: 1 }, gamesWon: { increment: winnerGames } }
       })),
       ...losers.map(uid => prisma.challengeParticipant.updateMany({
         where: { eventId: id, userId: uid },
-        data: { losses: { increment: 1 }, gamesWon: { increment: loserGames } }
+        data: { points: { increment: loserGames * event.pointsPerWin }, losses: { increment: 1 }, gamesWon: { increment: loserGames } }
       }))
     ])
 
