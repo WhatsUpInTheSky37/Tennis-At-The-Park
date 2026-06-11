@@ -121,15 +121,17 @@ export default function ChallengeEventDetail() {
     finally { setBusy(false) }
   }
 
-  const submitScore = async (court: number) => {
-    const s = scores[court]
+  // Score state is keyed by the game's index in the round (a court can host more
+  // than one match per round, so court number alone isn't unique).
+  const submitScore = async (idx: number, court: number) => {
+    const s = scores[idx]
     if (!s || s.a === '' || s.b === '') { setError('Enter both scores'); return }
     const a = parseInt(s.a), b = parseInt(s.b)
     if (isNaN(a) || isNaN(b)) { setError('Scores must be numbers'); return }
     if (a === b) { setError('A game cannot end in a tie'); return }
     await act(async () => {
       await api.scoreChallengeGame(id!, court, a, b)
-      setScores(prev => { const n = { ...prev }; delete n[court]; return n })
+      setScores(prev => { const n = { ...prev }; delete n[idx]; return n })
     })
   }
 
@@ -417,38 +419,49 @@ export default function ChallengeEventDetail() {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {round.games.map(g => {
-              const canScore = !g.scored && (isOrganizer || [...g.teamA, ...g.teamB].includes(user?.id || ''))
-              const sc = scores[g.court] || { a: '', b: '' }
-              return (
-                <div key={g.court} style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 12, opacity: g.scored ? 0.6 : 1 }}>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="badge badge-gray">Court {g.court}</span>
-                    {g.scored && <span className="text-xs text-muted">{g.scoreA}–{g.scoreB} ✓</span>}
-                    {event.mode === 'king_of_hill' && (g.holdStreak ?? 0) > 0 && !g.scored &&
-                      <span className="text-xs" style={{ color: 'var(--accent)' }}>🔥 {g.holdStreak} win streak</span>}
+            {(() => {
+              // Only the first unscored game on each court is "on now"; any other
+              // unscored matches on that court are queued to play next on it.
+              const activeIdxByCourt: Record<number, number> = {}
+              round.games.forEach((g, idx) => {
+                if (!g.scored && activeIdxByCourt[g.court] === undefined) activeIdxByCourt[g.court] = idx
+              })
+              return round.games.map((g, idx) => {
+                const isActive = activeIdxByCourt[g.court] === idx
+                const queued = !g.scored && !isActive
+                const canScore = isActive && (isOrganizer || [...g.teamA, ...g.teamB].includes(user?.id || ''))
+                const sc = scores[idx] || { a: '', b: '' }
+                return (
+                  <div key={idx} style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 12, opacity: g.scored ? 0.6 : queued ? 0.75 : 1 }}>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="badge badge-gray">Court {g.court}</span>
+                      {g.scored && <span className="text-xs text-muted">{g.scoreA}–{g.scoreB} ✓</span>}
+                      {queued && <span className="text-xs text-muted">⏳ Up next on Court {g.court}</span>}
+                      {event.mode === 'king_of_hill' && (g.holdStreak ?? 0) > 0 && !g.scored &&
+                        <span className="text-xs" style={{ color: 'var(--accent)' }}>🔥 {g.holdStreak} win streak</span>}
+                    </div>
+                    <div className="flex items-center justify-between gap-2" style={{ flexWrap: 'wrap' }}>
+                      <div style={{ flex: 1, minWidth: 100, fontWeight: 600 }}>{teamLabel(g.teamA)}</div>
+                      {canScore ? (
+                        <input type="number" min={0} value={sc.a} placeholder="0" style={{ width: 56 }}
+                          onChange={e => setScores({ ...scores, [idx]: { ...sc, a: e.target.value } })} />
+                      ) : <span style={{ fontFamily: 'var(--font-mono)' }}>{g.scoreA ?? '–'}</span>}
+                      <span className="text-muted">vs</span>
+                      {canScore ? (
+                        <input type="number" min={0} value={sc.b} placeholder="0" style={{ width: 56 }}
+                          onChange={e => setScores({ ...scores, [idx]: { ...sc, b: e.target.value } })} />
+                      ) : <span style={{ fontFamily: 'var(--font-mono)' }}>{g.scoreB ?? '–'}</span>}
+                      <div style={{ flex: 1, minWidth: 100, fontWeight: 600, textAlign: 'right' }}>{teamLabel(g.teamB)}</div>
+                    </div>
+                    {canScore && (
+                      <button className="btn btn-secondary btn-sm mt-2" disabled={busy} onClick={() => submitScore(idx, g.court)}>
+                        Submit Score
+                      </button>
+                    )}
                   </div>
-                  <div className="flex items-center justify-between gap-2" style={{ flexWrap: 'wrap' }}>
-                    <div style={{ flex: 1, minWidth: 100, fontWeight: 600 }}>{teamLabel(g.teamA)}</div>
-                    {canScore ? (
-                      <input type="number" min={0} value={sc.a} placeholder="0" style={{ width: 56 }}
-                        onChange={e => setScores({ ...scores, [g.court]: { ...sc, a: e.target.value } })} />
-                    ) : <span style={{ fontFamily: 'var(--font-mono)' }}>{g.scoreA ?? '–'}</span>}
-                    <span className="text-muted">vs</span>
-                    {canScore ? (
-                      <input type="number" min={0} value={sc.b} placeholder="0" style={{ width: 56 }}
-                        onChange={e => setScores({ ...scores, [g.court]: { ...sc, b: e.target.value } })} />
-                    ) : <span style={{ fontFamily: 'var(--font-mono)' }}>{g.scoreB ?? '–'}</span>}
-                    <div style={{ flex: 1, minWidth: 100, fontWeight: 600, textAlign: 'right' }}>{teamLabel(g.teamB)}</div>
-                  </div>
-                  {canScore && (
-                    <button className="btn btn-secondary btn-sm mt-2" disabled={busy} onClick={() => submitScore(g.court)}>
-                      Submit Score
-                    </button>
-                  )}
-                </div>
-              )
-            })}
+                )
+              })
+            })()}
           </div>
 
           {round.byes.length > 0 && (

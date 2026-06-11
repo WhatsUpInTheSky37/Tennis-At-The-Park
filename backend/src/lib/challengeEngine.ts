@@ -46,30 +46,31 @@ function chunk<T>(arr: T[], size: number): T[][] {
   return out
 }
 
-// Build games from an ordered list of playing ids. For singles each game is 1v1,
-// for doubles the group of four is split (0,1) vs (2,3).
-function buildGames(playing: string[], format: Format, startCourt = 1): Game[] {
+// Build games from an ordered list of playing ids. Everyone listed gets a game;
+// when there are more games than courts, courts host multiple matches and the
+// court numbers cycle — e.g. 6 singles matches on 3 courts → courts 1,2,3,1,2,3.
+function buildGames(playing: string[], format: Format, courts: number): Game[] {
   const per = playersPerGame(format)
   const groups = chunk(playing, per)
   return groups.map((g, i) => {
+    const court = (i % courts) + 1
     if (format === 'singles') {
-      return { court: startCourt + i, teamA: [g[0]], teamB: [g[1]], scored: false }
+      return { court, teamA: [g[0]], teamB: [g[1]], scored: false }
     }
-    return { court: startCourt + i, teamA: [g[0], g[1]], teamB: [g[2], g[3]], scored: false }
+    return { court, teamA: [g[0], g[1]], teamB: [g[2], g[3]], scored: false }
   })
 }
 
-// Decide which players sit out this round so that everyone sits roughly equally.
-// Players who have sat out the FEWEST times so far are benched first.
+// Everyone plays every round. Only the leftover that can't fill a whole game
+// sits out (0 or 1 in singles; 0–3 in doubles). If someone must sit, whoever
+// has sat the FEWEST times so far is benched first so it evens out.
 function pickByes(
   activeIds: string[],
   format: Format,
-  courts: number,
   sitCount: Record<string, number>
 ): { playing: string[]; byes: string[] } {
   const per = playersPerGame(format)
-  const capacity = courts * per
-  const maxPlaying = Math.floor(Math.min(activeIds.length, capacity) / per) * per
+  const maxPlaying = Math.floor(activeIds.length / per) * per
   const byesCount = activeIds.length - maxPlaying
   if (byesCount <= 0) return { playing: shuffle(activeIds), byes: [] }
 
@@ -98,7 +99,7 @@ export function generateRotatingRound(
   }
 
   // ── Singles ──
-  const { playing, byes } = pickByes(activeIds, format, courts, sitCount)
+  const { playing, byes } = pickByes(activeIds, format, sitCount)
   let ordered: string[]
   if (rotation === 'mexicano' && roundNum > 1) {
     // Adjacent ranks play (0v1, 2v3, ...) to keep games close.
@@ -106,10 +107,10 @@ export function generateRotatingRound(
       const d = (points[b] || 0) - (points[a] || 0)
       return d !== 0 ? d : Math.random() - 0.5
     })
-    return { round: roundNum, games: buildGames(ordered, format), byes }
+    return { round: roundNum, games: buildGames(ordered, format, courts), byes }
   }
   ordered = shuffle(playing)
-  return { round: roundNum, games: buildGames(ordered, format), byes }
+  return { round: roundNum, games: buildGames(ordered, format, courts), byes }
 }
 
 type Team = [string, string]
@@ -158,8 +159,9 @@ function generateDoublesRound(
   let allTeams: Team[] = [...fixedTeams, ...freeTeams]
   const byes: string[] = [...leftover]
 
-  // 3. Fit to courts (2 teams per court); bench whole teams that have sat least.
-  const maxTeams = Math.floor(Math.min(allTeams.length, courts * 2) / 2) * 2
+  // 3. Pair every team into a game. Only a leftover odd team (which can't be
+  //    matched) sits; the team that has sat the least goes first.
+  const maxTeams = Math.floor(allTeams.length / 2) * 2
   if (allTeams.length > maxTeams) {
     const teamSit = (t: Team) => (sitCount[t[0]] || 0) + (sitCount[t[1]] || 0)
     allTeams = shuffle(allTeams).sort((a, b) => teamSit(a) - teamSit(b))
@@ -175,7 +177,7 @@ function generateDoublesRound(
 
   const games: Game[] = []
   for (let c = 0; c * 2 + 1 < playTeams.length; c++) {
-    games.push({ court: c + 1, teamA: playTeams[c * 2], teamB: playTeams[c * 2 + 1], scored: false })
+    games.push({ court: (c % courts) + 1, teamA: playTeams[c * 2], teamB: playTeams[c * 2 + 1], scored: false })
   }
   return { round: roundNum, games, byes }
 }
