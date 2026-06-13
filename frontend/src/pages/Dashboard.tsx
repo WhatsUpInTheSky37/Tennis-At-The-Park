@@ -26,8 +26,10 @@ export default function Dashboard() {
   const [pendingInvites, setPendingInvites] = useState<any[]>([])
   const [inviteActionLoading, setInviteActionLoading] = useState<string | null>(null)
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([])
+  const [eventBoard, setEventBoard] = useState<any[]>([])
 
   useEffect(() => {
+    api.getEventPointsLeaderboard(10).then(setEventBoard).catch(() => {})
     const today = format(new Date(), 'yyyy-MM-dd')
     const endOfWeek = format(addDays(new Date(), 6), 'yyyy-MM-dd')
     api.getSessions({ date: today, dateTo: endOfWeek }).then(s => { setSessions(s); setLoading(false) })
@@ -111,6 +113,16 @@ export default function Dashboard() {
       </div>
 
       <DisclaimerBox showRotation />
+
+      {/* June 13 results recap flyer */}
+      <div style={{ margin: '16px 0' }}>
+        <img
+          src="/june13results.jpg"
+          alt="Tennis at the Park — June 13 results. Gold: Cypress 16, Silver: Dan 15, Bronze: Joe 14. Next: Saturday Night Challenger, June 20, 6:00–8:30 PM."
+          onError={e => { (e.currentTarget.parentElement as HTMLElement).style.display = 'none' }}
+          style={{ width: '100%', height: 'auto', display: 'block', borderRadius: 14, border: '1px solid var(--border2)', boxShadow: '0 8px 30px rgba(0,0,0,0.45)' }}
+        />
+      </div>
 
       {/* Upcoming Challenge Events advertisement */}
       {upcomingEvents.length > 0 && (
@@ -421,6 +433,46 @@ export default function Dashboard() {
                   </div>
                 </div>
               </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Event Points — running standings from challenge events */}
+      {eventBoard.length > 0 && (
+        <div className="section mt-4">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="section-title" style={{ margin: 0 }}>🎾 EVENT POINTS</h2>
+            <Link to="/challenge-events" className="btn btn-ghost btn-sm">Events →</Link>
+          </div>
+          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+            {eventBoard.map((p, i) => (
+              <div
+                key={p.userId}
+                className="clickable"
+                onClick={() => navigate(`/profile/${p.userId}`)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', cursor: 'pointer',
+                  borderTop: i === 0 ? 'none' : '1px solid var(--border)'
+                }}
+              >
+                <span style={{
+                  width: 24, textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: 18,
+                  color: i === 0 ? '#f5c542' : i === 1 ? '#c0c6cc' : i === 2 ? '#cd7f32' : 'var(--text3)'
+                }}>
+                  {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}
+                </span>
+                <div style={{
+                  width: 30, height: 30, borderRadius: '50%', overflow: 'hidden', flexShrink: 0,
+                  background: 'var(--accent-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 11, fontFamily: 'var(--font-display)', color: 'var(--accent)'
+                }}>
+                  {p.photoUrl ? <img src={p.photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : getInitials(p.displayName || '?')}
+                </div>
+                <span style={{ flex: 1, fontWeight: 700 }}>{p.displayName}</span>
+                <span style={{ fontFamily: 'var(--font-display)', fontSize: 18, color: 'var(--accent)' }}>{p.eventPoints}</span>
+                <span className="text-xs text-muted">pts</span>
+              </div>
             ))}
           </div>
         </div>

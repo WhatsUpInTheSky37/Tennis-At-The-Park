@@ -13,10 +13,8 @@ export default function Landing() {
   const [weekSessions, setWeekSessions] = useState<any[]>([])
   const [latestArticles, setLatestArticles] = useState<any[]>([])
   const [upcomingEvents, setUpcomingEvents] = useState<any[]>([])
-  const [eventBoard, setEventBoard] = useState<any[]>([])
 
   useEffect(() => {
-    api.getEventPointsLeaderboard(10).then(setEventBoard).catch(() => {})
     api.getRecentForumPosts().then(setRecentPosts).catch(() => {})
     const today = new Date()
     const weekOut = new Date(); weekOut.setDate(weekOut.getDate() + 6)
@@ -135,41 +133,19 @@ export default function Landing() {
           </div>
         )}
 
-        {/* Event Points leaderboard — public standings from challenge events */}
-        {eventBoard.length > 0 && (
-          <div style={{ marginTop: 28 }}>
-            <div className="flex items-center justify-between mb-3">
-              <h3 style={{ fontFamily: 'var(--font-display)', letterSpacing: 2, fontSize: 20, margin: 0 }}>
-                🎾 EVENT POINTS
-              </h3>
-            </div>
-            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-              {eventBoard.map((p, i) => (
-                <div key={p.userId} style={{
-                  display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px',
-                  borderTop: i === 0 ? 'none' : '1px solid var(--border)'
-                }}>
-                  <span style={{
-                    width: 24, textAlign: 'center', fontFamily: 'var(--font-display)', fontSize: 18,
-                    color: i === 0 ? '#f5c542' : i === 1 ? '#c0c6cc' : i === 2 ? '#cd7f32' : 'var(--text3)'
-                  }}>
-                    {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1}
-                  </span>
-                  <div style={{
-                    width: 30, height: 30, borderRadius: '50%', overflow: 'hidden', flexShrink: 0,
-                    background: 'var(--accent-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 11, fontFamily: 'var(--font-display)', color: 'var(--accent)'
-                  }}>
-                    {p.photoUrl ? <img src={p.photoUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (p.displayName?.[0] || '?').toUpperCase()}
-                  </div>
-                  <span style={{ flex: 1, fontWeight: 700 }}>{p.displayName}</span>
-                  <span style={{ fontFamily: 'var(--font-display)', fontSize: 18, color: 'var(--accent)' }}>{p.eventPoints}</span>
-                  <span className="text-xs text-muted">pts</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* June 13 results recap flyer */}
+        <div style={{ marginTop: 28 }}>
+          <img
+            src="/june13results.jpg"
+            alt="Tennis at the Park — June 13 results. Gold: Cypress 16, Silver: Dan 15, Bronze: Joe 14. Next: Saturday Night Challenger, June 20, 6:00–8:30 PM."
+            onError={e => { (e.currentTarget.parentElement as HTMLElement).style.display = 'none' }}
+            style={{
+              width: '100%', height: 'auto', display: 'block',
+              borderRadius: 14, border: '1px solid var(--border2)',
+              boxShadow: '0 8px 30px rgba(0,0,0,0.45)'
+            }}
+          />
+        </div>
 
         <div style={{ marginTop: 28 }}>
           <div className="flex items-center justify-between mb-3">
