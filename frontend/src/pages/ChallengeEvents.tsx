@@ -4,11 +4,15 @@ import { api } from '../lib/api'
 import { useAuth } from '../store/auth'
 import { formatDate, formatTime } from '../lib/utils'
 
+// Shortest formats first. `scoring` is just the format players are told to play
+// to — you enter the final score and points tally from it either way.
 const SCORING_LABELS: Record<string, string> = {
+  tb_7: '7-point tiebreaker',
+  tb_10: '10-point tiebreaker',
+  first_to_3: 'First to 3 games',
   first_to_4: 'First to 4 games',
-  pro_set_8: '8-game pro set',
-  tb_7: '7-point tiebreak',
-  tb_10: '10-point tiebreak'
+  first_to_6: '6-game set',
+  pro_set_8: '8-game pro set'
 }
 
 // Local <input type="datetime-local"> value for a date at a given hour.
