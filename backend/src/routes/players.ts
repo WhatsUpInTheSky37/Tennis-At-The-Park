@@ -23,10 +23,28 @@ export async function playerRoutes(server: FastifyInstance) {
     if (q.format) {
       where.preferredFormats = { has: q.format }
     }
-    return prisma.profile.findMany({
+    const profiles = await prisma.profile.findMany({
       where,
       include: { user: { select: { id: true, lastActive: true, rating: true } } },
       take: 30
     })
+
+    // Attach challenge podium medals (gold/silver/bronze) from completed events.
+    const userIds = profiles.map(p => p.userId)
+    const medalRows = userIds.length
+      ? await prisma.challengeParticipant.findMany({
+          where: { userId: { in: userIds }, finalRank: { in: [1, 2, 3] }, event: { status: 'completed' } },
+          select: { userId: true, finalRank: true }
+        })
+      : []
+    const medalMap: Record<string, { gold: number; silver: number; bronze: number }> = {}
+    for (const m of medalRows) {
+      const e = (medalMap[m.userId] ||= { gold: 0, silver: 0, bronze: 0 })
+      if (m.finalRank === 1) e.gold++
+      else if (m.finalRank === 2) e.silver++
+      else if (m.finalRank === 3) e.bronze++
+    }
+
+    return profiles.map(p => ({ ...p, medals: medalMap[p.userId] || { gold: 0, silver: 0, bronze: 0 } }))
   })
 }

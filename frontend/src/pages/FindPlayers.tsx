@@ -91,6 +91,19 @@ export default function FindPlayers() {
                       }}>ONLINE</span>
                     )}
                     {p.lookingToPlay && <span className="badge badge-green" style={{ fontSize: 10 }}>Looking to play</span>}
+                    {(() => {
+                      const m = p.medals || { gold: 0, silver: 0, bronze: 0 }
+                      if (!m.gold && !m.silver && !m.bronze) return null
+                      const parts: string[] = []
+                      if (m.gold > 3) parts.push('💎')
+                      if (m.gold) parts.push(m.gold > 1 ? `🥇×${m.gold}` : '🥇')
+                      if (m.silver) parts.push(m.silver > 1 ? `🥈×${m.silver}` : '🥈')
+                      if (m.bronze) parts.push(m.bronze > 1 ? `🥉×${m.bronze}` : '🥉')
+                      const title = [
+                        m.gold && `${m.gold} gold`, m.silver && `${m.silver} silver`, m.bronze && `${m.bronze} bronze`
+                      ].filter(Boolean).join(' · ') + ' — challenge podiums'
+                      return <span title={title} style={{ fontSize: 13 }}>{parts.join(' ')}</span>
+                    })()}
                   </div>
                   <SkillDisplay level={p.skillLevel || 3} showLabel />
                   <div className="text-sm text-muted" style={{ marginTop: 4 }}>
