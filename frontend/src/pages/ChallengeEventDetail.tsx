@@ -5,10 +5,12 @@ import { useAuth } from '../store/auth'
 import { formatDateTime, formatTime } from '../lib/utils'
 
 const SCORING_LABELS: Record<string, string> = {
+  tb_7: '7-point tiebreaker',
+  tb_10: '10-point tiebreaker',
+  first_to_3: 'First to 3 games',
   first_to_4: 'First to 4 games',
-  pro_set_8: '8-game pro set',
-  tb_7: '7-point tiebreak',
-  tb_10: '10-point tiebreak'
+  first_to_6: '6-game set',
+  pro_set_8: '8-game pro set'
 }
 
 // ISO timestamp -> value for <input type="datetime-local"> (local time).

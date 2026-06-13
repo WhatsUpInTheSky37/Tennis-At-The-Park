@@ -22,7 +22,7 @@ const createSchema = z.object({
   mode: z.enum(['rotating', 'king_of_hill']).default('rotating'),
   rotation: z.enum(['americano', 'mexicano']).default('americano'),
   courts: z.number().int().min(1).max(16).default(2),
-  scoring: z.enum(['first_to_4', 'pro_set_8', 'tb_7', 'tb_10']).default('first_to_4'),
+  scoring: z.enum(['first_to_3', 'first_to_4', 'first_to_6', 'pro_set_8', 'tb_7', 'tb_10']).default('first_to_4'),
   pointsPerWin: z.number().int().min(1).max(10).default(1),
   affectsElo: z.boolean().default(true),
   maxHillWins: z.number().int().min(1).max(20).nullable().optional(),
@@ -47,7 +47,7 @@ const updateSchema = z.object({
   mode: z.enum(['rotating', 'king_of_hill']).optional(),
   rotation: z.enum(['americano', 'mexicano']).optional(),
   courts: z.number().int().min(1).max(16).optional(),
-  scoring: z.enum(['first_to_4', 'pro_set_8', 'tb_7', 'tb_10']).optional(),
+  scoring: z.enum(['first_to_3', 'first_to_4', 'first_to_6', 'pro_set_8', 'tb_7', 'tb_10']).optional(),
   pointsPerWin: z.number().int().min(1).max(10).optional(),
   affectsElo: z.boolean().optional(),
   maxHillWins: z.number().int().min(1).max(20).nullable().optional()
