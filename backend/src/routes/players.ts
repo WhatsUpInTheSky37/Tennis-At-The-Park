@@ -45,6 +45,20 @@ export async function playerRoutes(server: FastifyInstance) {
       else if (m.finalRank === 3) e.bronze++
     }
 
-    return profiles.map(p => ({ ...p, medals: medalMap[p.userId] || { gold: 0, silver: 0, bronze: 0 } }))
+    // Total event points earned across challenge events.
+    const pointRows = userIds.length
+      ? await prisma.challengeParticipant.groupBy({
+          by: ['userId'],
+          where: { userId: { in: userIds }, points: { gt: 0 } },
+          _sum: { points: true }
+        })
+      : []
+    const pointMap = new Map(pointRows.map(r => [r.userId, r._sum.points || 0]))
+
+    return profiles.map(p => ({
+      ...p,
+      medals: medalMap[p.userId] || { gold: 0, silver: 0, bronze: 0 },
+      eventPoints: pointMap.get(p.userId) || 0
+    }))
   })
 }

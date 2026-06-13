@@ -107,6 +107,9 @@ export const api = {
   // Leaderboards
   getLeaderboards: () => request<any>('/leaderboards'),
   getStats: (userId: string) => request<any>(`/leaderboards/stats/${userId}`),
+  getEventPointsLeaderboard: (limit?: number) =>
+    request<{ userId: string; displayName: string; photoUrl: string | null; eventPoints: number }[]>(
+      `/leaderboards/event-points${limit ? `?limit=${limit}` : ''}`),
 
   // Reports
   createReport: (data: any) => request<any>('/reports', { method: 'POST', body: JSON.stringify(data) }),

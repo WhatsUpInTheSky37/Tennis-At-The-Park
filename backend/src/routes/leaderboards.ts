@@ -65,6 +65,36 @@ export async function leaderboardRoutes(server: FastifyInstance) {
     const playerNames: Record<string, string> = {}
     for (const p of profs) playerNames[p.userId] = p.displayName
 
-    return { rating, recentMatches, rank, totalRanked, playerNames }
+    // Total points earned across all challenge events.
+    const eventPointsAgg = await prisma.challengeParticipant.aggregate({
+      where: { userId },
+      _sum: { points: true }
+    })
+
+    return { rating, recentMatches, rank, totalRanked, playerNames, eventPoints: eventPointsAgg._sum.points || 0 }
+  })
+
+  // Public Event Points leaderboard: total points earned across challenge events.
+  server.get('/event-points', async (req) => {
+    const limit = Math.min(Number((req.query as any)?.limit) || 20, 50)
+    const rows = await prisma.challengeParticipant.groupBy({
+      by: ['userId'],
+      where: { points: { gt: 0 } },
+      _sum: { points: true },
+      orderBy: { _sum: { points: 'desc' } },
+      take: limit
+    })
+    const ids = rows.map(r => r.userId)
+    const profs = await prisma.profile.findMany({
+      where: { userId: { in: ids } },
+      select: { userId: true, displayName: true, photoUrl: true }
+    })
+    const pmap = new Map(profs.map(p => [p.userId, p]))
+    return rows.map(r => ({
+      userId: r.userId,
+      displayName: pmap.get(r.userId)?.displayName || 'Player',
+      photoUrl: pmap.get(r.userId)?.photoUrl || null,
+      eventPoints: r._sum.points || 0
+    }))
   })
 }

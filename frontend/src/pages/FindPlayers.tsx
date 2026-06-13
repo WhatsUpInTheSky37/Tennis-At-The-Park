@@ -119,10 +119,10 @@ export default function FindPlayers() {
                     </div>
                   )}
                   {p.bio && <p className="text-sm text-muted mt-2" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.bio}</p>}
-                  {p.user?.rating && (
+                  {(p.user?.rating || p.eventPoints > 0) && (
                     <div className="text-xs text-muted mt-1" style={{ fontFamily: 'var(--font-mono)' }}>
-                      {p.user.rating.wins}W {p.user.rating.losses}L
-                      {p.user.rating.elo && ` · ${Math.round(p.user.rating.elo)} ELO`}
+                      {p.user?.rating && <>{p.user.rating.wins}W {p.user.rating.losses}L{p.user.rating.elo ? ` · ${Math.round(p.user.rating.elo)} ELO` : ''}</>}
+                      {p.eventPoints > 0 && <span style={{ color: 'var(--accent)' }}>{p.user?.rating ? ' · ' : ''}🎾 {p.eventPoints} event pts</span>}
                     </div>
                   )}
                   {user && p.userId !== user.id && (

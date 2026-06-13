@@ -432,6 +432,7 @@ export default function Profile() {
               { v: rating.matchesPlayed, l: 'MATCHES', c: 'var(--text)' },
               { v: stats?.rank ? `#${stats.rank}` : '—', l: 'RANK', c: 'var(--text)' },
               { v: wins.length, l: 'TROPHIES', c: 'var(--accent)' },
+              { v: stats?.eventPoints ?? 0, l: 'EVENT PTS', c: 'var(--accent)' },
             ]
             return (
               <div className="card mb-4">
