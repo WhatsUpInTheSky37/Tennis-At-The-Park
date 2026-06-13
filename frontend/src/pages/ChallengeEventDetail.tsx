@@ -74,6 +74,9 @@ export default function ChallengeEventDetail() {
   const [pairA, setPairA] = useState('')
   const [pairB, setPairB] = useState('')
   const [scores, setScores] = useState<Record<number, { a: string; b: string }>>({})
+  // Opt-in multi-set entry: presence of a game index here switches it from a
+  // single score to a list of set rows. Absent = default single-score entry.
+  const [setMode, setSetMode] = useState<Record<number, { a: string; b: string }[]>>({})
   const [editing, setEditing] = useState(false)
   const [edit, setEdit] = useState<any>(null)
 
@@ -123,9 +126,36 @@ export default function ChallengeEventDetail() {
     finally { setBusy(false) }
   }
 
+  // Multi-set entry helpers (opt-in per game).
+  const toggleSets = (idx: number) => setSetMode(prev => {
+    const n = { ...prev }
+    if (n[idx]) delete n[idx]
+    else n[idx] = [{ a: '', b: '' }, { a: '', b: '' }]
+    return n
+  })
+  const addSet = (idx: number) => setSetMode(prev => ({ ...prev, [idx]: [...(prev[idx] || []), { a: '', b: '' }] }))
+  const updateSet = (idx: number, si: number, side: 'a' | 'b', val: string) => setSetMode(prev => {
+    const rows = [...(prev[idx] || [])]
+    rows[si] = { ...rows[si], [side]: val }
+    return { ...prev, [idx]: rows }
+  })
+
   // Score state is keyed by the game's index in the round (a court can host more
   // than one match per round, so court number alone isn't unique).
   const submitScore = async (idx: number, court: number) => {
+    const setRows = setMode[idx]
+    if (setRows) {
+      const sets = setRows
+        .filter(s => s.a !== '' || s.b !== '')
+        .map(s => ({ a: parseInt(s.a || '0'), b: parseInt(s.b || '0') }))
+      if (sets.length === 0) { setError('Enter at least one set'); return }
+      if (sets.some(s => isNaN(s.a) || isNaN(s.b))) { setError('Set scores must be numbers'); return }
+      await act(async () => {
+        await api.scoreChallengeGame(id!, court, 0, 0, sets)
+        setSetMode(prev => { const n = { ...prev }; delete n[idx]; return n })
+      })
+      return
+    }
     const s = scores[idx]
     if (!s || s.a === '' || s.b === '') { setError('Enter both scores'); return }
     const a = parseInt(s.a), b = parseInt(s.b)
@@ -442,23 +472,52 @@ export default function ChallengeEventDetail() {
                       {event.mode === 'king_of_hill' && (g.holdStreak ?? 0) > 0 && !g.scored &&
                         <span className="text-xs" style={{ color: 'var(--accent)' }}>🔥 {g.holdStreak} win streak</span>}
                     </div>
-                    <div className="flex items-center justify-between gap-2" style={{ flexWrap: 'wrap' }}>
-                      <div style={{ flex: 1, minWidth: 100, fontWeight: 600 }}>{teamLabel(g.teamA)}</div>
-                      {canScore ? (
-                        <input type="number" min={0} value={sc.a} placeholder="0" style={{ width: 56 }}
-                          onChange={e => setScores({ ...scores, [idx]: { ...sc, a: e.target.value } })} />
-                      ) : <span style={{ fontFamily: 'var(--font-mono)' }}>{g.scoreA ?? '–'}</span>}
-                      <span className="text-muted">vs</span>
-                      {canScore ? (
-                        <input type="number" min={0} value={sc.b} placeholder="0" style={{ width: 56 }}
-                          onChange={e => setScores({ ...scores, [idx]: { ...sc, b: e.target.value } })} />
-                      ) : <span style={{ fontFamily: 'var(--font-mono)' }}>{g.scoreB ?? '–'}</span>}
-                      <div style={{ flex: 1, minWidth: 100, fontWeight: 600, textAlign: 'right' }}>{teamLabel(g.teamB)}</div>
-                    </div>
+                    {canScore && setMode[idx] ? (
+                      <div>
+                        <div className="flex items-center justify-between mb-2" style={{ gap: 8 }}>
+                          <span style={{ flex: 1, fontWeight: 600 }}>{teamLabel(g.teamA)}</span>
+                          <span className="text-xs text-muted">sets</span>
+                          <span style={{ flex: 1, fontWeight: 600, textAlign: 'right' }}>{teamLabel(g.teamB)}</span>
+                        </div>
+                        {setMode[idx].map((row, si) => (
+                          <div key={si} className="flex items-center gap-2" style={{ justifyContent: 'center', marginBottom: 6 }}>
+                            <span className="text-xs text-muted" style={{ width: 40 }}>Set {si + 1}</span>
+                            <input type="number" min={0} value={row.a} placeholder="0" style={{ width: 52 }}
+                              onChange={e => updateSet(idx, si, 'a', e.target.value)} />
+                            <span className="text-muted">–</span>
+                            <input type="number" min={0} value={row.b} placeholder="0" style={{ width: 52 }}
+                              onChange={e => updateSet(idx, si, 'b', e.target.value)} />
+                          </div>
+                        ))}
+                        {setMode[idx].length < 5 && (
+                          <button type="button" className="btn btn-ghost btn-sm" onClick={() => addSet(idx)}>+ Add set</button>
+                        )}
+                        <div className="text-xs text-muted mt-1">Enter each set's games (e.g. 6–4); a tiebreak set is 7–6. Winner = most sets won.</div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between gap-2" style={{ flexWrap: 'wrap' }}>
+                        <div style={{ flex: 1, minWidth: 100, fontWeight: 600 }}>{teamLabel(g.teamA)}</div>
+                        {canScore ? (
+                          <input type="number" min={0} value={sc.a} placeholder="0" style={{ width: 56 }}
+                            onChange={e => setScores({ ...scores, [idx]: { ...sc, a: e.target.value } })} />
+                        ) : <span style={{ fontFamily: 'var(--font-mono)' }}>{g.scoreA ?? '–'}</span>}
+                        <span className="text-muted">vs</span>
+                        {canScore ? (
+                          <input type="number" min={0} value={sc.b} placeholder="0" style={{ width: 56 }}
+                            onChange={e => setScores({ ...scores, [idx]: { ...sc, b: e.target.value } })} />
+                        ) : <span style={{ fontFamily: 'var(--font-mono)' }}>{g.scoreB ?? '–'}</span>}
+                        <div style={{ flex: 1, minWidth: 100, fontWeight: 600, textAlign: 'right' }}>{teamLabel(g.teamB)}</div>
+                      </div>
+                    )}
                     {canScore && (
-                      <button className="btn btn-secondary btn-sm mt-2" disabled={busy} onClick={() => submitScore(idx, g.court)}>
-                        Submit Score
-                      </button>
+                      <div className="flex items-center gap-2 mt-2" style={{ flexWrap: 'wrap' }}>
+                        <button className="btn btn-secondary btn-sm" disabled={busy} onClick={() => submitScore(idx, g.court)}>
+                          Submit Score
+                        </button>
+                        <button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={() => toggleSets(idx)}>
+                          {setMode[idx] ? '← Single score' : 'Enter as sets'}
+                        </button>
+                      </div>
                     )}
                   </div>
                 )
@@ -579,15 +638,16 @@ export default function ChallengeEventDetail() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {matches.filter(m => m.round === rn).map(m => {
                     const t1 = m.teams?.team1 || [], t2 = m.teams?.team2 || []
-                    const sc = (m.score && m.score[0]) || []
+                    const sets: any[] = Array.isArray(m.score) ? m.score : []
+                    const scoreText = sets.length ? sets.map((s: any) => `${s[0]}–${s[1]}`).join(', ') : '–'
                     const t1Won = JSON.stringify(m.winners) === JSON.stringify(t1)
                     return (
                       <div key={m.id} className="flex items-center justify-between" style={{ background: 'var(--bg3)', borderRadius: 8, padding: '8px 12px', fontSize: 14 }}>
                         <span style={{ flex: 1, fontWeight: t1Won ? 700 : 400, color: t1Won ? 'var(--accent)' : 'var(--text)' }}>
                           {t1Won && '✓ '}{teamLabel(t1)}
                         </span>
-                        <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, padding: '0 10px' }}>
-                          {sc[0] ?? '–'}–{sc[1] ?? '–'}
+                        <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, padding: '0 10px', whiteSpace: 'nowrap' }}>
+                          {scoreText}
                         </span>
                         <span style={{ flex: 1, textAlign: 'right', fontWeight: !t1Won ? 700 : 400, color: !t1Won ? 'var(--accent)' : 'var(--text)' }}>
                           {!t1Won && '✓ '}{teamLabel(t2)}

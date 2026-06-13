@@ -31,9 +31,37 @@ const createSchema = z.object({
 
 const scoreSchema = z.object({
   court: z.number().int(),
-  scoreA: z.number().int().min(0).max(99),
-  scoreB: z.number().int().min(0).max(99)
+  // Single-score entry (the default): one game/point total per side.
+  scoreA: z.number().int().min(0).max(99).optional(),
+  scoreB: z.number().int().min(0).max(99).optional(),
+  // Optional multi-set entry: [{ a, b }, ...] for best-of-N matches with tiebreaks.
+  sets: z.array(z.object({ a: z.number().int().min(0).max(99), b: z.number().int().min(0).max(99) })).min(1).max(5).optional()
 })
+
+type ScoreInput = { scoreA?: number; scoreB?: number; sets?: { a: number; b: number }[] }
+type MatchResult =
+  | { ok: true; winnerSide: 'A' | 'B'; scoreJson: number[][]; aGames: number; bGames: number; tileA: number; tileB: number }
+  | { ok: false; error: string }
+
+// Resolve a match result from either a single score or a list of sets. `aGames`
+// / `bGames` are the totals that feed standings points; `tileA` / `tileB` are
+// what the court tile shows (games for a single score, sets won for multi-set).
+export function computeMatchResult(input: ScoreInput): MatchResult {
+  if (input.sets && input.sets.length) {
+    let setsA = 0, setsB = 0, aGames = 0, bGames = 0
+    for (const s of input.sets) {
+      if (s.a === s.b) return { ok: false, error: 'Each set needs a winner — enter a tiebreak set as 7–6' }
+      aGames += s.a; bGames += s.b
+      if (s.a > s.b) setsA++; else setsB++
+    }
+    if (setsA === setsB) return { ok: false, error: 'The match is tied on sets — enter a deciding set' }
+    return { ok: true, winnerSide: setsA > setsB ? 'A' : 'B', scoreJson: input.sets.map(s => [s.a, s.b]), aGames, bGames, tileA: setsA, tileB: setsB }
+  }
+  const { scoreA, scoreB } = input
+  if (scoreA === undefined || scoreB === undefined) return { ok: false, error: 'Enter both scores' }
+  if (scoreA === scoreB) return { ok: false, error: 'A game cannot end in a tie' }
+  return { ok: true, winnerSide: scoreA > scoreB ? 'A' : 'B', scoreJson: [[scoreA, scoreB]], aGames: scoreA, bGames: scoreB, tileA: scoreA, tileB: scoreB }
+}
 
 // Editing an existing event. All fields optional (partial update). Structural
 // fields (format/mode/rotation) can only change before the event starts — see
@@ -355,8 +383,7 @@ export async function challengeEventRoutes(server: FastifyInstance) {
     const { id } = req.params as { id: string }
     const body = scoreSchema.safeParse(req.body)
     if (!body.success) return reply.status(400).send({ error: body.error.flatten() })
-    const { court, scoreA, scoreB } = body.data
-    if (scoreA === scoreB) return reply.status(400).send({ error: 'A game cannot end in a tie' })
+    const { court } = body.data
 
     const event = await prisma.challengeEvent.findUnique({ where: { id } })
     if (!event) return reply.status(404).send({ error: 'Not found' })
@@ -372,11 +399,13 @@ export async function challengeEventRoutes(server: FastifyInstance) {
       return reply.status(403).send({ error: 'Only a player on this court or the organizer can score' })
     }
 
-    const winnerSide: 'A' | 'B' = scoreA > scoreB ? 'A' : 'B'
+    const result = computeMatchResult(body.data)
+    if (!result.ok) return reply.status(400).send({ error: result.error })
+    const { winnerSide, scoreJson, aGames, bGames, tileA, tileB } = result
     const winners = winnerSide === 'A' ? game.teamA : game.teamB
     const losers = winnerSide === 'A' ? game.teamB : game.teamA
-    const winnerGames = Math.max(scoreA, scoreB)
-    const loserGames = Math.min(scoreA, scoreB)
+    const winnerGames = winnerSide === 'A' ? aGames : bGames
+    const loserGames = winnerSide === 'A' ? bGames : aGames
 
     // Persist the game as a real Match so it flows into history.
     const match = await prisma.match.create({
@@ -388,7 +417,7 @@ export async function challengeEventRoutes(server: FastifyInstance) {
         courtNumber: court,
         format: event.format,
         teamsJson: { team1: game.teamA, team2: game.teamB },
-        scoreJson: [[scoreA, scoreB]],
+        scoreJson,
         winnerUserIdsJson: winners,
         status: 'normal',
         notes: `${event.name} — Round ${event.currentRound}`
@@ -417,7 +446,7 @@ export async function challengeEventRoutes(server: FastifyInstance) {
     // Update the round JSON: mark scored, and for KotH spin up the next game on this court.
     const newGames = round.games.map(g => g)
     const gameIdx = newGames.findIndex(g => g.court === court && !g.scored)
-    newGames[gameIdx] = { ...game, scored: true, matchId: match.id, scoreA, scoreB }
+    newGames[gameIdx] = { ...game, scored: true, matchId: match.id, scoreA: tileA, scoreB: tileB }
 
     let byes = round.byes
     if (event.mode === 'king_of_hill') {
