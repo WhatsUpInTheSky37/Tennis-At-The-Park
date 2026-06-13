@@ -145,8 +145,11 @@ export const api = {
   clearChallengePair: (id: string, userId: string) =>
     request<any>(`/challenge-events/${id}/pairs/${userId}`, { method: 'DELETE' }),
   startChallengeEvent: (id: string) => request<any>(`/challenge-events/${id}/start`, { method: 'POST', body: JSON.stringify({}) }),
-  scoreChallengeGame: (id: string, court: number, scoreA: number, scoreB: number) =>
-    request<any>(`/challenge-events/${id}/games/score`, { method: 'POST', body: JSON.stringify({ court, scoreA, scoreB }) }),
+  scoreChallengeGame: (id: string, court: number, scoreA: number, scoreB: number, sets?: { a: number; b: number }[]) =>
+    request<any>(`/challenge-events/${id}/games/score`, {
+      method: 'POST',
+      body: JSON.stringify(sets && sets.length ? { court, sets } : { court, scoreA, scoreB })
+    }),
   nextChallengeRound: (id: string, force?: boolean) => request<any>(`/challenge-events/${id}/next-round`, { method: 'POST', body: JSON.stringify({ force: !!force }) }),
   completeChallengeEvent: (id: string) => request<any>(`/challenge-events/${id}/complete`, { method: 'POST', body: JSON.stringify({}) }),
   deleteChallengeEvent: (id: string) => request<void>(`/challenge-events/${id}`, { method: 'DELETE' }),
