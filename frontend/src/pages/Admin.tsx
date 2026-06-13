@@ -349,6 +349,58 @@ function MessagingPanel() {
   )
 }
 
+// Admin: create a new user by email + name. The account is active immediately
+// and the person gets an invite email with a temporary password.
+function CreateUserPanel({ onCreated }: { onCreated: () => void }) {
+  const [open, setOpen] = useState(false)
+  const [email, setEmail] = useState('')
+  const [name, setName] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [result, setResult] = useState('')
+
+  const create = async () => {
+    setBusy(true); setResult('')
+    try {
+      const u = await api.adminCreateUser(email.trim(), name.trim())
+      setResult(`✓ Created ${u.displayName} — invite emailed to ${u.email}`)
+      setEmail(''); setName('')
+      onCreated()
+    } catch (e: any) {
+      setResult('Error: ' + (e.message || 'could not create user'))
+    } finally { setBusy(false) }
+  }
+
+  if (!open) {
+    return (
+      <button className="btn btn-primary btn-sm" style={{ marginBottom: 12 }} onClick={() => { setOpen(true); setResult('') }}>
+        + New user
+      </button>
+    )
+  }
+
+  const canCreate = /\S+@\S+\.\S+/.test(email.trim()) && name.trim().length >= 2 && !busy
+
+  return (
+    <div className="card" style={{ marginBottom: 12 }}>
+      <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div className="flex items-center justify-between">
+          <h3 style={{ margin: 0, fontSize: 16 }}>Create a user</h3>
+          <button className="btn btn-ghost btn-sm" onClick={() => setOpen(false)}>✕</button>
+        </div>
+        <input value={name} onChange={e => setName(e.target.value)} placeholder="Name" maxLength={50} />
+        <input value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" type="email" />
+        <p className="text-xs text-muted" style={{ margin: 0 }}>
+          The account is active right away. They'll get an invite email with a temporary password to sign in and then set their own.
+        </p>
+        {result && <p className="text-sm" style={{ color: result.startsWith('Error') ? 'var(--red)' : 'var(--accent)', margin: 0 }}>{result}</p>}
+        <button className="btn btn-primary btn-sm" disabled={!canCreate} onClick={create} style={{ alignSelf: 'flex-start' }}>
+          {busy ? 'Creating…' : 'Create & send invite'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function Admin() {
   const [tab, setTab] = useState<'reports' | 'disputes' | 'users' | 'messaging'>('reports')
   const [reports, setReports] = useState<any[]>([])
@@ -530,6 +582,7 @@ export default function Admin() {
         <MessagingPanel />
       ) : (
         <div>
+          <CreateUserPanel onCreated={loadUsers} />
           <form
             onSubmit={e => { e.preventDefault(); setUserSearch(userSearchInput.trim()) }}
             style={{ display: 'flex', gap: 8, marginBottom: 12 }}
