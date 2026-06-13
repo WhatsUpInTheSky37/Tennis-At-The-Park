@@ -258,6 +258,8 @@ export const api = {
     return request<any[]>(`/admin/users${q}`)
   },
   adminGetUser: (id: string) => request<any>(`/admin/users/${id}`),
+  adminCreateUser: (email: string, displayName: string) =>
+    request<{ id: string; email: string; displayName: string }>('/admin/users', { method: 'POST', body: JSON.stringify({ email, displayName }) }),
   adminToggleAdmin: (id: string) => request<any>(`/admin/users/${id}/toggle-admin`, { method: 'POST', body: JSON.stringify({}) }),
   adminDeleteUser: (id: string) => request<any>(`/admin/users/${id}`, { method: 'DELETE' }),
   adminSendMessage: (data: {

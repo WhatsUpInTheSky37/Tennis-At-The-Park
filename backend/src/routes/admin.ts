@@ -1,6 +1,8 @@
 import { FastifyInstance } from 'fastify'
+import argon2 from 'argon2'
+import crypto from 'crypto'
 import { prisma } from '../lib/prisma'
-import { sendAdminMessageEmail, sendWelcomeEmail, shouldEmailUser } from '../lib/email'
+import { sendAdminMessageEmail, sendWelcomeEmail, sendInviteEmail, shouldEmailUser } from '../lib/email'
 
 async function requireAdmin(req: any, reply: any) {
   if (!req.user?.isAdmin) return reply.status(403).send({ error: 'Admin only' })
@@ -107,6 +109,39 @@ async function deleteUserCascade(userId: string) {
 
 export async function adminRoutes(server: FastifyInstance) {
   const preHandler = [(server as any).authenticate, requireAdmin]
+
+  // Create a new user (admin invite): capture email + name, create an active
+  // account right away, and email them an invite with a temporary password.
+  server.post('/users', { preHandler }, async (req, reply) => {
+    const b = (req.body || {}) as { email?: string; displayName?: string }
+    const email = (b.email || '').trim().toLowerCase()
+    const displayName = (b.displayName || '').trim()
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return reply.status(400).send({ error: 'A valid email is required' })
+    if (displayName.length < 2) return reply.status(400).send({ error: 'A name (at least 2 characters) is required' })
+
+    const existing = await prisma.user.findUnique({ where: { email } })
+    if (existing) return reply.status(409).send({ error: 'A user with that email already exists' })
+
+    // Temporary password the invitee signs in with, then changes from their profile.
+    const tempPassword = crypto.randomBytes(9).toString('base64url')
+    const passwordHash = await argon2.hash(tempPassword)
+
+    const user = await prisma.user.create({
+      data: {
+        email,
+        passwordHash,
+        profile: { create: { displayName } },
+        rating: { create: {} },
+        enforcement: { create: {} }
+      },
+      include: { profile: true }
+    })
+
+    // Best-effort invite email (won't fail the request if email is down).
+    await sendInviteEmail(email, displayName, tempPassword)
+
+    return reply.status(201).send({ id: user.id, email: user.email, displayName: user.profile?.displayName })
+  })
 
   server.get('/users', { preHandler }, async (req) => {
     const q = req.query as any

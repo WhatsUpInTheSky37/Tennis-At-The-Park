@@ -92,6 +92,23 @@ export async function sendWelcomeEmail(email: string, displayName: string) {
   `)
 }
 
+// Sent when an admin creates an account for someone — includes a temporary
+// password so they can sign in right away and then change it.
+export async function sendInviteEmail(email: string, displayName: string, tempPassword: string) {
+  await send(email, "You're invited to Tennis at the Park 🎾", `
+    <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 24px;">
+      <h2 style="color: #7ffe4a;">You're in, ${escapeHtml(displayName)}!</h2>
+      <p>An account has been created for you on <strong>Tennis at the Park</strong> — the Salisbury, Maryland tennis community. You can sign in right now:</p>
+      <p style="background: #f4f4f4; border-radius: 8px; padding: 14px 16px; color: #222;">
+        <strong>Email:</strong> ${escapeHtml(email)}<br>
+        <strong>Temporary password:</strong> ${escapeHtml(tempPassword)}
+      </p>
+      <p><a href="${SITE_URL}/auth" style="color: #7ffe4a;">Sign in here</a> — then head to your profile to set your own password.</p>
+      <p style="color: #888; font-size: 12px;">If you weren't expecting this, you can safely ignore this email. Tennis at the Park — Salisbury, MD.</p>
+    </div>
+  `)
+}
+
 export async function sendAdminNewSignupEmail(displayName: string, email: string) {
   await send(ADMIN_EMAIL, `New signup: ${displayName}`, `
     <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 24px;">
