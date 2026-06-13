@@ -119,13 +119,37 @@ type Team = [string, string]
 function pairFreePlayers(
   freeIds: string[], rotation: Rotation, roundNum: number, points: Record<string, number>
 ): { teams: Team[]; leftover: string[] } {
-  const order = (rotation === 'mexicano' && roundNum > 1)
-    ? [...freeIds].sort((a, b) => (points[b] || 0) - (points[a] || 0) || Math.random() - 0.5)
-    : shuffle(freeIds)
+  // Americano (and round 1 of either): fresh random partners every round.
+  if (!(rotation === 'mexicano' && roundNum > 1)) {
+    const order = shuffle(freeIds)
+    const teams: Team[] = []
+    let i = 0
+    for (; i + 2 <= order.length; i += 2) teams.push([order[i], order[i + 1]])
+    return { teams, leftover: order.slice(i) }
+  }
+
+  // Mexicano (round 2+): group by standings into foursomes (keeps games close),
+  // then rotate WHICH two of the four partner up based on the round, cycling
+  // through all three pairings so nobody is stuck with the same partner.
+  const order = [...freeIds].sort((a, b) => (points[b] || 0) - (points[a] || 0) || Math.random() - 0.5)
   const teams: Team[] = []
-  let i = 0
-  for (; i + 2 <= order.length; i += 2) teams.push([order[i], order[i + 1]])
-  return { teams, leftover: order.slice(i) }
+  const leftover: string[] = []
+  for (let i = 0; i < order.length; i += 4) {
+    const four = order.slice(i, i + 4)
+    if (four.length === 4) {
+      const [a, b, c, d] = four
+      const pat = roundNum % 3
+      if (pat === 1) teams.push([a, c], [b, d])
+      else if (pat === 2) teams.push([a, d], [b, c])
+      else teams.push([a, b], [c, d])
+    } else if (four.length >= 2) {
+      teams.push([four[0], four[1]])
+      if (four.length === 3) leftover.push(four[2])
+    } else {
+      leftover.push(...four)
+    }
+  }
+  return { teams, leftover }
 }
 
 // Doubles round generation. Locked partners stay together as an atomic team;
