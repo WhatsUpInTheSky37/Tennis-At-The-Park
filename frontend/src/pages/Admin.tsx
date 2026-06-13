@@ -349,17 +349,33 @@ function MessagingPanel() {
   )
 }
 
-// Admin: create a new user by email + name. The account is active immediately
-// and the person gets an invite email with a temporary password.
+// Parse pasted lines like "Jane Doe, jane@x.com" / "jane@x.com, Jane Doe" /
+// "Jane <jane@x.com>" / "jane@x.com" into { displayName, email } rows.
+function parseInviteRows(text: string): { displayName: string; email: string }[] {
+  return text.split(/\r?\n/).map(l => l.trim()).filter(Boolean).map(line => {
+    const m = line.match(/[^\s,;<>]+@[^\s,;<>]+\.[^\s,;<>]+/)
+    const email = m ? m[0] : ''
+    let name = (email ? line.replace(email, '') : line).replace(/[<>,;]/g, ' ').trim()
+    if (!name && email) name = email.split('@')[0].replace(/[._-]+/g, ' ').trim()
+    return { displayName: name, email }
+  }).filter(r => r.email)
+}
+
+// Admin: create users by email + name (single or bulk paste). Accounts are
+// active immediately and each person gets an invite email with a temp password.
 function CreateUserPanel({ onCreated }: { onCreated: () => void }) {
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState<'' | 'single' | 'bulk'>('')
   const [email, setEmail] = useState('')
   const [name, setName] = useState('')
+  const [bulkText, setBulkText] = useState('')
   const [busy, setBusy] = useState(false)
   const [result, setResult] = useState('')
+  const [bulkResults, setBulkResults] = useState<{ email: string; displayName: string; status: string; error?: string }[]>([])
 
-  const create = async () => {
-    setBusy(true); setResult('')
+  const reset = () => { setResult(''); setBulkResults([]) }
+
+  const createSingle = async () => {
+    setBusy(true); reset()
     try {
       const u = await api.adminCreateUser(email.trim(), name.trim())
       setResult(`✓ Created ${u.displayName} — invite emailed to ${u.email}`)
@@ -370,32 +386,81 @@ function CreateUserPanel({ onCreated }: { onCreated: () => void }) {
     } finally { setBusy(false) }
   }
 
+  const createBulk = async () => {
+    const rows = parseInviteRows(bulkText)
+    if (rows.length === 0) { setResult('No valid "name, email" rows found'); return }
+    setBusy(true); reset()
+    try {
+      const r = await api.adminBulkCreateUsers(rows)
+      setResult(`Invited ${r.invited} · skipped ${r.skipped} · failed ${r.failed}`)
+      setBulkResults(r.results)
+      if (r.invited > 0) { setBulkText(''); onCreated() }
+    } catch (e: any) {
+      setResult('Error: ' + (e.message || 'bulk invite failed'))
+    } finally { setBusy(false) }
+  }
+
   if (!open) {
     return (
-      <button className="btn btn-primary btn-sm" style={{ marginBottom: 12 }} onClick={() => { setOpen(true); setResult('') }}>
-        + New user
-      </button>
+      <div className="flex gap-2" style={{ marginBottom: 12 }}>
+        <button className="btn btn-primary btn-sm" onClick={() => { setOpen('single'); reset() }}>+ New user</button>
+        <button className="btn btn-secondary btn-sm" onClick={() => { setOpen('bulk'); reset() }}>⇪ Bulk invite</button>
+      </div>
     )
   }
 
-  const canCreate = /\S+@\S+\.\S+/.test(email.trim()) && name.trim().length >= 2 && !busy
+  const canSingle = /\S+@\S+\.\S+/.test(email.trim()) && name.trim().length >= 2 && !busy
+  const parsedCount = open === 'bulk' ? parseInviteRows(bulkText).length : 0
 
   return (
     <div className="card" style={{ marginBottom: 12 }}>
       <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div className="flex items-center justify-between">
-          <h3 style={{ margin: 0, fontSize: 16 }}>Create a user</h3>
-          <button className="btn btn-ghost btn-sm" onClick={() => setOpen(false)}>✕</button>
+          <div className="tabs" style={{ margin: 0 }}>
+            <button className={`tab ${open === 'single' ? 'active' : ''}`} onClick={() => { setOpen('single'); reset() }}>Single</button>
+            <button className={`tab ${open === 'bulk' ? 'active' : ''}`} onClick={() => { setOpen('bulk'); reset() }}>Bulk</button>
+          </div>
+          <button className="btn btn-ghost btn-sm" onClick={() => { setOpen(''); reset() }}>✕</button>
         </div>
-        <input value={name} onChange={e => setName(e.target.value)} placeholder="Name" maxLength={50} />
-        <input value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" type="email" />
+
+        {open === 'single' ? (
+          <>
+            <input value={name} onChange={e => setName(e.target.value)} placeholder="Name" maxLength={50} />
+            <input value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" type="email" />
+            <button className="btn btn-primary btn-sm" disabled={!canSingle} onClick={createSingle} style={{ alignSelf: 'flex-start' }}>
+              {busy ? 'Creating…' : 'Create & send invite'}
+            </button>
+          </>
+        ) : (
+          <>
+            <textarea
+              value={bulkText}
+              onChange={e => setBulkText(e.target.value)}
+              rows={7}
+              placeholder={'One per line, e.g.\nJane Doe, jane@example.com\njohn@example.com, John Smith\nSam <sam@example.com>'}
+              style={{ width: '100%', fontFamily: 'var(--font-mono)', fontSize: 13 }}
+            />
+            <button className="btn btn-primary btn-sm" disabled={busy || parsedCount === 0} onClick={createBulk} style={{ alignSelf: 'flex-start' }}>
+              {busy ? 'Inviting…' : `Invite ${parsedCount || ''} ${parsedCount === 1 ? 'person' : 'people'}`.trim()}
+            </button>
+          </>
+        )}
+
         <p className="text-xs text-muted" style={{ margin: 0 }}>
-          The account is active right away. They'll get an invite email with a temporary password to sign in and then set their own.
+          Accounts are active right away; each person gets an invite email with a temporary password to sign in and then set their own.
         </p>
         {result && <p className="text-sm" style={{ color: result.startsWith('Error') ? 'var(--red)' : 'var(--accent)', margin: 0 }}>{result}</p>}
-        <button className="btn btn-primary btn-sm" disabled={!canCreate} onClick={create} style={{ alignSelf: 'flex-start' }}>
-          {busy ? 'Creating…' : 'Create & send invite'}
-        </button>
+        {bulkResults.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 220, overflowY: 'auto' }}>
+            {bulkResults.map((r, i) => (
+              <div key={i} className="text-xs" style={{ display: 'flex', gap: 8 }}>
+                <span>{r.status === 'invited' ? '✅' : r.status === 'skipped' ? '⏭️' : '⚠️'}</span>
+                <span style={{ color: 'var(--text2)' }}>{r.displayName || '(no name)'} · {r.email}</span>
+                {r.error && <span style={{ color: 'var(--text3)' }}>— {r.error}</span>}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

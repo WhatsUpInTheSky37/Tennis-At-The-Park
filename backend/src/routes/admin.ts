@@ -8,6 +8,37 @@ async function requireAdmin(req: any, reply: any) {
   if (!req.user?.isAdmin) return reply.status(403).send({ error: 'Admin only' })
 }
 
+type InvitedUser =
+  | { ok: true; id: string; email: string; displayName: string }
+  | { ok: false; error: string; code: number }
+
+// Create one active account from an email + name and send the invite email.
+// Shared by the single-create and bulk-invite endpoints.
+async function createInvitedUser(rawEmail: string, rawName: string): Promise<InvitedUser> {
+  const email = (rawEmail || '').trim().toLowerCase()
+  const displayName = (rawName || '').trim()
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return { ok: false, error: 'A valid email is required', code: 400 }
+  if (displayName.length < 2) return { ok: false, error: 'A name (at least 2 characters) is required', code: 400 }
+
+  const existing = await prisma.user.findUnique({ where: { email } })
+  if (existing) return { ok: false, error: 'A user with that email already exists', code: 409 }
+
+  const tempPassword = crypto.randomBytes(9).toString('base64url')
+  const passwordHash = await argon2.hash(tempPassword)
+  const user = await prisma.user.create({
+    data: {
+      email,
+      passwordHash,
+      profile: { create: { displayName } },
+      rating: { create: {} },
+      enforcement: { create: {} }
+    },
+    include: { profile: true }
+  })
+  await sendInviteEmail(email, displayName, tempPassword)
+  return { ok: true, id: user.id, email: user.email, displayName: user.profile?.displayName || displayName }
+}
+
 async function deleteUserCascade(userId: string) {
   return prisma.$transaction(async (tx) => {
     // 1. Forum posts owned by user (with their replies, reactions, notifications, reports)
@@ -114,33 +145,27 @@ export async function adminRoutes(server: FastifyInstance) {
   // account right away, and email them an invite with a temporary password.
   server.post('/users', { preHandler }, async (req, reply) => {
     const b = (req.body || {}) as { email?: string; displayName?: string }
-    const email = (b.email || '').trim().toLowerCase()
-    const displayName = (b.displayName || '').trim()
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return reply.status(400).send({ error: 'A valid email is required' })
-    if (displayName.length < 2) return reply.status(400).send({ error: 'A name (at least 2 characters) is required' })
+    const r = await createInvitedUser(b.email || '', b.displayName || '')
+    if (!r.ok) return reply.status(r.code).send({ error: r.error })
+    return reply.status(201).send({ id: r.id, email: r.email, displayName: r.displayName })
+  })
 
-    const existing = await prisma.user.findUnique({ where: { email } })
-    if (existing) return reply.status(409).send({ error: 'A user with that email already exists' })
-
-    // Temporary password the invitee signs in with, then changes from their profile.
-    const tempPassword = crypto.randomBytes(9).toString('base64url')
-    const passwordHash = await argon2.hash(tempPassword)
-
-    const user = await prisma.user.create({
-      data: {
-        email,
-        passwordHash,
-        profile: { create: { displayName } },
-        rating: { create: {} },
-        enforcement: { create: {} }
-      },
-      include: { profile: true }
-    })
-
-    // Best-effort invite email (won't fail the request if email is down).
-    await sendInviteEmail(email, displayName, tempPassword)
-
-    return reply.status(201).send({ id: user.id, email: user.email, displayName: user.profile?.displayName })
+  // Bulk invite: process each row independently and report per-row results.
+  server.post('/users/bulk', { preHandler }, async (req, reply) => {
+    const b = (req.body || {}) as { users?: { email?: string; displayName?: string }[] }
+    const rows = Array.isArray(b.users) ? b.users.slice(0, 200) : []
+    if (rows.length === 0) return reply.status(400).send({ error: 'No users provided' })
+    const results: { email: string; displayName: string; status: 'invited' | 'skipped' | 'error'; error?: string }[] = []
+    let invited = 0, skipped = 0, failed = 0
+    for (const row of rows) {
+      const email = (row.email || '').trim().toLowerCase()
+      const displayName = (row.displayName || '').trim()
+      const r = await createInvitedUser(email, displayName)
+      if (r.ok) { invited++; results.push({ email: r.email, displayName: r.displayName, status: 'invited' }) }
+      else if (r.code === 409) { skipped++; results.push({ email, displayName, status: 'skipped', error: r.error }) }
+      else { failed++; results.push({ email, displayName, status: 'error', error: r.error }) }
+    }
+    return { invited, skipped, failed, results }
   })
 
   server.get('/users', { preHandler }, async (req) => {
