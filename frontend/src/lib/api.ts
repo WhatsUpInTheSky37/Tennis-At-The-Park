@@ -260,6 +260,9 @@ export const api = {
   adminGetUser: (id: string) => request<any>(`/admin/users/${id}`),
   adminCreateUser: (email: string, displayName: string) =>
     request<{ id: string; email: string; displayName: string }>('/admin/users', { method: 'POST', body: JSON.stringify({ email, displayName }) }),
+  adminBulkCreateUsers: (users: { email: string; displayName: string }[]) =>
+    request<{ invited: number; skipped: number; failed: number; results: { email: string; displayName: string; status: 'invited' | 'skipped' | 'error'; error?: string }[] }>(
+      '/admin/users/bulk', { method: 'POST', body: JSON.stringify({ users }) }),
   adminToggleAdmin: (id: string) => request<any>(`/admin/users/${id}/toggle-admin`, { method: 'POST', body: JSON.stringify({}) }),
   adminDeleteUser: (id: string) => request<any>(`/admin/users/${id}`, { method: 'DELETE' }),
   adminSendMessage: (data: {
