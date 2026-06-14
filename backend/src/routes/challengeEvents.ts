@@ -1,6 +1,11 @@
 import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
+import fs from 'fs'
+import path from 'path'
+import crypto from 'crypto'
+import { pipeline } from 'stream/promises'
 import { prisma } from '../lib/prisma'
+import { UPLOADS_DIR } from './uploads'
 import { calcTeamElo } from '../lib/elo'
 import { checkEnforcement } from '../middleware/auth'
 import {
@@ -560,6 +565,99 @@ export async function challengeEventRoutes(server: FastifyInstance) {
     return finishes
       .map(w => ({ eventId: w.event.id, name: w.event.name, date: w.event.date, format: w.event.format, rank: w.finalRank }))
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  })
+
+  // ── Photo gallery ──────────────────────────────────────────────────────────
+
+  // Gallery index: every event that has photos, with a cover + count.
+  server.get('/gallery', async () => {
+    const events = await prisma.challengeEvent.findMany({
+      where: { photos: { some: {} } },
+      orderBy: { date: 'desc' },
+      select: {
+        id: true, name: true, date: true, format: true,
+        location: { select: { name: true } },
+        photos: { orderBy: { createdAt: 'asc' }, take: 1, select: { url: true } },
+        _count: { select: { photos: true } }
+      }
+    })
+    return events.map(e => ({
+      id: e.id, name: e.name, date: e.date, format: e.format,
+      location: e.location, cover: e.photos[0]?.url || null, photoCount: e._count.photos
+    }))
+  })
+
+  // List photos for an event (public, for viewing / slideshows).
+  server.get('/:id/photos', async (req) => {
+    const { id } = req.params as { id: string }
+    const photos = await prisma.eventPhoto.findMany({
+      where: { eventId: id },
+      orderBy: { createdAt: 'asc' },
+      include: { uploader: { select: { id: true, profile: { select: { displayName: true } } } } }
+    })
+    return photos.map(p => ({
+      id: p.id, url: p.url, width: p.width, height: p.height, caption: p.caption,
+      createdAt: p.createdAt, uploadedBy: p.uploadedBy,
+      uploaderName: p.uploader?.profile?.displayName || 'Player'
+    }))
+  })
+
+  // Upload a photo to an event (any signed-in player who attended/took photos).
+  server.post('/:id/photos', { preHandler: [(server as any).authenticate] }, async (req, reply) => {
+    const { id } = req.params as { id: string }
+    const user = (req as any).user
+    const event = await prisma.challengeEvent.findUnique({ where: { id }, select: { id: true } })
+    if (!event) return reply.status(404).send({ error: 'Event not found' })
+    if (!await checkEnforcement(user.userId, reply)) return
+
+    const file = await (req as any).file()
+    if (!file) return reply.status(400).send({ error: 'No file uploaded' })
+    const EXT: Record<string, string> = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp', 'image/gif': '.gif' }
+    const ext = EXT[file.mimetype]
+    if (!ext) return reply.status(400).send({ error: 'Please upload a JPEG, PNG, WebP, or GIF image' })
+
+    const dir = path.join(UPLOADS_DIR, 'events', id)
+    fs.mkdirSync(dir, { recursive: true })
+    const filename = `${new Date().toISOString().slice(0, 10)}-${crypto.randomBytes(8).toString('hex')}${ext}`
+    const fullPath = path.join(dir, filename)
+    try {
+      await pipeline(file.file, fs.createWriteStream(fullPath))
+    } catch {
+      try { fs.unlinkSync(fullPath) } catch {}
+      return reply.status(500).send({ error: 'Upload failed' })
+    }
+    if ((file.file as any).truncated) {
+      try { fs.unlinkSync(fullPath) } catch {}
+      return reply.status(413).send({ error: 'Image too large (max 8 MB)' })
+    }
+
+    const q = req.query as any
+    const width = q.w ? Math.min(Number(q.w) || 0, 100000) || null : null
+    const height = q.h ? Math.min(Number(q.h) || 0, 100000) || null : null
+    const caption = typeof q.caption === 'string' ? q.caption.slice(0, 300) : null
+
+    const photo = await prisma.eventPhoto.create({
+      data: { eventId: id, uploadedBy: user.userId, url: `/uploads/events/${id}/${filename}`, width, height, caption }
+    })
+    return reply.status(201).send({ id: photo.id, url: photo.url, width: photo.width, height: photo.height, caption: photo.caption })
+  })
+
+  // Delete a photo (the uploader, or the event organizer / an admin).
+  server.delete('/:id/photos/:photoId', { preHandler: [(server as any).authenticate] }, async (req, reply) => {
+    const { id, photoId } = req.params as { id: string; photoId: string }
+    const user = (req as any).user
+    const photo = await prisma.eventPhoto.findUnique({ where: { id: photoId }, include: { event: { select: { createdBy: true } } } })
+    if (!photo || photo.eventId !== id) return reply.status(404).send({ error: 'Photo not found' })
+    const canDelete = photo.uploadedBy === user.userId || isOrganizer(photo.event, user)
+    if (!canDelete) return reply.status(403).send({ error: 'You can only delete photos you uploaded' })
+
+    await prisma.eventPhoto.delete({ where: { id: photoId } })
+    // Best-effort remove the file from disk.
+    try {
+      const rel = photo.url.replace(/^\/uploads\//, '')
+      fs.unlinkSync(path.join(UPLOADS_DIR, rel))
+    } catch {}
+    return { ok: true }
   })
 
   // Delete the event (organizer)

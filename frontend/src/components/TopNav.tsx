@@ -26,6 +26,7 @@ export default function TopNav() {
     { to: '/dashboard', label: 'Dashboard' },
     { to: '/activity', label: 'Activity' },
     { to: '/challenge-events', label: 'Events' },
+    { to: '/gallery', label: 'Gallery' },
     { to: '/players', label: 'Find Players' },
     { to: '/messages', label: 'Messages', badge: unreadDms },
     { to: '/forum', label: 'Forum' },

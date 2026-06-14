@@ -41,6 +41,7 @@ model User {
   dmsReceived         DirectMessage[]    @relation("DmReceiver")
   challengeEventsCreated ChallengeEvent[]      @relation("EventCreator")
   challengeParticipations ChallengeParticipant[]
+  eventPhotos         EventPhoto[]       @relation("EventPhotoUploader")
 
   @@map("users")
 }
@@ -212,9 +213,27 @@ model ChallengeEvent {
   location     Location               @relation(fields: [locationId], references: [id])
   participants ChallengeParticipant[]
   matches      Match[]
+  photos       EventPhoto[]
 
   @@index([status, date])
   @@map("challenge_events")
+}
+
+model EventPhoto {
+  id         String   @id @default(cuid())
+  eventId    String   @map("event_id")
+  uploadedBy String   @map("uploaded_by")
+  url        String
+  width      Int?
+  height     Int?
+  caption    String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  event    ChallengeEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  uploader User           @relation("EventPhotoUploader", fields: [uploadedBy], references: [id])
+
+  @@index([eventId])
+  @@map("event_photos")
 }
 
 model ChallengeParticipant {

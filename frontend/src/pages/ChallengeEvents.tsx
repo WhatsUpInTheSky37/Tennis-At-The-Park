@@ -153,7 +153,10 @@ export default function ChallengeEvents() {
           <h1 className="page-title">CHALLENGE EVENTS</h1>
           <p className="page-subtitle">Saturday round-robins & king-of-the-hill challenges</p>
         </div>
-        {isAdmin && <button className="btn btn-primary" onClick={() => setShowCreate(true)}>+ New Event</button>}
+        <div className="flex gap-2">
+          <button className="btn btn-secondary btn-sm" onClick={() => navigate('/gallery')}>📸 Gallery</button>
+          {isAdmin && <button className="btn btn-primary" onClick={() => setShowCreate(true)}>+ New Event</button>}
+        </div>
       </div>
 
       {loading ? (
