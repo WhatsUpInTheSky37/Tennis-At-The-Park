@@ -80,6 +80,9 @@ export default function ChallengeEventDetail() {
   const [setMode, setSetMode] = useState<Record<number, { a: string; b: string }[]>>({})
   const [editing, setEditing] = useState(false)
   const [edit, setEdit] = useState<any>(null)
+  const [matchEditId, setMatchEditId] = useState<string | null>(null)
+  const [matchEditWinner, setMatchEditWinner] = useState<'team1' | 'team2'>('team1')
+  const [matchEditScore, setMatchEditScore] = useState('')
 
   const load = () => {
     if (!id) return
@@ -172,6 +175,25 @@ export default function ChallengeEventDetail() {
     setEdit(buildEditForm(event))
     setError('')
     setEditing(true)
+  }
+
+  // Fix a played game's winner/score; reloads to recompute standings + podium.
+  const openMatchEdit = (m: any, t1: string[]) => {
+    const t1Won = JSON.stringify(m.winners) === JSON.stringify(t1)
+    setMatchEditWinner(t1Won ? 'team1' : 'team2')
+    const sets: any[] = Array.isArray(m.score) ? m.score : []
+    setMatchEditScore(sets.map((s: any) => `${s[0]}-${s[1]}`).join(', '))
+    setMatchEditId(m.id)
+  }
+  const saveMatchEdit = async (matchId: string) => {
+    const scoreJson = matchEditScore.split(',').map(x => x.trim()).filter(Boolean)
+      .map(x => x.split(/[-–]/).map(n => parseInt(n.trim(), 10)))
+      .filter(p => p.length === 2 && !isNaN(p[0]) && !isNaN(p[1]))
+      .map(p => [p[0], p[1]])
+    await act(async () => {
+      await api.editMatch(matchId, { winner: matchEditWinner, ...(scoreJson.length ? { scoreJson } : {}) })
+      setMatchEditId(null)
+    })
   }
 
   const saveEdit = async () => {
@@ -648,17 +670,40 @@ export default function ChallengeEventDetail() {
                     const scoreText = sets.length ? sets.map((s: any) => `${s[0]}–${s[1]}`).join(', ') : '–'
                     const t1Won = JSON.stringify(m.winners) === JSON.stringify(t1)
                     return (
-                      <div key={m.id} className="flex items-center justify-between" style={{ background: 'var(--bg3)', borderRadius: 8, padding: '8px 12px', fontSize: 14 }}>
-                        <span style={{ flex: 1, fontWeight: t1Won ? 700 : 400, color: t1Won ? 'var(--accent)' : 'var(--text)' }}>
-                          {t1Won && '✓ '}{teamLabel(t1)}
-                        </span>
-                        <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, padding: '0 10px', whiteSpace: 'nowrap' }}>
-                          {scoreText}
-                        </span>
-                        <span style={{ flex: 1, textAlign: 'right', fontWeight: !t1Won ? 700 : 400, color: !t1Won ? 'var(--accent)' : 'var(--text)' }}>
-                          {!t1Won && '✓ '}{teamLabel(t2)}
-                          {m.court ? <span className="text-xs text-muted"> · Ct {m.court}</span> : null}
-                        </span>
+                      <div key={m.id}>
+                        <div className="flex items-center justify-between" style={{ background: 'var(--bg3)', borderRadius: 8, padding: '8px 12px', fontSize: 14 }}>
+                          <span style={{ flex: 1, fontWeight: t1Won ? 700 : 400, color: t1Won ? 'var(--accent)' : 'var(--text)' }}>
+                            {t1Won && '✓ '}{teamLabel(t1)}
+                          </span>
+                          <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, padding: '0 10px', whiteSpace: 'nowrap' }}>
+                            {scoreText}
+                          </span>
+                          <span style={{ flex: 1, textAlign: 'right', fontWeight: !t1Won ? 700 : 400, color: !t1Won ? 'var(--accent)' : 'var(--text)' }}>
+                            {!t1Won && '✓ '}{teamLabel(t2)}
+                            {m.court ? <span className="text-xs text-muted"> · Ct {m.court}</span> : null}
+                          </span>
+                          {isOrganizer && (
+                            <button className="btn btn-ghost btn-sm" style={{ marginLeft: 6, padding: '2px 8px' }} title="Edit result" onClick={() => openMatchEdit(m, t1)}>✎</button>
+                          )}
+                        </div>
+                        {matchEditId === m.id && (
+                          <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, padding: 10, marginTop: 6, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            <div className="flex gap-2 items-center" style={{ flexWrap: 'wrap' }}>
+                              <span className="text-xs text-muted">Winner:</span>
+                              <button className={`btn btn-sm ${matchEditWinner === 'team1' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setMatchEditWinner('team1')}>{teamLabel(t1)}</button>
+                              <button className={`btn btn-sm ${matchEditWinner === 'team2' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setMatchEditWinner('team2')}>{teamLabel(t2)}</button>
+                            </div>
+                            <div className="flex gap-2 items-center">
+                              <span className="text-xs text-muted">Score:</span>
+                              <input value={matchEditScore} onChange={e => setMatchEditScore(e.target.value)} placeholder="e.g. 4-2" style={{ width: 150 }} />
+                            </div>
+                            <div className="flex gap-2">
+                              <button className="btn btn-primary btn-sm" disabled={busy} onClick={() => saveMatchEdit(m.id)}>Save</button>
+                              <button className="btn btn-ghost btn-sm" onClick={() => setMatchEditId(null)}>Cancel</button>
+                            </div>
+                            <p className="text-xs text-muted" style={{ margin: 0 }}>Recomputes standings, the podium, and Elo.</p>
+                          </div>
+                        )}
                       </div>
                     )
                   })}

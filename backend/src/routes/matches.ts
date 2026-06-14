@@ -169,7 +169,12 @@ export async function matchRoutes(server: FastifyInstance) {
 
     let winnerChanged = false
     if (d.winner !== undefined) {
-      if (!isAdmin) return reply.status(403).send({ error: 'Only an admin can change who won a match' })
+      let allowed = isAdmin
+      if (!allowed && match.eventId) {
+        const ev = await prisma.challengeEvent.findUnique({ where: { id: match.eventId }, select: { createdBy: true } })
+        allowed = ev?.createdBy === userId
+      }
+      if (!allowed) return reply.status(403).send({ error: 'Only an admin or the event organizer can change who won' })
       data.winnerUserIdsJson = teams[d.winner]
       winnerChanged = JSON.stringify(teams[d.winner]) !== JSON.stringify(match.winnerUserIdsJson)
     }
