@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma'
 import { calcElo } from '../lib/elo'
+import { recomputeRatings, recomputeEventStandings, assignEventPodium } from '../lib/recompute'
 import { checkEnforcement } from '../middleware/auth'
 
 const createSchema = z.object({
@@ -136,8 +137,10 @@ export async function matchRoutes(server: FastifyInstance) {
     return match
   })
 
-  // Edit a recorded match (a player in it, or an admin). Only safe fields are
-  // editable — notes, score, date, location — so the winner and Elo stay intact.
+  // Edit a recorded match. Notes/score/date/location: a player in the match or
+  // an admin. Changing the WINNER is admin-only (it changes results + Elo).
+  // After any change, event standings and Elo ratings are recomputed so
+  // everything downstream (podium, Event Points, leaderboard) stays correct.
   server.patch('/:id', { preHandler: [(server as any).authenticate] }, async (req, reply) => {
     const { userId, isAdmin } = (req as any).user
     const { id } = req.params as { id: string }
@@ -151,18 +154,36 @@ export async function matchRoutes(server: FastifyInstance) {
       notes: z.string().max(500).optional(),
       playedAt: z.string().datetime().optional(),
       locationId: z.string().optional(),
-      scoreJson: z.array(z.tuple([z.number().int().min(0).max(99), z.number().int().min(0).max(99)])).max(10).optional()
+      scoreJson: z.array(z.tuple([z.number().int().min(0).max(99), z.number().int().min(0).max(99)])).max(10).optional(),
+      winner: z.enum(['team1', 'team2']).optional()
     })
     const body = schema.safeParse(req.body)
     if (!body.success) return reply.status(400).send({ error: body.error.flatten() })
     const d = body.data
+
     const data: any = {}
     if (d.notes !== undefined) data.notes = d.notes
     if (d.playedAt !== undefined) data.playedAt = new Date(d.playedAt)
     if (d.locationId !== undefined) data.locationId = d.locationId
     if (d.scoreJson !== undefined) data.scoreJson = d.scoreJson
 
+    let winnerChanged = false
+    if (d.winner !== undefined) {
+      if (!isAdmin) return reply.status(403).send({ error: 'Only an admin can change who won a match' })
+      data.winnerUserIdsJson = teams[d.winner]
+      winnerChanged = JSON.stringify(teams[d.winner]) !== JSON.stringify(match.winnerUserIdsJson)
+    }
+
     const updated = await prisma.match.update({ where: { id }, data, include: { location: true } })
+
+    // Keep everything derived from this match in sync.
+    if (match.eventId) {
+      await recomputeEventStandings(match.eventId)
+      const ev = await prisma.challengeEvent.findUnique({ where: { id: match.eventId }, select: { status: true } })
+      if (ev?.status === 'completed') await assignEventPodium(match.eventId)
+    }
+    if (winnerChanged && match.status === 'normal') await recomputeRatings()
+
     return updated
   })
 
