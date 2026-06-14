@@ -124,6 +124,20 @@ export default function Dashboard() {
         />
       </div>
 
+      {/* Teaser → event results + photos live on each event's page */}
+      <div
+        className="card clickable mb-4"
+        onClick={() => navigate('/challenge-events')}
+        style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14 }}
+      >
+        <div style={{ fontSize: 34, lineHeight: 1 }}>📸🏆</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="font-bold" style={{ fontSize: 17 }}>Looking for Event Results & Pictures?</div>
+          <div className="text-sm text-muted">Open any challenge event to see final standings, podiums, and photos from the day.</div>
+        </div>
+        <span style={{ color: 'var(--accent)', fontWeight: 700, whiteSpace: 'nowrap' }}>View Events →</span>
+      </div>
+
       {/* Upcoming Challenge Events advertisement */}
       {upcomingEvents.length > 0 && (
         <div className="section mb-4">
