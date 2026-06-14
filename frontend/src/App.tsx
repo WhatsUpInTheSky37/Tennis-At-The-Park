@@ -19,6 +19,7 @@ import AuthPage from './pages/Auth'
 import Challenges from './pages/Challenges'
 import ChallengeEvents from './pages/ChallengeEvents'
 import ChallengeEventDetail from './pages/ChallengeEventDetail'
+import Gallery from './pages/Gallery'
 import ChallengeEventTV from './pages/ChallengeEventTV'
 import Calendar from './pages/Calendar'
 import Forum from './pages/Forum'
@@ -96,6 +97,7 @@ function AppShell() {
           <Route path="/challenges" element={user ? <Challenges /> : <Navigate to="/auth" />} />
           <Route path="/challenge-events" element={user ? <ChallengeEvents /> : <Navigate to="/auth" />} />
           <Route path="/challenge-events/:id" element={user ? <ChallengeEventDetail /> : <Navigate to="/auth" />} />
+          <Route path="/gallery" element={user ? <Gallery /> : <Navigate to="/auth" />} />
           <Route path="/calendar" element={user ? <Calendar /> : <Navigate to="/auth" />} />
           <Route path="/leaderboards" element={user ? <Leaderboards /> : <Navigate to="/auth" />} />
           <Route path="/players" element={user ? <FindPlayers /> : <Navigate to="/auth" />} />

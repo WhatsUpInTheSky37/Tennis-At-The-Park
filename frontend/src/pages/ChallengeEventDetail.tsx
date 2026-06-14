@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useAuth } from '../store/auth'
 import { formatDateTime, formatTime } from '../lib/utils'
+import EventPhotos from '../components/EventPhotos'
 
 const SCORING_LABELS: Record<string, string> = {
   tb_7: '7-point tiebreaker',
@@ -620,6 +621,11 @@ export default function ChallengeEventDetail() {
             </tbody>
           </table>
         )}
+      </div>
+
+      {/* PHOTO GALLERY */}
+      <div className="mt-4" id="photos">
+        <EventPhotos eventId={id!} canManage={isOrganizer} />
       </div>
 
       {/* MATCH HISTORY — how it went down, round by round */}

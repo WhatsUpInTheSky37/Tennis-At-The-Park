@@ -189,6 +189,24 @@ export const api = {
     request<any>(`/forum/replies/${replyId}/report`, { method: 'POST', body: JSON.stringify({ category, details }) }),
 
   // Uploads
+  // Event photo gallery
+  getEventGallery: () => request<{ id: string; name: string; date: string; format: string; location: { name: string } | null; cover: string | null; photoCount: number }[]>('/challenge-events/gallery'),
+  getEventPhotos: (eventId: string) => request<any[]>(`/challenge-events/${eventId}/photos`),
+  uploadEventPhoto: async (eventId: string, blob: Blob, filename: string, width?: number, height?: number): Promise<{ id: string; url: string }> => {
+    const fd = new FormData()
+    fd.append('file', blob, filename)
+    const headers: Record<string, string> = {}
+    if (token) headers['Authorization'] = `Bearer ${token}`
+    const qs = new URLSearchParams()
+    if (width) qs.set('w', String(width))
+    if (height) qs.set('h', String(height))
+    const res = await fetch(`${BASE}/challenge-events/${eventId}/photos${qs.toString() ? `?${qs}` : ''}`, { method: 'POST', headers, body: fd })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Upload failed')
+    return data
+  },
+  deleteEventPhoto: (eventId: string, photoId: string) => request<{ ok: boolean }>(`/challenge-events/${eventId}/photos/${photoId}`, { method: 'DELETE' }),
+
   uploadArticleImage: async (file: File): Promise<{ url: string; filename: string }> => {
     const fd = new FormData()
     fd.append('file', file)
