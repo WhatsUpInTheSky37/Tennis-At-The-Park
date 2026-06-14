@@ -205,6 +205,8 @@ export const api = {
     if (!res.ok) throw new Error(data.error || 'Upload failed')
     return data
   },
+  updateEventPhotoCaption: (eventId: string, photoId: string, caption: string) =>
+    request<{ ok: boolean; caption: string | null }>(`/challenge-events/${eventId}/photos/${photoId}`, { method: 'PATCH', body: JSON.stringify({ caption }) }),
   deleteEventPhoto: (eventId: string, photoId: string) => request<{ ok: boolean }>(`/challenge-events/${eventId}/photos/${photoId}`, { method: 'DELETE' }),
 
   uploadArticleImage: async (file: File): Promise<{ url: string; filename: string }> => {

@@ -642,6 +642,22 @@ export async function challengeEventRoutes(server: FastifyInstance) {
     return reply.status(201).send({ id: photo.id, url: photo.url, width: photo.width, height: photo.height, caption: photo.caption })
   })
 
+  // Update a photo's caption (the uploader, or the event organizer / an admin).
+  server.patch('/:id/photos/:photoId', { preHandler: [(server as any).authenticate] }, async (req, reply) => {
+    const { id, photoId } = req.params as { id: string; photoId: string }
+    const user = (req as any).user
+    const body = z.object({ caption: z.string().max(300).nullable() }).safeParse(req.body)
+    if (!body.success) return reply.status(400).send({ error: body.error.flatten() })
+    const photo = await prisma.eventPhoto.findUnique({ where: { id: photoId }, include: { event: { select: { createdBy: true } } } })
+    if (!photo || photo.eventId !== id) return reply.status(404).send({ error: 'Photo not found' })
+    if (photo.uploadedBy !== user.userId && !isOrganizer(photo.event, user)) {
+      return reply.status(403).send({ error: 'You can only edit captions on your own photos' })
+    }
+    const caption = body.data.caption?.trim() || null
+    await prisma.eventPhoto.update({ where: { id: photoId }, data: { caption } })
+    return { ok: true, caption }
+  })
+
   // Delete a photo (the uploader, or the event organizer / an admin).
   server.delete('/:id/photos/:photoId', { preHandler: [(server as any).authenticate] }, async (req, reply) => {
     const { id, photoId } = req.params as { id: string; photoId: string }
