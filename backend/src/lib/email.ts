@@ -12,6 +12,44 @@ export async function shouldEmailUser(userId: string): Promise<boolean> {
   return prefs.emailNotifications
 }
 
+// Resend allows 5 emails/sec. Route all sends through a background queue that
+// drains ~3.8/sec so bursts (bulk invites, announcements, notification storms)
+// stay under the limit instead of failing with 429.
+const MIN_GAP_MS = 260
+const queue: Array<() => Promise<void>> = []
+let draining = false
+
+async function drainQueue() {
+  if (draining) return
+  draining = true
+  while (queue.length) {
+    const job = queue.shift()!
+    try { await job() } catch (e: any) { console.error('[EMAIL ERROR] queue job failed:', e?.message || e) }
+    if (queue.length) await new Promise(r => setTimeout(r, MIN_GAP_MS))
+  }
+  draining = false
+}
+
+async function deliver(apiKey: string, payload: any, to: string) {
+  const post = () => fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  try {
+    let res = await post()
+    if (res.status === 429) {
+      await new Promise(r => setTimeout(r, 1200)) // back off, then retry once
+      res = await post()
+    }
+    const data: any = await res.json().catch(() => ({}))
+    if (!res.ok) console.error(`[EMAIL ERROR] ${res.status}:`, JSON.stringify(data))
+    else console.log(`[EMAIL] Sent to ${to}: ${data.id}`)
+  } catch (err: any) {
+    console.error(`[EMAIL ERROR] Failed to send to ${to}:`, err.message || err)
+  }
+}
+
 async function send(to: string, subject: string, html: string) {
   const apiKey = process.env.RESEND_API_KEY || process.env.SMTP_PASS || ''
   if (!apiKey) {
@@ -21,32 +59,11 @@ async function send(to: string, subject: string, html: string) {
 
   const fromEmail = process.env.FROM_EMAIL || 'noreply@salisburytennis.com'
   const fromName = process.env.FROM_NAME || 'Tennis at the Park'
+  const payload = { from: `${fromName} <${fromEmail}>`, to: [to], subject, html }
 
-  console.log(`[EMAIL] Sending to ${to} | Subject: ${subject}`)
-  try {
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: `${fromName} <${fromEmail}>`,
-        to: [to],
-        subject,
-        html,
-      }),
-    })
-
-    const data: any = await res.json()
-    if (!res.ok) {
-      console.error(`[EMAIL ERROR] ${res.status}:`, JSON.stringify(data))
-    } else {
-      console.log(`[EMAIL] Sent successfully: ${data.id}`)
-    }
-  } catch (err: any) {
-    console.error(`[EMAIL ERROR] Failed to send to ${to}:`, err.message || err)
-  }
+  console.log(`[EMAIL] Queued to ${to} | Subject: ${subject}`)
+  queue.push(() => deliver(apiKey, payload, to))
+  drainQueue()
 }
 
 function escapeHtml(s: string): string {
