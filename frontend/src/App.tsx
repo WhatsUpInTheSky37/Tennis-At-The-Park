@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation, Link } from 'react-router-dom'
 import { useAuth } from './store/auth'
 import { api } from './lib/api'
 
@@ -77,6 +77,26 @@ function AppShell() {
         <Route path="/" element={<Landing />} />
         <Route path="/auth" element={<AuthPage />} />
       </Routes>
+    )
+  }
+
+  // Public, no-login views for sharing event galleries + results. Rendered
+  // standalone (the main app shell assumes a signed-in user).
+  const isPublicGallery = location.pathname === '/gallery' || /^\/challenge-events\/[^/]+$/.test(location.pathname)
+  if (!user && isPublicGallery) {
+    return (
+      <div className="app-shell">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
+          <Link to="/" style={{ textDecoration: 'none', fontFamily: 'var(--font-display)', letterSpacing: 1, color: 'var(--text)' }}>🎾 TENNIS AT THE PARK</Link>
+          <Link to="/auth" className="btn btn-primary btn-sm">Sign In</Link>
+        </div>
+        <main className="main-content">
+          <Routes>
+            <Route path="/gallery" element={<Gallery />} />
+            <Route path="/challenge-events/:id" element={<ChallengeEventDetail />} />
+          </Routes>
+        </main>
+      </div>
     )
   }
 

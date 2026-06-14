@@ -49,6 +49,12 @@ export default function EventPhotos({ eventId, canManage }: { eventId: string; c
     }
   }
 
+  const canEditPhoto = (p: any) => canManage || p.uploadedBy === user?.id
+  const saveCaption = async (photoId: string, caption: string) => {
+    await api.updateEventPhotoCaption(eventId, photoId, caption)
+    setPhotos(prev => prev.map(x => x.id === photoId ? { ...x, caption } : x))
+  }
+
   return (
     <div className="card mb-4">
       <div className="flex items-center justify-between mb-3">
@@ -90,7 +96,15 @@ export default function EventPhotos({ eventId, canManage }: { eventId: string; c
           })}
         </div>
       )}
-      {lightbox !== null && <PhotoLightbox photos={photos} startIndex={lightbox} onClose={() => setLightbox(null)} />}
+      {lightbox !== null && (
+        <PhotoLightbox
+          photos={photos}
+          startIndex={lightbox}
+          onClose={() => setLightbox(null)}
+          canEdit={canEditPhoto}
+          onSaveCaption={saveCaption}
+        />
+      )}
     </div>
   )
 }
