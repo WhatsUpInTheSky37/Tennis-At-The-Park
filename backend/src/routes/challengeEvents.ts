@@ -7,6 +7,7 @@ import { pipeline } from 'stream/promises'
 import { prisma } from '../lib/prisma'
 import { UPLOADS_DIR } from './uploads'
 import { calcTeamElo } from '../lib/elo'
+import { assignEventPodium } from '../lib/recompute'
 import { checkEnforcement } from '../middleware/auth'
 import {
   generateRotatingRound,
@@ -518,36 +519,8 @@ export async function challengeEventRoutes(server: FastifyInstance) {
     if (!event) return reply.status(404).send({ error: 'Not found' })
     if (!isOrganizer(event, user)) return reply.status(403).send({ error: 'Organizer only' })
 
-    // Award the podium: Gold (1st), Silver (2nd), Bronze (3rd) by points (games
-    // won), then more match wins, then fewer losses as tiebreaks. In doubles, a
-    // locked pair shares a single place.
-    const parts = await prisma.challengeParticipant.findMany({ where: { eventId: id } })
-    const ranked = parts
-      .filter(p => p.status !== 'withdrawn')
-      .sort((a, b) => b.points - a.points || b.wins - a.wins || a.losses - b.losses)
-
-    const placed = new Set<string>()
-    const podium: { rank: number; userIds: string[] }[] = []
-    for (const p of ranked) {
-      if (placed.has(p.userId)) continue
-      const place = podium.length + 1
-      if (place > 3) break
-      const teamIds = [p.userId]
-      if (event.format === 'doubles' && p.partnerId && ranked.some(x => x.userId === p.partnerId)) {
-        teamIds.push(p.partnerId)
-      }
-      for (const uid of teamIds) placed.add(uid)
-      podium.push({ rank: place, userIds: teamIds })
-    }
-
-    // Reset any prior ranks, then stamp the new podium ranks.
-    await prisma.challengeParticipant.updateMany({ where: { eventId: id }, data: { finalRank: null } })
-    for (const { rank, userIds } of podium) {
-      await prisma.challengeParticipant.updateMany({
-        where: { eventId: id, userId: { in: userIds } },
-        data: { finalRank: rank }
-      })
-    }
+    // Award Gold/Silver/Bronze from the current standings.
+    const podium = await assignEventPodium(id)
     const champions = podium[0]?.userIds ?? []
 
     const updated = await prisma.challengeEvent.update({ where: { id }, data: { status: 'completed' } })

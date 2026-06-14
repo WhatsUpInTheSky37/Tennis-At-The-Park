@@ -24,7 +24,7 @@ export default function Activity() {
   const [disputeDetails, setDisputeDetails] = useState('')
   const [deleting, setDeleting] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [editForm, setEditForm] = useState<{ notes: string; score: string; playedAt: string; locationId: string }>({ notes: '', score: '', playedAt: '', locationId: '' })
+  const [editForm, setEditForm] = useState<{ notes: string; score: string; playedAt: string; locationId: string; winner: '' | 'team1' | 'team2' }>({ notes: '', score: '', playedAt: '', locationId: '', winner: '' })
   const [savingEdit, setSavingEdit] = useState(false)
   const [locations, setLocations] = useState<any[]>([])
 
@@ -46,7 +46,10 @@ export default function Activity() {
   }
   const openEdit = (m: any) => {
     const score = (m.scoreJson as number[][])?.map(s => s.join('-')).join(', ') || ''
-    setEditForm({ notes: m.notes || '', score, playedAt: localInput(m.playedAt), locationId: m.locationId || m.location?.id || '' })
+    const tms = m.teamsJson as { team1: string[]; team2: string[] }
+    const winnerIds = (m.winnerUserIdsJson as string[]) || []
+    const winner: '' | 'team1' | 'team2' = winnerIds.length && tms?.team1?.includes(winnerIds[0]) ? 'team1' : winnerIds.length ? 'team2' : ''
+    setEditForm({ notes: m.notes || '', score, playedAt: localInput(m.playedAt), locationId: m.locationId || m.location?.id || '', winner })
     setEditingId(m.id)
   }
   const parseScore = (s: string): number[][] =>
@@ -62,6 +65,7 @@ export default function Activity() {
       if (editForm.locationId) payload.locationId = editForm.locationId
       const sj = parseScore(editForm.score)
       if (sj.length) payload.scoreJson = sj
+      if (editForm.winner && user?.isAdmin) payload.winner = editForm.winner
       await api.editMatch(id, payload)
       setEditingId(null)
       api.getMatches().then(setMatches)
@@ -234,6 +238,15 @@ export default function Activity() {
                       <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: 12, marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
                         <input value={editForm.notes} onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))} placeholder="Notes / title" maxLength={500} />
                         <input value={editForm.score} onChange={e => setEditForm(f => ({ ...f, score: e.target.value }))} placeholder="Score, e.g. 6-4, 3-6, 7-6" />
+                        {user.isAdmin && (
+                          <div>
+                            <label className="text-xs text-muted">Winner (admin)</label>
+                            <select value={editForm.winner} onChange={e => setEditForm(f => ({ ...f, winner: e.target.value as any }))} style={{ width: '100%' }}>
+                              <option value="team1">{formatTeam(m, teams.team1)}</option>
+                              <option value="team2">{formatTeam(m, teams.team2)}</option>
+                            </select>
+                          </div>
+                        )}
                         <div className="flex gap-2" style={{ flexWrap: 'wrap' }}>
                           <input type="datetime-local" value={editForm.playedAt} onChange={e => setEditForm(f => ({ ...f, playedAt: e.target.value }))} style={{ flex: 1, minWidth: 160 }} />
                           <select value={editForm.locationId} onChange={e => setEditForm(f => ({ ...f, locationId: e.target.value }))} style={{ flex: 1, minWidth: 140 }}>
@@ -245,7 +258,11 @@ export default function Activity() {
                           <button className="btn btn-primary btn-sm" disabled={savingEdit} onClick={() => saveEdit(m.id)}>{savingEdit ? 'Saving…' : 'Save'}</button>
                           <button className="btn btn-ghost btn-sm" onClick={() => setEditingId(null)}>Cancel</button>
                         </div>
-                        <p className="text-xs text-muted" style={{ margin: 0 }}>Editing the score won't change who won or anyone's Elo.</p>
+                        <p className="text-xs text-muted" style={{ margin: 0 }}>
+                          {user.isAdmin
+                            ? 'Changing the winner recomputes event standings and Elo ratings.'
+                            : "Editing the score won't change who won or anyone's Elo."}
+                        </p>
                       </div>
                     ) : (
                       <button className="btn btn-ghost btn-sm mt-2" onClick={() => openEdit(m)}>✎ Edit</button>
