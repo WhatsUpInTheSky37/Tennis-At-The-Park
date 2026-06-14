@@ -103,6 +103,8 @@ export const api = {
   confirmMatch: (id: string) => request<any>(`/matches/${id}/confirm`, { method: 'POST', body: JSON.stringify({}) }),
   disputeMatch: (id: string, reason: string, details: string) => request<any>(`/matches/${id}/dispute`, { method: 'POST', body: JSON.stringify({ reason, details }) }),
   deleteMatch: (id: string) => request<void>(`/matches/${id}`, { method: 'DELETE' }),
+  editMatch: (id: string, data: { notes?: string; playedAt?: string; locationId?: string; scoreJson?: number[][] }) =>
+    request<any>(`/matches/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
 
   // Leaderboards
   getLeaderboards: () => request<any>('/leaderboards'),

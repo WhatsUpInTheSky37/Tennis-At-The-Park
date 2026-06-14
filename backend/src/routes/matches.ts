@@ -136,6 +136,36 @@ export async function matchRoutes(server: FastifyInstance) {
     return match
   })
 
+  // Edit a recorded match (a player in it, or an admin). Only safe fields are
+  // editable — notes, score, date, location — so the winner and Elo stay intact.
+  server.patch('/:id', { preHandler: [(server as any).authenticate] }, async (req, reply) => {
+    const { userId, isAdmin } = (req as any).user
+    const { id } = req.params as { id: string }
+    const match = await prisma.match.findUnique({ where: { id } })
+    if (!match) return reply.status(404).send({ error: 'Not found' })
+    const teams = match.teamsJson as { team1: string[]; team2: string[] }
+    const isParticipant = [...teams.team1, ...teams.team2].includes(userId)
+    if (!isParticipant && !isAdmin) return reply.status(403).send({ error: 'Only a player in the match or an admin can edit it' })
+
+    const schema = z.object({
+      notes: z.string().max(500).optional(),
+      playedAt: z.string().datetime().optional(),
+      locationId: z.string().optional(),
+      scoreJson: z.array(z.tuple([z.number().int().min(0).max(99), z.number().int().min(0).max(99)])).max(10).optional()
+    })
+    const body = schema.safeParse(req.body)
+    if (!body.success) return reply.status(400).send({ error: body.error.flatten() })
+    const d = body.data
+    const data: any = {}
+    if (d.notes !== undefined) data.notes = d.notes
+    if (d.playedAt !== undefined) data.playedAt = new Date(d.playedAt)
+    if (d.locationId !== undefined) data.locationId = d.locationId
+    if (d.scoreJson !== undefined) data.scoreJson = d.scoreJson
+
+    const updated = await prisma.match.update({ where: { id }, data, include: { location: true } })
+    return updated
+  })
+
   // Delete/cancel a match (only by a player in the match, only if pending)
   server.delete('/:id', { preHandler: [(server as any).authenticate] }, async (req, reply) => {
     const { userId } = (req as any).user

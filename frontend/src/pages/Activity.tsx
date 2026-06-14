@@ -23,6 +23,10 @@ export default function Activity() {
   const [disputeReason, setDisputeReason] = useState('')
   const [disputeDetails, setDisputeDetails] = useState('')
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState<{ notes: string; score: string; playedAt: string; locationId: string }>({ notes: '', score: '', playedAt: '', locationId: '' })
+  const [savingEdit, setSavingEdit] = useState(false)
+  const [locations, setLocations] = useState<any[]>([])
 
   useEffect(() => {
     setLoadingSessions(true)
@@ -31,7 +35,40 @@ export default function Activity() {
 
   useEffect(() => {
     api.getMatches().then(m => { setMatches(m); setLoadingMatches(false) })
+    api.getLocations().then(setLocations).catch(() => {})
   }, [])
+
+  const localInput = (iso: string) => {
+    const d = new Date(iso)
+    if (isNaN(d.getTime())) return ''
+    const p = (n: number) => String(n).padStart(2, '0')
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`
+  }
+  const openEdit = (m: any) => {
+    const score = (m.scoreJson as number[][])?.map(s => s.join('-')).join(', ') || ''
+    setEditForm({ notes: m.notes || '', score, playedAt: localInput(m.playedAt), locationId: m.locationId || m.location?.id || '' })
+    setEditingId(m.id)
+  }
+  const parseScore = (s: string): number[][] =>
+    s.split(',').map(x => x.trim()).filter(Boolean)
+      .map(x => x.split(/[-–]/).map(n => parseInt(n.trim(), 10)))
+      .filter(p => p.length === 2 && !isNaN(p[0]) && !isNaN(p[1]))
+      .map(p => [p[0], p[1]])
+  const saveEdit = async (id: string) => {
+    setSavingEdit(true)
+    try {
+      const payload: any = { notes: editForm.notes.trim() }
+      if (editForm.playedAt) payload.playedAt = new Date(editForm.playedAt).toISOString()
+      if (editForm.locationId) payload.locationId = editForm.locationId
+      const sj = parseScore(editForm.score)
+      if (sj.length) payload.scoreJson = sj
+      await api.editMatch(id, payload)
+      setEditingId(null)
+      api.getMatches().then(setMatches)
+    } catch (e: any) {
+      alert(e.message || 'Could not save the match')
+    } finally { setSavingEdit(false) }
+  }
 
   const changeTab = (t: Tab) => {
     setTab(t)
@@ -191,6 +228,29 @@ export default function Activity() {
                   )}
 
                   {m.notes && <p className="text-sm text-muted">{m.notes}</p>}
+
+                  {user && (user.isAdmin || [...teams.team1, ...teams.team2].includes(user.id)) && (
+                    editingId === m.id ? (
+                      <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: 12, marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        <input value={editForm.notes} onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))} placeholder="Notes / title" maxLength={500} />
+                        <input value={editForm.score} onChange={e => setEditForm(f => ({ ...f, score: e.target.value }))} placeholder="Score, e.g. 6-4, 3-6, 7-6" />
+                        <div className="flex gap-2" style={{ flexWrap: 'wrap' }}>
+                          <input type="datetime-local" value={editForm.playedAt} onChange={e => setEditForm(f => ({ ...f, playedAt: e.target.value }))} style={{ flex: 1, minWidth: 160 }} />
+                          <select value={editForm.locationId} onChange={e => setEditForm(f => ({ ...f, locationId: e.target.value }))} style={{ flex: 1, minWidth: 140 }}>
+                            <option value="">Location…</option>
+                            {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                          </select>
+                        </div>
+                        <div className="flex gap-2">
+                          <button className="btn btn-primary btn-sm" disabled={savingEdit} onClick={() => saveEdit(m.id)}>{savingEdit ? 'Saving…' : 'Save'}</button>
+                          <button className="btn btn-ghost btn-sm" onClick={() => setEditingId(null)}>Cancel</button>
+                        </div>
+                        <p className="text-xs text-muted" style={{ margin: 0 }}>Editing the score won't change who won or anyone's Elo.</p>
+                      </div>
+                    ) : (
+                      <button className="btn btn-ghost btn-sm mt-2" onClick={() => openEdit(m)}>✎ Edit</button>
+                    )
+                  )}
 
                   {user && m.status === 'pending_confirmation' && [...teams.team1, ...teams.team2].includes(user.id) && !teams.team1.includes(user.id) && (
                     <div className="flex gap-2 mt-3">
