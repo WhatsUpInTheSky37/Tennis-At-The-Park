@@ -133,11 +133,11 @@ export default function Landing() {
           </div>
         )}
 
-        {/* June 13 results recap flyer */}
+        {/* Saturday Summer Night Challenger flyer */}
         <div style={{ marginTop: 28 }}>
           <img
-            src="/june13results.jpg"
-            alt="Tennis at the Park — June 13 results. Gold: Cypress 16, Silver: Dan 15, Bronze: Joe 14. Next: Saturday Night Challenger, June 20, 6:00–8:30 PM."
+            src="/night-challenger.jpg"
+            alt="Saturday Summer Night Challenger — Saturday, June 14, starting 6:00 PM at City Park Courts, Salisbury MD. Free to enter. Doubles or singles depending on turnout."
             onError={e => { (e.currentTarget.parentElement as HTMLElement).style.display = 'none' }}
             style={{
               width: '100%', height: 'auto', display: 'block',
