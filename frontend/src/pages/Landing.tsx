@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { api } from '../lib/api'
+import PollWidget from '../components/PollWidget'
 import { formatDistanceToNow, format } from 'date-fns'
 
 function ymd(d: Date) {
@@ -69,6 +70,10 @@ export default function Landing() {
           <button className="btn btn-secondary btn-lg" onClick={() => navigate('/auth')}>
             Sign In
           </button>
+        </div>
+
+        <div style={{ marginTop: 28 }}>
+          <PollWidget readOnly />
         </div>
 
         {/* Saturday Summer Challenge — advertisement for logged-out visitors */}

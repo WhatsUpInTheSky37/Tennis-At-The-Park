@@ -42,8 +42,39 @@ model User {
   challengeEventsCreated ChallengeEvent[]      @relation("EventCreator")
   challengeParticipations ChallengeParticipant[]
   eventPhotos         EventPhoto[]       @relation("EventPhotoUploader")
+  pollsCreated        Poll[]             @relation("PollCreator")
+  pollVotes           PollVote[]         @relation("PollVoter")
 
   @@map("users")
+}
+
+model Poll {
+  id        String     @id @default(cuid())
+  question  String
+  options   Json       // string[] of choices
+  active    Boolean    @default(true)
+  createdBy String     @map("created_by")
+  createdAt DateTime   @default(now()) @map("created_at")
+
+  creator User       @relation("PollCreator", fields: [createdBy], references: [id])
+  votes   PollVote[]
+
+  @@map("polls")
+}
+
+model PollVote {
+  pollId      String   @map("poll_id")
+  userId      String   @map("user_id")
+  optionIndex Int      @map("option_index")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  poll Poll @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  user User @relation("PollVoter", fields: [userId], references: [id])
+
+  @@id([pollId, userId])
+  @@index([pollId])
+  @@map("poll_votes")
 }
 
 model Profile {

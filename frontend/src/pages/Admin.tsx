@@ -349,6 +349,82 @@ function MessagingPanel() {
   )
 }
 
+// Admin: create + manage the members' poll (e.g. what time to hold the next event).
+function PollAdminPanel() {
+  const [polls, setPolls] = useState<any[]>([])
+  const [question, setQuestion] = useState('When should we hold the next Challenger?')
+  const [options, setOptions] = useState<string[]>(['Saturday 9:00 AM', 'Saturday 12:00 PM', 'Saturday 4:00 PM', 'Sunday 12:00 PM'])
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState('')
+
+  const load = () => { api.adminListPolls().then(setPolls).catch(() => {}) }
+  useEffect(load, [])
+
+  const setOpt = (i: number, v: string) => setOptions(o => o.map((x, idx) => idx === i ? v : x))
+  const addOpt = () => setOptions(o => o.length < 8 ? [...o, ''] : o)
+  const removeOpt = (i: number) => setOptions(o => o.filter((_, idx) => idx !== i))
+
+  const create = async () => {
+    const opts = options.map(o => o.trim()).filter(Boolean)
+    if (!question.trim()) { setMsg('Add a question'); return }
+    if (opts.length < 2) { setMsg('Add at least two options'); return }
+    setBusy(true); setMsg('')
+    try {
+      await api.adminCreatePoll(question.trim(), opts)
+      setMsg('✓ Poll published — it\'s now live for members.')
+      load()
+    } catch (e: any) { setMsg('Error: ' + (e.message || 'could not create poll')) }
+    finally { setBusy(false) }
+  }
+
+  const toggle = async (p: any) => { await api.adminSetPollActive(p.id, !p.active).catch(() => {}); load() }
+  const del = async (p: any) => { if (confirm('Delete this poll and its votes?')) { await api.adminDeletePoll(p.id).catch(() => {}); load() } }
+
+  return (
+    <div>
+      <div className="card mb-4">
+        <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <h3 style={{ margin: 0, fontSize: 16 }}>New poll</h3>
+          <input value={question} onChange={e => setQuestion(e.target.value)} placeholder="Question" maxLength={300} />
+          {options.map((o, i) => (
+            <div key={i} className="flex gap-2">
+              <input value={o} onChange={e => setOpt(i, e.target.value)} placeholder={`Option ${i + 1}`} maxLength={120} style={{ flex: 1 }} />
+              {options.length > 2 && <button className="btn btn-ghost btn-sm" onClick={() => removeOpt(i)}>✕</button>}
+            </div>
+          ))}
+          {options.length < 8 && <button className="btn btn-ghost btn-sm" style={{ alignSelf: 'flex-start' }} onClick={addOpt}>+ Add option</button>}
+          <p className="text-xs text-muted" style={{ margin: 0 }}>Publishing a new poll closes any current one. It shows on the dashboard and (results only) on the home page.</p>
+          {msg && <p className="text-sm" style={{ color: msg.startsWith('Error') ? 'var(--red)' : 'var(--accent)', margin: 0 }}>{msg}</p>}
+          <button className="btn btn-primary btn-sm" disabled={busy} onClick={create} style={{ alignSelf: 'flex-start' }}>
+            {busy ? 'Publishing…' : 'Publish poll'}
+          </button>
+        </div>
+      </div>
+
+      {polls.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {polls.map(p => (
+            <div key={p.id} className="card" style={{ padding: 14 }}>
+              <div className="flex items-center justify-between" style={{ gap: 8, flexWrap: 'wrap' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="font-bold">{p.question}</div>
+                  <div className="text-xs text-muted">
+                    {p.active ? <span style={{ color: 'var(--accent)' }}>● Live</span> : 'Closed'} · {p.votes} vote{p.votes === 1 ? '' : 's'} · {(p.options || []).length} options
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button className="btn btn-secondary btn-sm" onClick={() => toggle(p)}>{p.active ? 'Close' : 'Reopen'}</button>
+                  <button className="btn btn-ghost btn-sm" style={{ color: 'var(--red)' }} onClick={() => del(p)}>Delete</button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // Parse pasted lines like "Jane Doe, jane@x.com" / "jane@x.com, Jane Doe" /
 // "Jane <jane@x.com>" / "jane@x.com" into { displayName, email } rows.
 function parseInviteRows(text: string): { displayName: string; email: string }[] {
@@ -467,7 +543,7 @@ function CreateUserPanel({ onCreated }: { onCreated: () => void }) {
 }
 
 export default function Admin() {
-  const [tab, setTab] = useState<'reports' | 'disputes' | 'users' | 'messaging'>('reports')
+  const [tab, setTab] = useState<'reports' | 'disputes' | 'users' | 'messaging' | 'polls'>('reports')
   const [reports, setReports] = useState<any[]>([])
   const [disputes, setDisputes] = useState<any[]>([])
   const [users, setUsers] = useState<any[]>([])
@@ -538,6 +614,9 @@ export default function Admin() {
         </button>
         <button className={`tab ${tab === 'messaging' ? 'active' : ''}`} onClick={() => setTab('messaging')}>
           Messaging
+        </button>
+        <button className={`tab ${tab === 'polls' ? 'active' : ''}`} onClick={() => setTab('polls')}>
+          Polls
         </button>
       </div>
 
@@ -643,6 +722,8 @@ export default function Admin() {
             ))}
           </div>
         )
+      ) : tab === 'polls' ? (
+        <PollAdminPanel />
       ) : tab === 'messaging' ? (
         <MessagingPanel />
       ) : (

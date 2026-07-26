@@ -4,6 +4,7 @@ import { useAuth } from '../store/auth'
 import { api } from '../lib/api'
 import SessionCard from '../components/SessionCard'
 import DisclaimerBox from '../components/DisclaimerBox'
+import PollWidget from '../components/PollWidget'
 import { format, addDays, formatDistanceToNow } from 'date-fns'
 import { formatDateTime, formatTime, getInitials } from '../lib/utils'
 import SkillDisplay from '../components/SkillDisplay'
@@ -113,6 +114,8 @@ export default function Dashboard() {
       </div>
 
       <DisclaimerBox showRotation />
+
+      <PollWidget />
 
       {/* Teaser → event results + photos live on each event's page */}
       <div
