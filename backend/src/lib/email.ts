@@ -126,6 +126,19 @@ export async function sendInviteEmail(email: string, displayName: string, tempPa
   `)
 }
 
+// Sent to members when an admin publishes a new poll.
+export async function sendPollEmail(email: string, displayName: string, question: string) {
+  await send(email, `🗳️ New poll: ${question}`, `
+    <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 24px;">
+      <h2 style="color: #7ffe4a;">We want your vote!</h2>
+      <p>Hi ${escapeHtml(displayName)}, there's a new poll on <strong>Tennis at the Park</strong>:</p>
+      <p style="font-size: 18px; font-weight: bold; color: #222;">${escapeHtml(question)}</p>
+      <p><a href="${SITE_URL}/dashboard" style="display:inline-block; background:#7ffe4a; color:#0d1117; text-decoration:none; font-weight:bold; padding:10px 18px; border-radius:8px;">Cast your vote →</a></p>
+      <p style="color: #888; font-size: 12px;">You're getting this because you have an account. Manage email preferences in your profile.</p>
+    </div>
+  `)
+}
+
 export async function sendAdminNewSignupEmail(displayName: string, email: string) {
   await send(ADMIN_EMAIL, `New signup: ${displayName}`, `
     <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 24px;">

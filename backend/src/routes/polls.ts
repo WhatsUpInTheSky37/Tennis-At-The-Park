@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma'
+import { shouldEmailUser, sendPollEmail } from '../lib/email'
 
 async function requireAdmin(req: any, reply: any) {
   if (!req.user?.isAdmin) return reply.status(403).send({ error: 'Admin only' })
@@ -52,9 +53,20 @@ export async function pollRoutes(server: FastifyInstance) {
     if (!body.success) return reply.status(400).send({ error: body.error.flatten() })
     const { userId } = (req as any).user
     await prisma.poll.updateMany({ where: { active: true }, data: { active: false } })
+    const question = body.data.question.trim()
     const poll = await prisma.poll.create({
-      data: { question: body.data.question.trim(), options: body.data.options.map(o => o.trim()), active: true, createdBy: userId }
+      data: { question, options: body.data.options.map(o => o.trim()), active: true, createdBy: userId }
     })
+
+    // Notify all members: in-app notification + email (respecting opt-out).
+    const users = await prisma.user.findMany({ select: { id: true, email: true, profile: { select: { displayName: true } } } })
+    await prisma.notification.createMany({
+      data: users.map(u => ({ userId: u.id, fromUserId: userId, type: 'poll', title: question, message: 'Cast your vote on the dashboard.', link: '/dashboard' }))
+    })
+    for (const u of users) {
+      if (await shouldEmailUser(u.id)) sendPollEmail(u.email, u.profile?.displayName || 'there', question)
+    }
+
     return reply.status(201).send({ id: poll.id })
   })
 
