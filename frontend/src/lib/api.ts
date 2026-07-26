@@ -107,6 +107,14 @@ export const api = {
     request<any>(`/matches/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
 
   // Leaderboards
+  // Polls
+  getActivePoll: () => request<{ id: string; question: string; options: string[]; counts: number[]; total: number; myVote: number | null } | null>('/polls/active'),
+  votePoll: (pollId: string, optionIndex: number) => request<any>(`/polls/${pollId}/vote`, { method: 'POST', body: JSON.stringify({ optionIndex }) }),
+  adminCreatePoll: (question: string, options: string[]) => request<{ id: string }>('/polls', { method: 'POST', body: JSON.stringify({ question, options }) }),
+  adminListPolls: () => request<any[]>('/polls'),
+  adminSetPollActive: (id: string, active: boolean) => request<{ ok: boolean }>(`/polls/${id}`, { method: 'PATCH', body: JSON.stringify({ active }) }),
+  adminDeletePoll: (id: string) => request<{ ok: boolean }>(`/polls/${id}`, { method: 'DELETE' }),
+
   getLeaderboards: () => request<any>('/leaderboards'),
   getStats: (userId: string) => request<any>(`/leaderboards/stats/${userId}`),
   getEventPointsLeaderboard: (limit?: number) =>

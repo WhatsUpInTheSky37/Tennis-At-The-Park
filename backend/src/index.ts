@@ -25,6 +25,7 @@ import { forumRoutes } from './routes/forum'
 import { dmRoutes } from './routes/dm'
 import { notificationRoutes } from './routes/notifications'
 import { articleRoutes } from './routes/articles'
+import { pollRoutes } from './routes/polls'
 import { uploadRoutes, UPLOADS_DIR } from './routes/uploads'
 
 const server = Fastify({ logger: true })
@@ -57,6 +58,7 @@ const apiRoutes = [
   { plugin: dmRoutes, prefix: '/dm' },
   { plugin: notificationRoutes, prefix: '/notifications' },
   { plugin: articleRoutes, prefix: '/articles' },
+  { plugin: pollRoutes, prefix: '/polls' },
   { plugin: uploadRoutes, prefix: '/uploads' },
 ]
 
