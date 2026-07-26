@@ -26,7 +26,7 @@ export async function playerRoutes(server: FastifyInstance) {
     const profiles = await prisma.profile.findMany({
       where,
       include: { user: { select: { id: true, lastActive: true, rating: true } } },
-      take: 30
+      take: 500
     })
 
     // Attach challenge podium medals (gold/silver/bronze) from completed events.

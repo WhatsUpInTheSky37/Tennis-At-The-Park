@@ -28,6 +28,26 @@ export default function FindPlayers() {
         <p className="page-subtitle">All registered players</p>
       </div>
 
+      {!loading && players.length > 0 && (
+        <div className="card mb-4" style={{
+          display: 'flex', alignItems: 'center', gap: 16, padding: '18px 22px',
+          background: 'linear-gradient(135deg, var(--accent-dim), transparent)',
+          border: '1px solid var(--accent)'
+        }}>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(40px, 11vw, 56px)', lineHeight: 1, color: 'var(--accent)' }}>
+            {players.length}
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontWeight: 800, letterSpacing: 1.5, textTransform: 'uppercase', fontSize: 15 }}>Members &amp; growing 🎾</div>
+            <div className="text-sm text-muted">
+              {players.filter(isOnline).length > 0
+                ? `${players.filter(isOnline).length} online now — say hi!`
+                : 'Join a session and get on the board.'}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="card mb-4" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <label className="form-label" style={{ margin: 0, whiteSpace: 'nowrap' }}>Sort by</label>
         <select value={sortBy} onChange={e => setSortBy(e.target.value as any)} style={{ width: 'auto' }}>
